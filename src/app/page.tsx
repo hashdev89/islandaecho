@@ -501,8 +501,8 @@ export default function HomePage() {
         <div className="absolute inset-0 sigiriya-bg bg-cover bg-center"></div>
         
         
-        <div className="relative max-w-50xl mx-auto px-4 sm:px-6 lg:px-8 py-24 items-center">
-          <div className="text-center animate-fade-in-up mb-12">
+        <div className="relative max-w-50xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-24 items-center">
+          <div className="text-center animate-fade-in-up mb-8 sm:mb-12">
             <WordSlider 
               words={[
                 'Plan Your Next Trip',
@@ -512,13 +512,13 @@ export default function HomePage() {
               ]}
               interval={5000}
             />
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-white/90">With us for a better experience</p>
+            <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 max-w-3xl mx-auto text-white/90 px-4">With us for a better experience</p>
           </div>
           
           {/* Search Section */}
-          <div className="w-full max-w-4xl mx-auto animate-fade-in-up delay-100 pb-20">
+          <div className="w-full max-w-4xl mx-auto animate-fade-in-up delay-100 pb-12 sm:pb-20 px-4">
               {/* Search Tabs */}
-              <div className="flex space-x-1 mb-6 justify-center">
+              <div className="flex flex-wrap gap-2 sm:gap-1 mb-4 sm:mb-6 justify-center">
                 {[
                 { id: 'tours', label: 'Tours' },
                 { id: 'plan-trip', label: 'Plan Your Trip' },
@@ -528,7 +528,7 @@ export default function HomePage() {
                     key={tab.id}
                     onClick={() => setSearchTab(tab.id)}
                   style={searchTab === tab.id ? { color: '#fff', borderBottom: '2px solid #fff' } : { color: 'rgba(255,255,255,0.7)' }}
-                  className={`px-6 py-3 font-medium transition-all duration-200 ${searchTab === tab.id ? 'border-b-2' : 'hover:text-white'}`}
+                  className={`px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-medium transition-all duration-200 ${searchTab === tab.id ? 'border-b-2' : 'hover:text-white'}`}
                   >
                   {tab.label}
                   </button>
@@ -536,19 +536,19 @@ export default function HomePage() {
               </div>
             
                              {/* Search Form */}
-             <div className="rounded-2xl shadow-2xl p-8 backdrop-blur-lg border bg-white/60 dark:bg-gray-800">
+             <div className="rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 backdrop-blur-lg border bg-white/60 dark:bg-gray-800">
                {searchTab === 'tours' && (
                  <>
-                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                      {/* Tour Package */}
                      <div className="relative">
-                       <label className="block text-sm font-medium mb-2 text-blue-950 dark:text-white">Tour Package</label>
+                       <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Tour Package</label>
                        <div className="relative">
                          <select
                            value={searchData.tourPackage}
                            onChange={(e) => setSearchData({...searchData, tourPackage: e.target.value})}
                          style={{ background: colors.primary[50], color: colors.text.base, borderColor: colors.primary[100] }}
-                           className="w-full pl-4 pr-10 py-4 border rounded-lg bg-white/60 dark:bg-gray-800 transition-colors"
+                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-sm sm:text-base border rounded-lg bg-white/60 dark:bg-gray-800 transition-colors"
                          >
                            <option value="">Select Your Package</option>
                            {tourPackages.map((tourPackage) => (
@@ -561,39 +561,39 @@ export default function HomePage() {
                      
                      {/* Start Date */}
                      <div className="relative">
-                       <label className="text-blue-950 dark:text-white">Start Date</label>
+                       <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Start Date</label>
                        <input
                          type="date"
                          value={searchData.startDate}
                          onChange={(e) => setSearchData({...searchData, startDate: e.target.value})}
                          style={{ background: colors.primary[50], color: colors.text.base, borderColor: colors.primary[100] }}
-                         className="w-full px-4 py-4 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors"
+                         className="w-full px-3 sm:px-4 py-3 sm:py-4 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors"
                          min={new Date().toISOString().split('T')[0]}
                        />
                      </div>
                      
                      {/* End Date */}
                      <div className="relative">
-                       <label style={{ color: colors.text.base }} className="block text-sm font-medium mb-2">End Date</label>
+                       <label style={{ color: colors.text.base }} className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2">End Date</label>
                        <input
                          type="date"
                          value={searchData.endDate}
                          onChange={(e) => setSearchData({...searchData, endDate: e.target.value})}
                          style={{ background: colors.primary[50], color: colors.text.base, borderColor: colors.primary[100] }}
-                         className="w-full px-4 py-4 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors"
+                         className="w-full px-3 sm:px-4 py-3 sm:py-4 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors"
                          min={searchData.startDate || new Date().toISOString().split('T')[0]}
                        />
                      </div>
                      
                      {/* Number of Guests */}
                      <div className="relative">
-                       <label style={{ color: colors.text.base }} className="block text-sm font-medium mb-2">Number of Guests</label>
+                       <label style={{ color: colors.text.base }} className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2">Number of Guests</label>
                        <div className="relative">
                          <select
                            value={searchData.guests}
                            onChange={(e) => setSearchData({...searchData, guests: parseInt(e.target.value)})}
                            style={{ background: colors.primary[50], color: colors.text.base, borderColor: colors.primary[100] }}
-                           className="w-full pl-4 pr-10 py-4 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors"
+                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors"
                          >
                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                              <option key={num} value={num}>{num} {num === 1 ? 'Guest' : 'Guests'}</option>
@@ -605,13 +605,13 @@ export default function HomePage() {
                    </div>
                    
                    {/* Search Button */}
-                   <div className="flex justify-center mt-6">
+                   <div className="flex justify-center mt-4 sm:mt-6">
                      <button 
                        onClick={handleSearch}
                        style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} 
-                       className="text-white px-8 py-4 rounded-lg font-semibold text-lg hover:opacity-90 transition-all flex items-center space-x-2 shadow-lg"
+                       className="text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:opacity-90 transition-all flex items-center space-x-2 shadow-lg w-full sm:w-auto"
                      >
-                     <Search className="w-5 h-5" />
+                     <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                      <span>Search</span>
                      </button>
                    </div>
@@ -620,10 +620,10 @@ export default function HomePage() {
 
                                {searchTab === 'plan-trip' && (
                   <>
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
                       {/* Destinations Selection */}
                       <div className="lg:col-span-2">
-                        <label style={{ color: colors.text.base }} className="block text-sm font-medium mb-2">Destinations</label>
+                        <label style={{ color: colors.text.base }} className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2">Destinations</label>
                         <div className="relative">
                           <select
                             onChange={(e) => {
@@ -672,10 +672,10 @@ export default function HomePage() {
                       </div>
 
                       {/* Trip Details */}
-                      <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 z-20">
+                      <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4 z-20">
                         {/* Date Range */}
                         <div className="relative">
-                          <label style={{ color: colors.text.base }} className="block text-sm font-medium mb-2">Date Range</label>
+                          <label style={{ color: colors.text.base }} className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2">Date Range</label>
                           <button
                             type="button"
                             onClick={() => setShowDatePicker(!showDatePicker)}
@@ -687,7 +687,7 @@ export default function HomePage() {
                           
                           {/* Date Picker Popup */}
                           {showDatePicker && (
-                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-0 p-4 min-w-[280px]">
+                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-0 p-3 sm:p-4 min-w-[280px] max-w-[90vw] sm:max-w-none">
                               {/* Calendar Header */}
                               <div className="flex items-center justify-between mb-4">
                                 <button
@@ -869,24 +869,24 @@ export default function HomePage() {
       </section>
 
       {/* Featured Destinations */}
-      <section className="py-12 bg-white dark:bg-gray-900">
+      <section className="py-8 sm:py-12 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex overflow-x-auto space-x-4 pb-4 scrollbar-hide">
+          <div className="flex overflow-x-auto space-x-3 sm:space-x-4 pb-4 scrollbar-hide px-2 sm:px-0">
             {featuredDestinations.map((destination, index) => (
-              <div key={index} className="flex-shrink-0 w-56">
+              <div key={index} className="flex-shrink-0 w-48 sm:w-56">
                 <div className="relative rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
                   <Image
                     src={destination.image}
                     alt={destination.name}
                     width={224}
                     height={128}
-                    className="w-full h-32 object-cover"
+                    className="w-full h-28 sm:h-32 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-3 left-3">
-                    <h3 className="text-white text-base font-semibold">{destination.name}</h3>
+                  <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
+                    <h3 className="text-white text-sm sm:text-base font-semibold">{destination.name}</h3>
                   </div>
-          </div>
+                </div>
               </div>
             ))}
           </div>
@@ -1055,43 +1055,45 @@ export default function HomePage() {
       </section>
 
       {/* Featured Tour Packages */}
-      <section className="py-12 bg-white dark:bg-gray-900">
+      <section className="py-8 sm:py-12 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold mb-8 text-gray-900 dark:text-white">Featured Tour Packages</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-6 sm:mb-8 text-gray-900 dark:text-white">Featured Tour Packages</h2>
           <div className="relative">
-            {/* Navigation Arrows */}
+            {/* Navigation Arrows - Hidden on mobile, visible on larger screens */}
             <button 
               onClick={() => {
                 const container = document.getElementById('tour-slider');
                 if (container) {
-                  container.scrollLeft -= 320; // Width of one card + gap
+                  const cardWidth = window.innerWidth < 640 ? 280 : 320; // Mobile vs desktop card width
+                  container.scrollLeft -= cardWidth + 24; // Width of one card + gap
                 }
               }}
-              className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
+              className="hidden sm:flex absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full shadow-lg items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
             >
-              <ArrowRight className="w-5 h-5 text-gray-600 transform rotate-180" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 transform rotate-180" />
             </button>
             
             <button 
               onClick={() => {
                 const container = document.getElementById('tour-slider');
                 if (container) {
-                  container.scrollLeft += 320; // Width of one card + gap
+                  const cardWidth = window.innerWidth < 640 ? 280 : 320; // Mobile vs desktop card width
+                  container.scrollLeft += cardWidth + 24; // Width of one card + gap
                 }
               }}
-              className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
+              className="hidden sm:flex absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full shadow-lg items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
             >
-              <ArrowRight className="w-5 h-5 text-gray-600" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
 
             {/* Slider Container */}
             <div 
               id="tour-slider"
-              className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide scroll-smooth"
+              className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide scroll-smooth px-2 sm:px-0"
               style={{ scrollBehavior: 'smooth' }}
             >
               {tourPackages.map((tour, index) => (
-                <div key={index} className="flex-shrink-0 w-80">
+                <div key={index} className="flex-shrink-0 w-72 sm:w-80">
                   <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
                     <div className="relative">
                       <Image
@@ -1099,27 +1101,27 @@ export default function HomePage() {
                         alt={tour.name}
                         width={320}
                         height={192}
-                        className="w-full h-48 object-cover"
+                        className="w-full h-40 sm:h-48 object-cover"
                       />
-                      <div style={{ background: '#A0FF07' }} className="absolute top-3 left-3 text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
+                      <div style={{ background: '#A0FF07' }} className="absolute top-2 sm:top-3 left-2 sm:left-3 text-gray-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold">
                         {tour.badge}
                       </div>
-                      <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors">
-                        <Heart className="w-4 h-4 text-gray-600" />
+                      <button className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors">
+                        <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
                       </button>
                     </div>
-                    <div className="p-5">
-                      <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white line-clamp-2">{tour.name}</h3>
-                      <p className="text-gray-600 text-sm mb-3">{tour.duration}</p>
+                    <div className="p-4 sm:p-5">
+                      <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900 dark:text-white line-clamp-2">{tour.name}</h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-3">{tour.duration}</p>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{tour.rating} Excellent</span>
-                          <span className="text-gray-500 text-sm">({tour.reviews})</span>
+                          <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" />
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{tour.rating} Excellent</span>
+                          <span className="text-gray-500 text-xs sm:text-sm">({tour.reviews})</span>
                         </div>
                       </div>
                       <div className="mb-3">
-                        <p className="text-sm text-gray-600 mb-2">Destinations:</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2">Destinations:</p>
                         <div className="flex flex-wrap gap-1">
                           {tour.destinations.slice(0, 2).map((dest, idx) => (
                             <span key={idx} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
@@ -1134,14 +1136,14 @@ export default function HomePage() {
                       <div className="flex items-center justify-between gap-2">
                         <button 
                           onClick={() => window.location.href = `/tours/${tour.id}`}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex-1"
+                          className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors flex-1"
                         >
                           View Details
                         </button>
                         <button 
                           onClick={() => window.location.href = `/tours/${tour.id}`}
                           style={{ background: '#CAFA7C' }}
-                          className="text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-colors flex-1"
+                          className="text-gray-900 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:opacity-90 transition-colors flex-1"
                         >
                           Book
                         </button>
@@ -1152,18 +1154,19 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Dots Indicator */}
-            <div className="flex justify-center mt-6 space-x-2">
+            {/* Dots Indicator - Responsive */}
+            <div className="flex justify-center mt-4 sm:mt-6 space-x-2">
               {[0, 1, 2, 3, 4].map((dot, index) => (
                 <button
                   key={index}
                   onClick={() => {
                     const container = document.getElementById('tour-slider');
                     if (container) {
-                      container.scrollLeft = index * 320; // Width of one card + gap
+                      const cardWidth = window.innerWidth < 640 ? 280 : 320; // Mobile vs desktop card width
+                      container.scrollLeft = index * (cardWidth + 24); // Width of one card + gap
                     }
                   }}
-                  className="w-3 h-3 rounded-full bg-gray-300 hover:bg-blue-600 transition-colors"
+                  className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gray-300 hover:bg-blue-600 transition-colors"
                 />
               ))}
             </div>
@@ -1480,27 +1483,27 @@ export default function HomePage() {
       </section>
 
       {/* Destinations We Love */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-800">
+      <section className="py-12 sm:py-16 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                      <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Destinations we love</h2>
-          <div className="flex flex-wrap gap-3 mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-gray-900 dark:text-white">Destinations we love</h2>
+          <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
             {['All Sri Lanka', 'Cultural Triangle', 'Hill Country', 'Beach Destinations'].map((filter, index) => (
               <button
                 key={filter}
-                className={`px-6 py-3 rounded-full border transition-all font-medium ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-full border transition-all font-medium text-sm sm:text-base ${
                   index === 0 
                     ? 'bg-blue-600 text-white border-blue-600' 
                     : 'border-gray-300 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600'
                 }`}
               >
                 {filter}
-            </button>
+              </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {destinationsWeLove.map((destination, index) => (
-              <div key={index} className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
-                <div className="w-16 h-16 mx-auto mb-3 rounded-lg overflow-hidden">
+              <div key={index} className="text-center p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 rounded-lg overflow-hidden">
                   <Image
                     src={destination.image}
                     alt={destination.name}
@@ -1509,8 +1512,8 @@ export default function HomePage() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">{destination.name}</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{destination.tours} tours available</p>
+                <h3 className="font-semibold mb-1 sm:mb-2 text-gray-900 dark:text-white text-sm sm:text-base">{destination.name}</h3>
+                <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">{destination.tours} tours available</p>
               </div>
             ))}
           </div>
@@ -1551,10 +1554,10 @@ export default function HomePage() {
       </section>
 
       {/* Travel Interests Section - Inspired by Lonely Planet */}
-      <section className="py-16 bg-white dark:bg-gray-900">
+      <section className="py-12 sm:py-16 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                      <h2 className="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-white">Travel Interests</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center text-gray-900 dark:text-white">Travel Interests</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
             {[
               { name: "Adventure Travel", icon: "🏔️", color: "bg-orange-100 text-orange-800" },
               { name: "Art and Culture", icon: "🎨", color: "bg-purple-100 text-purple-800" },
@@ -1569,10 +1572,10 @@ export default function HomePage() {
               { name: "Wildlife & Nature", icon: "🦁", color: "bg-amber-100 text-amber-800" }
             ].map((interest, index) => (
               <div key={index} className="text-center group cursor-pointer">
-                <div className={`w-16 h-16 ${interest.color} rounded-full flex items-center justify-center mx-auto mb-3 text-2xl group-hover:scale-110 transition-transform`}>
+                <div className={`w-12 h-12 sm:w-16 sm:h-16 ${interest.color} rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 text-lg sm:text-2xl group-hover:scale-110 transition-transform`}>
                   {interest.icon}
                 </div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
                   {interest.name}
                 </h3>
               </div>
