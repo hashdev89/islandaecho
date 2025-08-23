@@ -72,10 +72,47 @@ export default function HomePage() {
       price: '$899',
       destinations: ['Sigiriya', 'Dambulla', 'Polonnaruwa', 'Anuradhapura'],
       highlights: ['UNESCO Sites', 'Ancient Temples', 'Historical Monuments'],
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+      image: '/sigiriya.jpeg',
       rating: 4.9,
       reviews: 156,
-      badge: 'MOST POPULAR'
+      badge: 'MOST POPULAR',
+      itinerary: [
+        {
+          day: 1,
+          title: 'Arrival & Colombo Transfer',
+          locations: ['Colombo Airport', 'Colombo City'],
+          activities: ['Airport pickup', 'Colombo city tour', 'Gangaramaya Temple', 'Independence Square'],
+          accommodation: 'Colombo Hotel'
+        },
+        {
+          day: 2,
+          title: 'Journey to Cultural Triangle',
+          locations: ['Dambulla', 'Sigiriya'],
+          activities: ['Dambulla Cave Temple', 'Sigiriya Rock Fortress', 'Sunset at Sigiriya'],
+          accommodation: 'Sigiriya Hotel'
+        },
+        {
+          day: 3,
+          title: 'Ancient Capitals',
+          locations: ['Polonnaruwa', 'Anuradhapura'],
+          activities: ['Polonnaruwa Ancient City', 'Anuradhapura Sacred City', 'Sri Maha Bodhi'],
+          accommodation: 'Anuradhapura Hotel'
+        },
+        {
+          day: 4,
+          title: 'Sacred Sites',
+          locations: ['Anuradhapura', 'Mihintale'],
+          activities: ['Mihintale Sacred Mountain', 'Ruwanwelisaya Stupa', 'Jetavanaramaya'],
+          accommodation: 'Anuradhapura Hotel'
+        },
+        {
+          day: 5,
+          title: 'Return Journey',
+          locations: ['Anuradhapura', 'Colombo'],
+          activities: ['Morning temple visit', 'Return to Colombo', 'Shopping at Pettah Market'],
+          accommodation: 'Departure'
+        }
+      ]
     },
     {
       id: 'hill-country',
@@ -87,7 +124,51 @@ export default function HomePage() {
       image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
       rating: 4.8,
       reviews: 89,
-      badge: 'BEST VALUE'
+      badge: 'BEST VALUE',
+      itinerary: [
+        {
+          day: 1,
+          title: 'Arrival & Kandy',
+          locations: ['Colombo Airport', 'Kandy'],
+          activities: ['Airport pickup', 'Temple of the Tooth', 'Cultural dance show'],
+          accommodation: 'Kandy Hotel'
+        },
+        {
+          day: 2,
+          title: 'Kandy to Nuwara Eliya',
+          locations: ['Kandy', 'Nuwara Eliya'],
+          activities: ['Botanical Gardens', 'Tea factory visit', 'Gregory Lake'],
+          accommodation: 'Nuwara Eliya Hotel'
+        },
+        {
+          day: 3,
+          title: 'Tea Country',
+          locations: ['Nuwara Eliya', 'Tea Plantations'],
+          activities: ['Tea plantation tour', 'Horton Plains', 'World\'s End'],
+          accommodation: 'Nuwara Eliya Hotel'
+        },
+        {
+          day: 4,
+          title: 'Train to Ella',
+          locations: ['Nuwara Eliya', 'Ella'],
+          activities: ['Scenic train journey', 'Ella Rock hike', 'Nine Arch Bridge'],
+          accommodation: 'Ella Hotel'
+        },
+        {
+          day: 5,
+          title: 'Ella Adventures',
+          locations: ['Ella', 'Surrounding areas'],
+          activities: ['Little Adam\'s Peak', 'Ravana Falls', 'Local village tour'],
+          accommodation: 'Ella Hotel'
+        },
+        {
+          day: 6,
+          title: 'Return Journey',
+          locations: ['Ella', 'Colombo'],
+          activities: ['Morning hike', 'Return to Colombo', 'Farewell dinner'],
+          accommodation: 'Departure'
+        }
+      ]
     },
     {
       id: 'beach-paradise',
@@ -99,7 +180,58 @@ export default function HomePage() {
       image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
       rating: 4.7,
       reviews: 134,
-      badge: 'TRENDING'
+      badge: 'TRENDING',
+      itinerary: [
+        {
+          day: 1,
+          title: 'Arrival & Galle',
+          locations: ['Colombo Airport', 'Galle'],
+          activities: ['Airport pickup', 'Galle Fort tour', 'Sunset at Fort'],
+          accommodation: 'Galle Hotel'
+        },
+        {
+          day: 2,
+          title: 'Galle Fort',
+          locations: ['Galle Fort'],
+          activities: ['Fort walking tour', 'Lighthouse visit', 'Boutique shopping'],
+          accommodation: 'Galle Hotel'
+        },
+        {
+          day: 3,
+          title: 'Mirissa Beach',
+          locations: ['Galle', 'Mirissa'],
+          activities: ['Mirissa beach', 'Whale watching', 'Beach relaxation'],
+          accommodation: 'Mirissa Hotel'
+        },
+        {
+          day: 4,
+          title: 'Whale Watching',
+          locations: ['Mirissa'],
+          activities: ['Early whale watching', 'Beach activities', 'Seafood dinner'],
+          accommodation: 'Mirissa Hotel'
+        },
+        {
+          day: 5,
+          title: 'Bentota',
+          locations: ['Mirissa', 'Bentota'],
+          activities: ['Bentota beach', 'Water sports', 'River cruise'],
+          accommodation: 'Bentota Hotel'
+        },
+        {
+          day: 6,
+          title: 'Hikkaduwa',
+          locations: ['Bentota', 'Hikkaduwa'],
+          activities: ['Coral reef snorkeling', 'Beach activities', 'Nightlife'],
+          accommodation: 'Hikkaduwa Hotel'
+        },
+        {
+          day: 7,
+          title: 'Return Journey',
+          locations: ['Hikkaduwa', 'Colombo'],
+          activities: ['Morning beach time', 'Return to Colombo', 'Shopping'],
+          accommodation: 'Departure'
+        }
+      ]
     },
     {
       id: 'wildlife-safari',
@@ -111,7 +243,37 @@ export default function HomePage() {
       image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
       rating: 4.9,
       reviews: 67,
-      badge: 'ADVENTURE'
+      badge: 'ADVENTURE',
+      itinerary: [
+        {
+          day: 1,
+          title: 'Arrival & Yala',
+          locations: ['Colombo Airport', 'Yala'],
+          activities: ['Airport pickup', 'Evening safari', 'Wildlife spotting'],
+          accommodation: 'Yala Safari Lodge'
+        },
+        {
+          day: 2,
+          title: 'Yala Safari',
+          locations: ['Yala National Park'],
+          activities: ['Morning safari', 'Leopard tracking', 'Bird watching'],
+          accommodation: 'Yala Safari Lodge'
+        },
+        {
+          day: 3,
+          title: 'Udawalawe',
+          locations: ['Yala', 'Udawalawe'],
+          activities: ['Udawalawe safari', 'Elephant watching', 'Nature photography'],
+          accommodation: 'Udawalawe Hotel'
+        },
+        {
+          day: 4,
+          title: 'Sinharaja & Return',
+          locations: ['Udawalawe', 'Sinharaja', 'Colombo'],
+          activities: ['Sinharaja forest walk', 'Return to Colombo'],
+          accommodation: 'Departure'
+        }
+      ]
     },
     {
       id: 'complete-sri-lanka',
@@ -123,7 +285,93 @@ export default function HomePage() {
       image: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
       rating: 4.8,
       reviews: 45,
-      badge: 'PREMIUM'
+      badge: 'PREMIUM',
+      itinerary: [
+        {
+          day: 1,
+          title: 'Arrival & Colombo',
+          locations: ['Colombo Airport', 'Colombo'],
+          activities: ['Airport pickup', 'Colombo city tour', 'Welcome dinner'],
+          accommodation: 'Colombo Hotel'
+        },
+        {
+          day: 2,
+          title: 'Cultural Triangle',
+          locations: ['Colombo', 'Sigiriya'],
+          activities: ['Sigiriya Rock Fortress', 'Dambulla Cave Temple'],
+          accommodation: 'Sigiriya Hotel'
+        },
+        {
+          day: 3,
+          title: 'Ancient Capitals',
+          locations: ['Polonnaruwa', 'Anuradhapura'],
+          activities: ['Polonnaruwa Ancient City', 'Anuradhapura Sacred City'],
+          accommodation: 'Anuradhapura Hotel'
+        },
+        {
+          day: 4,
+          title: 'Kandy',
+          locations: ['Anuradhapura', 'Kandy'],
+          activities: ['Temple of the Tooth', 'Cultural dance show'],
+          accommodation: 'Kandy Hotel'
+        },
+        {
+          day: 5,
+          title: 'Hill Country',
+          locations: ['Kandy', 'Nuwara Eliya'],
+          activities: ['Botanical Gardens', 'Tea factory visit'],
+          accommodation: 'Nuwara Eliya Hotel'
+        },
+        {
+          day: 6,
+          title: 'Tea Country',
+          locations: ['Nuwara Eliya'],
+          activities: ['Tea plantation tour', 'Horton Plains'],
+          accommodation: 'Nuwara Eliya Hotel'
+        },
+        {
+          day: 7,
+          title: 'Ella',
+          locations: ['Nuwara Eliya', 'Ella'],
+          activities: ['Scenic train journey', 'Ella Rock hike'],
+          accommodation: 'Ella Hotel'
+        },
+        {
+          day: 8,
+          title: 'Yala Safari',
+          locations: ['Ella', 'Yala'],
+          activities: ['Yala National Park safari', 'Wildlife spotting'],
+          accommodation: 'Yala Safari Lodge'
+        },
+        {
+          day: 9,
+          title: 'Galle',
+          locations: ['Yala', 'Galle'],
+          activities: ['Galle Fort tour', 'Beach relaxation'],
+          accommodation: 'Galle Hotel'
+        },
+        {
+          day: 10,
+          title: 'Mirissa',
+          locations: ['Galle', 'Mirissa'],
+          activities: ['Whale watching', 'Beach activities'],
+          accommodation: 'Mirissa Hotel'
+        },
+        {
+          day: 11,
+          title: 'Bentota',
+          locations: ['Mirissa', 'Bentota'],
+          activities: ['Water sports', 'River cruise'],
+          accommodation: 'Bentota Hotel'
+        },
+        {
+          day: 12,
+          title: 'Return',
+          locations: ['Bentota', 'Colombo'],
+          activities: ['Beach time', 'Return to Colombo', 'Farewell'],
+          accommodation: 'Departure'
+        }
+      ]
     }
   ]
 
@@ -314,6 +562,9 @@ export default function HomePage() {
 
   const [selectedLocation, setSelectedLocation] = useState(sriLankaLocations[17]) // Default to Chilaw (id: 18)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [selectedTourPackage, setSelectedTourPackage] = useState<any>(null)
+  const [showTourModal, setShowTourModal] = useState(false)
+  const [currentSlide, setCurrentSlide] = useState(0)
 
   const handleSearch = () => {
     if (searchData.tourPackage) {
@@ -340,6 +591,43 @@ export default function HomePage() {
     // Navigate to custom booking page
     window.location.href = '/custom-booking'
   }
+
+  const handleTourPackageSelect = (tourPackage: any) => {
+    setSelectedTourPackage(tourPackage)
+    setShowTourModal(true)
+  }
+
+  const handleViewTourDetails = (tourId: string) => {
+    window.location.href = `/tours/${tourId}`
+  }
+
+  // Manual scroll detection for tour packages slider
+  useEffect(() => {
+    const container = document.getElementById('tour-slider');
+    if (!container) return;
+
+    const handleScroll = () => {
+      const cardWidth = window.innerWidth < 640 ? 288 : 320; // Mobile vs desktop card width (including gap)
+      const scrollPosition = container.scrollLeft;
+      const newSlide = Math.round(scrollPosition / cardWidth);
+      setCurrentSlide(Math.max(0, Math.min(newSlide, tourPackages.length - 1)));
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [tourPackages.length]);
+
+  // Function to navigate to specific slide
+  const goToSlide = (slideIndex: number) => {
+    const container = document.getElementById('tour-slider');
+    if (container) {
+      const cardWidth = window.innerWidth < 640 ? 288 : 320; // Mobile vs desktop card width (including gap)
+      container.scrollLeft = slideIndex * cardWidth;
+      setCurrentSlide(slideIndex);
+    }
+  };
+
+
 
   const handleDestinationToggle = (destinationId: string) => {
     setCustomTripData(prev => ({
@@ -539,7 +827,7 @@ export default function HomePage() {
              <div className="rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 backdrop-blur-lg border bg-white/60 dark:bg-gray-800">
                {searchTab === 'tours' && (
                  <>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                      {/* Tour Package */}
                      <div className="relative">
                        <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Tour Package</label>
@@ -552,11 +840,15 @@ export default function HomePage() {
                          >
                            <option value="">Select Your Package</option>
                            {tourPackages.map((tourPackage) => (
-                             <option key={tourPackage.id} value={tourPackage.id}>{tourPackage.name}</option>
+                             <option key={tourPackage.id} value={tourPackage.id}>
+                               {tourPackage.name}
+                             </option>
                            ))}
                          </select>
-                         <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: colors.primary[500] }} />
+                         
                        </div>
+                       
+
                      </div>
                      
                      {/* Start Date */}
@@ -572,22 +864,11 @@ export default function HomePage() {
                        />
                      </div>
                      
-                     {/* End Date */}
-                     <div className="relative">
-                       <label style={{ color: colors.text.base }} className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2">End Date</label>
-                       <input
-                         type="date"
-                         value={searchData.endDate}
-                         onChange={(e) => setSearchData({...searchData, endDate: e.target.value})}
-                         style={{ background: colors.primary[50], color: colors.text.base, borderColor: colors.primary[100] }}
-                         className="w-full px-3 sm:px-4 py-3 sm:py-4 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors"
-                         min={searchData.startDate || new Date().toISOString().split('T')[0]}
-                       />
-                     </div>
+        
                      
                      {/* Number of Guests */}
                      <div className="relative">
-                       <label style={{ color: colors.text.base }} className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2">Number of Guests</label>
+                     <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Number of Guests</label>
                        <div className="relative">
                          <select
                            value={searchData.guests}
@@ -603,6 +884,52 @@ export default function HomePage() {
                        </div>
                      </div>
                    </div>
+                   
+                   {/* Tour Package Summary */}
+                   {searchData.tourPackage && (
+                     <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                       {(() => {
+                         const selectedTour = tourPackages.find(tour => tour.id === searchData.tourPackage);
+                         if (!selectedTour) return null;
+                         
+                         return (
+                           <div className="space-y-4">
+                             {/* Tour Info */}
+                             <div className="flex items-center justify-between">
+                               <div>
+                                 <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100">{selectedTour.name}</h3>
+                                 <p className="text-blue-600 dark:text-blue-400 font-medium">{selectedTour.duration}</p>
+                               </div>
+                               <div className="text-right">
+                                 <div className="flex items-center space-x-1">
+                                   <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                   <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">{selectedTour.rating}</span>
+                                 </div>
+                                 <p className="text-xs text-blue-600 dark:text-blue-400">({selectedTour.reviews} reviews)</p>
+                               </div>
+                             </div>
+                             
+                             {/* Location Summary */}
+                             <div>
+                               <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center">
+                                 <span className="mr-2">🗺️</span>
+                                 Tour Locations
+                               </h4>
+                               <div className="flex flex-wrap gap-2">
+                                 {selectedTour.destinations.map((destination, idx) => (
+                                   <span key={idx} className="bg-white dark:bg-blue-800 text-blue-700 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-medium shadow-sm">
+                                     {destination}
+                                   </span>
+                                 ))}
+                               </div>
+                             </div>
+                             
+
+                           </div>
+                         );
+                       })()}
+                     </div>
+                   )}
                    
                    {/* Search Button */}
                    <div className="flex justify-center mt-4 sm:mt-6">
@@ -841,63 +1168,177 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Newsletter Signup Section */}
-      <section style={{ background: '#1E3A8A' }} className="py-6">
+
+
+      
+      {/* Featured Tour Packages */}
+      <section className="py-8 sm:py-12 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mr-3">
-                <Mail className="w-4 h-4 text-white" />
+          <h2 className="pr-5 text-xl sm:text-2xl font-bold mb-6 sm:mb-8 text-gray-900 dark:text-white">Featured Tour Packages</h2>
+          <div className="relative">
+            {/* Navigation Arrows - Hidden on mobile, visible on larger screens */}
+            
+          
+
+            {/* Slider Container */}
+            <div 
+              id="tour-slider"
+              className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide scroll-smooth px-2 sm:px-0"
+              style={{ scrollBehavior: 'smooth' }}
+            >
+              {tourPackages.map((tour, index) => (
+                <div key={index} className="flex-shrink-0 w-72 sm:w-80">
+                  <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
+                    <div className="relative">
+                      <Image
+                        src={tour.image}
+                        alt={tour.name}
+                        width={320}
+                        height={192}
+                        className="w-full h-40 sm:h-48 object-cover"
+                      />
+                      <div style={{ background: '#A0FF07' }} className="absolute top-2 sm:top-3 left-2 sm:left-3 text-gray-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold">
+                        {tour.badge}
               </div>
-              <div>
-                <h3 className="text-white text-lg font-semibold">Get Travel Inspiration & Special Offers</h3>
-                <p className="text-white/80 text-sm">Subscribe for exclusive tour deals and travel tips</p>
+                      <button className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors">
+                        <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                      </button>
               </div>
+                    <div className="p-4 sm:p-5">
+                      <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900 dark:text-white line-clamp-2">{tour.name}</h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-3">{tour.duration}</p>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-1">
+                          <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" />
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{tour.rating} Excellent</span>
+                          <span className="text-gray-500 text-xs sm:text-sm">({tour.reviews})</span>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <input
-                type="email"
-                placeholder="Your Email"
-                className="px-4 py-3 rounded-lg border-0 focus:ring-2 focus:ring-white focus:ring-opacity-50 text-gray-900"
-              />
-              <button style={{ background: '#A0FF07' }} className="text-gray-900 px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-all">
-                Subscribe
+            </div>
+                      <div className="mb-3">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2">Destinations:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {tour.destinations.slice(0, 2).map((dest, idx) => (
+                            <span key={idx} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                              {dest}
+                            </span>
+                          ))}
+                          {tour.destinations.length > 2 && (
+                            <span className="text-gray-500 text-xs">+{tour.destinations.length - 2} more</span>
+                          )}
+          </div>
+        </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <button 
+                          onClick={() => handleTourPackageSelect(tour)}
+                          className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors flex-1"
+                        >
+                          View Summary
+                        </button>
+                        <button 
+                          onClick={() => handleViewTourDetails(tour.id)}
+                          style={{ background: '#CAFA7C' }}
+                          className="text-gray-900 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:opacity-90 transition-colors flex-1"
+                        >
+                          Book Now
               </button>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Featured Destinations */}
-      <section className="py-8 sm:py-12 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex overflow-x-auto space-x-3 sm:space-x-4 pb-4 scrollbar-hide px-2 sm:px-0">
-            {featuredDestinations.map((destination, index) => (
-              <div key={index} className="flex-shrink-0 w-48 sm:w-56">
-                <div className="relative rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                  <Image
-                    src={destination.image}
-                    alt={destination.name}
-                    width={224}
-                    height={128}
-                    className="w-full h-28 sm:h-32 object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
-                    <h3 className="text-white text-sm sm:text-base font-semibold">{destination.name}</h3>
-                  </div>
-                </div>
               </div>
             ))}
+            </div>
+
+            {/* Dots Indicator - Active highlighting and click navigation */}
+            <div className="flex justify-center mt-4 sm:mt-6 space-x-2">
+              {tourPackages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-110 ${
+                    index === currentSlide 
+                      ? 'bg-blue-600 shadow-lg' 
+                      : 'bg-gray-300 hover:bg-blue-400'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+            
+          </div>
+        </div>
+      </section>
+      {/* Feature Icons */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+            <div>
+              <div className="flex justify-center mb-6">
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                  <Shield className="w-8 h-8 text-white" />
+                  </div>
+          </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Best Price Guarantee</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">We guarantee the best prices for all our services with competitive rates and transparent pricing.</p>
+              </div>
+            <div>
+              <div className="flex justify-center mb-6">
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                  <Clock className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Easy & Quick Booking</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">Book your trips quickly and easily with our streamlined platform and instant confirmation.</p>
+            </div>
+            <div>
+              <div className="flex justify-center mb-6">
+                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                  <Headphones className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Customer Care 24/7</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">Round the clock customer support for all your travel needs and emergency assistance.</p>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* banner of beach */}
+      <section className="relative h-[400px] overflow-hidden">
+
+        
+        
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <Image
+            src="/srilankabeach.jpg"
+            alt="Sri Lanka Beauty"
+            fill
+            className="object-cover"
+            priority
+          />
+            {/* Content */}
+            <div className="relative max-w-7xl mx-auto px-20 sm:px-6 lg:px-8 text-center ">
+          <div className="max-w-4xl mx-auto">
+   
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <h1 className="text-9xl font-bold text-white mt-40">Sri Lanka</h1>
+              
+            </div>
+            <p className="text-white text-2xl">Feel the Isle & Echo of Paradise</p>
+          </div>
+        </div>
+        </div>
+        
+     
+        {/* Decorative Elements */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 dark:from-gray-800 to-transparent"></div>
+      </section>
+
       {/* Things to Do in Sri Lanka Section */}
-      <section className="py-16 bg-white dark:bg-gray-900">
+      <section className="py-16 bg-blue-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">THINGS TO DO IN SRI LANKA</h2>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">THINGS TO DO</h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               We want to share Sri Lanka&apos;s extraordinarily diverse and authentic story with the rest of the world. 
               We want to help you discover the many thousands of different ways in which you can fall in love with our home &amp; 
@@ -1054,160 +1495,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Tour Packages */}
-      <section className="py-8 sm:py-12 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-xl sm:text-2xl font-bold mb-6 sm:mb-8 text-gray-900 dark:text-white">Featured Tour Packages</h2>
-          <div className="relative">
-            {/* Navigation Arrows - Hidden on mobile, visible on larger screens */}
-            <button 
-              onClick={() => {
-                const container = document.getElementById('tour-slider');
-                if (container) {
-                  const cardWidth = window.innerWidth < 640 ? 280 : 320; // Mobile vs desktop card width
-                  container.scrollLeft -= cardWidth + 24; // Width of one card + gap
-                }
-              }}
-              className="hidden sm:flex absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full shadow-lg items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
-            >
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 transform rotate-180" />
-            </button>
-            
-            <button 
-              onClick={() => {
-                const container = document.getElementById('tour-slider');
-                if (container) {
-                  const cardWidth = window.innerWidth < 640 ? 280 : 320; // Mobile vs desktop card width
-                  container.scrollLeft += cardWidth + 24; // Width of one card + gap
-                }
-              }}
-              className="hidden sm:flex absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full shadow-lg items-center justify-center hover:bg-gray-50 transition-colors border border-gray-200"
-            >
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-            </button>
 
-            {/* Slider Container */}
-            <div 
-              id="tour-slider"
-              className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide scroll-smooth px-2 sm:px-0"
-              style={{ scrollBehavior: 'smooth' }}
-            >
-              {tourPackages.map((tour, index) => (
-                <div key={index} className="flex-shrink-0 w-72 sm:w-80">
-                  <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
-                    <div className="relative">
-                      <Image
-                        src={tour.image}
-                        alt={tour.name}
-                        width={320}
-                        height={192}
-                        className="w-full h-40 sm:h-48 object-cover"
-                      />
-                      <div style={{ background: '#A0FF07' }} className="absolute top-2 sm:top-3 left-2 sm:left-3 text-gray-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold">
-                        {tour.badge}
-                      </div>
-                      <button className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors">
-                        <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
-                      </button>
-                    </div>
-                    <div className="p-4 sm:p-5">
-                      <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900 dark:text-white line-clamp-2">{tour.name}</h3>
-                      <p className="text-gray-600 text-xs sm:text-sm mb-3">{tour.duration}</p>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" />
-                          <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{tour.rating} Excellent</span>
-                          <span className="text-gray-500 text-xs sm:text-sm">({tour.reviews})</span>
-                        </div>
-                      </div>
-                      <div className="mb-3">
-                        <p className="text-xs sm:text-sm text-gray-600 mb-2">Destinations:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {tour.destinations.slice(0, 2).map((dest, idx) => (
-                            <span key={idx} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                              {dest}
-                            </span>
-                          ))}
-                          {tour.destinations.length > 2 && (
-                            <span className="text-gray-500 text-xs">+{tour.destinations.length - 2} more</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <button 
-                          onClick={() => window.location.href = `/tours/${tour.id}`}
-                          className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors flex-1"
-                        >
-                          View Details
-                        </button>
-                        <button 
-                          onClick={() => window.location.href = `/tours/${tour.id}`}
-                          style={{ background: '#CAFA7C' }}
-                          className="text-gray-900 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:opacity-90 transition-colors flex-1"
-                        >
-                          Book
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            {/* Dots Indicator - Responsive */}
-            <div className="flex justify-center mt-4 sm:mt-6 space-x-2">
-              {[0, 1, 2, 3, 4].map((dot, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    const container = document.getElementById('tour-slider');
-                    if (container) {
-                      const cardWidth = window.innerWidth < 640 ? 280 : 320; // Mobile vs desktop card width
-                      container.scrollLeft = index * (cardWidth + 24); // Width of one card + gap
-                    }
-                  }}
-                  className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gray-300 hover:bg-blue-600 transition-colors"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Feature Icons */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
-            <div>
-              <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Shield className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Best Price Guarantee</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">We guarantee the best prices for all our services with competitive rates and transparent pricing.</p>
-            </div>
-            <div>
-              <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Clock className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Easy & Quick Booking</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">Book your trips quickly and easily with our streamlined platform and instant confirmation.</p>
-            </div>
-            <div>
-              <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Headphones className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Customer Care 24/7</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">Round the clock customer support for all your travel needs and emergency assistance.</p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Customer Testimonials */}
       <section className="py-16 bg-blue-50 dark:bg-gray-800">
@@ -1497,7 +1787,7 @@ export default function HomePage() {
                 }`}
               >
                 {filter}
-              </button>
+            </button>
             ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -1676,6 +1966,150 @@ export default function HomePage() {
       </section>
 
 
+
+      {/* Tour Package Modal */}
+      {showTourModal && selectedTourPackage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="relative p-6 border-b border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowTourModal(false)}
+                className="absolute top-4 right-4 w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <span className="text-gray-600 dark:text-gray-300 text-lg">×</span>
+              </button>
+              <div className="flex items-start space-x-4">
+                <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                  <Image
+                    src={selectedTourPackage.image}
+                    alt={selectedTourPackage.name}
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span style={{ background: '#A0FF07' }} className="text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
+                      {selectedTourPackage.badge}
+                    </span>
+                    <div className="flex items-center space-x-1">
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{selectedTourPackage.rating}</span>
+                      <span className="text-gray-500 text-sm">({selectedTourPackage.reviews} reviews)</span>
+                    </div>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{selectedTourPackage.name}</h2>
+                  <p className="text-gray-600 dark:text-gray-300 mb-2">{selectedTourPackage.duration}</p>
+                  <p className="text-2xl font-bold text-blue-600">{selectedTourPackage.price}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {/* Highlights */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Highlights</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTourPackage.highlights.map((highlight: string, index: number) => (
+                    <span key={index} className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm">
+                      {highlight}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Destinations */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Destinations</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTourPackage.destinations.map((destination: string, index: number) => (
+                    <span key={index} className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm">
+                      {destination}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Itinerary */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Day-by-Day Itinerary</h3>
+                <div className="space-y-4">
+                  {selectedTourPackage.itinerary.map((day: any, index: number) => (
+                    <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                          {day.day}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{day.title}</h4>
+                          
+                          {/* Locations */}
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">📍 Locations:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {day.locations.map((location: string, locIndex: number) => (
+                                <span key={locIndex} className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs">
+                                  {location}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Activities */}
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">🎯 Activities:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {day.activities.map((activity: string, actIndex: number) => (
+                                <span key={actIndex} className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 px-2 py-1 rounded text-xs">
+                                  {activity}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Accommodation */}
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">🏨 Accommodation:</p>
+                            <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2 py-1 rounded text-xs">
+                              {day.accommodation}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowTourModal(false)}
+                className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => handleViewTourDetails(selectedTourPackage.id)}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                View Full Details
+              </button>
+              <button
+                onClick={() => handleViewTourDetails(selectedTourPackage.id)}
+                style={{ background: '#A0FF07' }}
+                className="flex-1 px-6 py-3 text-gray-900 rounded-lg font-medium hover:opacity-90 transition-colors"
+              >
+                Book This Tour
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .sigiriya-bg {
