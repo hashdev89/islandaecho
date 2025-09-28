@@ -116,7 +116,6 @@ export default function AdminDashboard() {
           .filter((b: Booking) => b.status === 'confirmed' || b.status === 'completed')
           .reduce((sum: number, b: Booking) => sum + (b.totalPrice || 0), 0);
 
-        const pendingBookings = bookings.filter((b: Booking) => b.status === 'pending').length;
         const confirmedBookings = bookings.filter((b: Booking) => b.status === 'confirmed').length;
         setStats([
           {

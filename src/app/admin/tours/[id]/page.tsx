@@ -15,7 +15,7 @@ import {
 import MapboxMap from '../../../../components/MapboxMap'
 import DestinationSelector from '../../../../components/DestinationSelector'
 import DestinationManager from '../../../../components/DestinationManager'
-import { dataSync } from '../../../../lib/dataSync'
+import { dataSync, TourData } from '../../../../lib/dataSync'
 
 interface Day {
   day: number
@@ -104,12 +104,15 @@ export default function TourEditor() {
         
         if (result.success) {
           // Map API data to Destination format
-          const mappedDestinations = result.data.map((dest: any) => ({
-            name: dest.name,
-            lat: dest.lat,
-            lng: dest.lng,
-            region: dest.region
-          }))
+          const mappedDestinations = result.data.map((dest: unknown) => {
+            const d = dest as Record<string, unknown>
+            return {
+              name: d.name as string,
+              lat: d.lat as number,
+              lng: d.lng as number,
+              region: d.region as string
+            }
+          })
           setAvailableDestinations(mappedDestinations)
         }
       } catch (error) {
@@ -150,8 +153,9 @@ export default function TourEditor() {
         const found = (all as unknown[]).find(t => (t as Record<string, unknown>).id === tourId)
         if (found) {
           console.log('Found tour data:', found)
-          console.log('Tour destinations:', found.destinations)
-          setTour(found)
+          const tourData = found as Record<string, unknown>
+          console.log('Tour destinations:', tourData.destinations)
+          setTour(found as TourPackage)
         } else {
           console.log('Tour not found with ID:', tourId)
         }
@@ -190,7 +194,7 @@ export default function TourEditor() {
       console.log('Full tour payload before processing:', payload)
       
       if (isNew) {
-        const { id, ...createData } = payload as Record<string, unknown>
+        const { id: _id, ...createData } = payload as Record<string, unknown>
         console.log('Creating tour with data:', createData)
         console.log('Required fields check:', {
           name: createData.name,
@@ -198,7 +202,7 @@ export default function TourEditor() {
           price: createData.price
         })
         
-        const created = await dataSync.createTour(createData as Record<string, unknown>)
+        const created = await dataSync.createTour(createData as Omit<TourPackage, 'id'>)
         if (created) {
           console.log('Tour created successfully:', created)
           alert('Tour created successfully!')
@@ -207,7 +211,7 @@ export default function TourEditor() {
           alert('Failed to create tour. Please check the console for errors.')
         }
       } else {
-        const updated = await dataSync.updateTour(payload as Record<string, unknown>)
+        const updated = await dataSync.updateTour(payload as TourData)
         if (updated) {
           console.log('Tour updated successfully:', updated)
           alert('Tour updated successfully!')

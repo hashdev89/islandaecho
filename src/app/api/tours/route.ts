@@ -4,6 +4,8 @@ import fs from 'fs'
 import path from 'path'
 
 interface Tour {
+  createdAt: string
+  keyExperiences: never[]
   id: string
   name: string
   duration: string

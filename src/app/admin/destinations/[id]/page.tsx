@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, MapPin, Trash2 } from 'lucide-react'
+import { ArrowLeft, Save, Trash2 } from 'lucide-react'
 
 interface Destination {
   id: string
@@ -39,41 +39,40 @@ export default function EditDestination() {
 
   useEffect(() => {
     if (destinationId) {
+      const fetchDestination = async () => {
+        try {
+          const response = await fetch('/api/destinations')
+          const result = await response.json()
+          
+          if (result.success) {
+            const dest = result.data.find((d: Destination) => d.id === destinationId)
+            if (dest) {
+              setDestination(dest)
+              setFormData({
+                name: dest.name,
+                region: dest.region,
+                lat: dest.lat.toString(),
+                lng: dest.lng.toString(),
+                description: dest.description || '',
+                image: dest.image || '',
+                status: dest.status
+              })
+            } else {
+              setError('Destination not found')
+            }
+          } else {
+            setError('Failed to fetch destination')
+          }
+        } catch (error) {
+          console.error('Error fetching destination:', error)
+          setError('Failed to fetch destination')
+        } finally {
+          setLoading(false)
+        }
+      }
       fetchDestination()
     }
   }, [destinationId])
-
-  const fetchDestination = async () => {
-    try {
-      const response = await fetch('/api/destinations')
-      const result = await response.json()
-      
-      if (result.success) {
-        const dest = result.data.find((d: Destination) => d.id === destinationId)
-        if (dest) {
-          setDestination(dest)
-          setFormData({
-            name: dest.name,
-            region: dest.region,
-            lat: dest.lat.toString(),
-            lng: dest.lng.toString(),
-            description: dest.description || '',
-            image: dest.image || '',
-            status: dest.status
-          })
-        } else {
-          setError('Destination not found')
-        }
-      } else {
-        setError('Failed to fetch destination')
-      }
-    } catch (error) {
-      console.error('Error fetching destination:', error)
-      setError('Failed to fetch destination')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -381,5 +380,5 @@ export default function EditDestination() {
         </form>
       </div>
     </div>
-  )
+  );
 }

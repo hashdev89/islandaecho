@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, MapPin } from 'lucide-react'
+import { ArrowLeft, Save } from 'lucide-react'
 
 export default function NewDestination() {
   const router = useRouter()

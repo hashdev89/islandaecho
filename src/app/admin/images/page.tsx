@@ -50,7 +50,7 @@ export default function ImagesManagement() {
       if (result.success) {
         setImageUsage(result.data)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch image usage:', err)
     }
   }
@@ -70,8 +70,8 @@ export default function ImagesManagement() {
       } else {
         setError(result.error || 'Failed to load images')
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load images')
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to load images')
     } finally {
       setLoading(false)
     }
@@ -93,8 +93,8 @@ export default function ImagesManagement() {
       } else {
         setError(result.error || 'Failed to delete image')
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete image')
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to delete image')
     } finally {
       setDeleting(null)
     }

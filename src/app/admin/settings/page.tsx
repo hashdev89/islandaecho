@@ -13,7 +13,6 @@ import {
   CreditCard,
   Phone,
   CheckCircle,
-  AlertCircle,
   Info
 } from 'lucide-react'
 
@@ -189,7 +188,7 @@ export default function AdminSettingsPage() {
     }
   }
 
-  const updateSetting = (key: keyof SettingsData, value: any) => {
+  const updateSetting = (key: keyof SettingsData, value: unknown) => {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 

@@ -14,8 +14,21 @@ const ensureDataDir = () => {
   }
 }
 
+interface Destination {
+  id: string
+  name: string
+  region: string
+  lat: number
+  lng: number
+  description: string
+  image: string
+  status: 'active' | 'inactive'
+  created_at: string
+  updated_at: string
+}
+
 // Load destinations from file
-const loadFallbackDestinations = (): any[] => {
+const loadFallbackDestinations = (): Destination[] => {
   try {
     ensureDataDir()
     if (fs.existsSync(FALLBACK_FILE)) {
@@ -31,7 +44,7 @@ const loadFallbackDestinations = (): any[] => {
 }
 
 // Save destinations to file
-const saveFallbackDestinations = (destinations: any[]) => {
+const saveFallbackDestinations = (destinations: Destination[]) => {
   try {
     ensureDataDir()
     fs.writeFileSync(FALLBACK_FILE, JSON.stringify(destinations, null, 2))
@@ -68,7 +81,7 @@ export async function GET() {
     }
     
     return NextResponse.json({ success: true, data: data || [] })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Destinations API error:', error)
     console.log('Falling back to persistent storage')
     const fallbackDestinations = loadFallbackDestinations()
@@ -81,21 +94,21 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  let body: any = {}
+  let body: Record<string, unknown> = {}
   
   try {
     body = await req.json()
     console.log('POST /api/destinations - Received destination data:', body)
     
     const newDestination = {
-      id: body.id || crypto.randomUUID(),
-      name: body.name,
-      region: body.region,
-      lat: parseFloat(body.lat),
-      lng: parseFloat(body.lng),
-      description: body.description || '',
-      image: body.image || '',
-      status: body.status || 'active',
+      id: (body.id as string) || crypto.randomUUID(),
+      name: body.name as string,
+      region: body.region as string,
+      lat: parseFloat(body.lat as string),
+      lng: parseFloat(body.lng as string),
+      description: (body.description as string) || '',
+      image: (body.image as string) || '',
+      status: (body.status as 'active' | 'inactive') || 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -126,21 +139,21 @@ export async function POST(req: Request) {
     }
     
     return NextResponse.json({ success: true, data: data })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Destination creation error:', error)
     console.log('Falling back to persistent storage')
     
     // Only try to create fallback if we have valid body data
     if (body && body.name && body.region && body.lat && body.lng) {
       const newDestination = {
-        id: body.id || crypto.randomUUID(),
-        name: body.name,
-        region: body.region,
-        lat: parseFloat(body.lat),
-        lng: parseFloat(body.lng),
-        description: body.description || '',
-        image: body.image || '',
-        status: body.status || 'active',
+        id: (body.id as string) || crypto.randomUUID(),
+        name: body.name as string,
+        region: body.region as string,
+        lat: parseFloat(body.lat as string),
+        lng: parseFloat(body.lng as string),
+        description: (body.description as string) || '',
+        image: (body.image as string) || '',
+        status: (body.status as 'active' | 'inactive') || 'active',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -204,7 +217,7 @@ export async function PUT(req: Request) {
     }
     
     return NextResponse.json({ success: true, data: data })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Destination update error:', error)
     console.log('Falling back to persistent storage')
     
@@ -269,7 +282,7 @@ export async function DELETE(req: Request) {
     }
     
     return NextResponse.json({ success: true, message: 'Destination deleted successfully' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Destination deletion error:', error)
     console.log('Falling back to persistent storage')
     
