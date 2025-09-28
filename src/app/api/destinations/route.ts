@@ -177,14 +177,14 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  let body: any = {}
+  let body: Record<string, unknown> = {}
   
   try {
     body = await req.json()
     console.log('PUT /api/destinations - Received destination update:', body)
     
-    const updatedDestination = {
-      ...body,
+    const updatedDestination: Destination = {
+      ...body as unknown as Destination,
       updated_at: new Date().toISOString()
     }
     
@@ -222,8 +222,8 @@ export async function PUT(req: Request) {
     console.log('Falling back to persistent storage')
     
     if (body && body.id) {
-      const updatedDestination = {
-        ...body,
+      const updatedDestination: Destination = {
+        ...body as unknown as Destination,
         updated_at: new Date().toISOString()
       }
       

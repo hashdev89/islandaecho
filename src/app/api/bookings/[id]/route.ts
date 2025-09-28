@@ -38,10 +38,12 @@ const loadFallbackBookings = (): Booking[] => {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params
+  const bookingId = resolvedParams.id
+  
   try {
-    const bookingId = params.id
     console.log('GET /api/bookings/[id] - Fetching booking:', bookingId)
     
     // Check if Supabase is configured
@@ -107,7 +109,7 @@ export async function GET(
     console.error('Booking API error:', error)
     console.log('Falling back to persistent storage')
     const fallbackBookings = loadFallbackBookings()
-    const booking = fallbackBookings.find(b => b.id === params.id)
+    const booking = fallbackBookings.find(b => b.id === resolvedParams.id)
     
     if (!booking) {
       return NextResponse.json({ 
@@ -126,10 +128,12 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params
+  const bookingId = resolvedParams.id
+  
   try {
-    const bookingId = params.id
     const body = await request.json()
     console.log('PUT /api/bookings/[id] - Updating booking:', bookingId, body)
     
@@ -205,10 +209,12 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params
+  const bookingId = resolvedParams.id
+  
   try {
-    const bookingId = params.id
     console.log('DELETE /api/bookings/[id] - Deleting booking:', bookingId)
     
     // Check if Supabase is configured

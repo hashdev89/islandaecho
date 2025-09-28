@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -12,11 +13,6 @@ import {
   X,
   Edit3,
   CheckCircle,
-  Phone,
-  Mail,
-  Shield,
-  Award,
-  Camera,
   Navigation,
   Calendar
 } from 'lucide-react'

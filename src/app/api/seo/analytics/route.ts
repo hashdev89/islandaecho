@@ -13,8 +13,19 @@ const ensureSEODir = () => {
   }
 }
 
+interface AnalyticsSettings {
+  googleAnalyticsId: string
+  googleTagManagerId: string
+  googleSearchConsoleId: string
+  facebookPixelId: string
+  googleAdsId: string
+  bingWebmasterId: string
+  yandexWebmasterId: string
+  updatedAt?: string
+}
+
 // Load analytics settings from file
-const loadAnalytics = (): any => {
+const loadAnalytics = (): AnalyticsSettings => {
   try {
     ensureSEODir()
     if (fs.existsSync(ANALYTICS_FILE)) {
@@ -45,7 +56,7 @@ const loadAnalytics = (): any => {
 }
 
 // Save analytics settings to file
-const saveAnalytics = (analytics: any) => {
+const saveAnalytics = (analytics: AnalyticsSettings): void => {
   try {
     ensureSEODir()
     fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2))
@@ -56,11 +67,11 @@ const saveAnalytics = (analytics: any) => {
 }
 
 // Analytics API endpoints
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const analytics = loadAnalytics()
     return NextResponse.json({ success: true, data: analytics })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error loading analytics:', error)
     return NextResponse.json(
       { success: false, message: 'Failed to load analytics settings' },
@@ -73,7 +84,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     
-    const analyticsSettings = {
+    const analyticsSettings: AnalyticsSettings = {
       googleAnalyticsId: body.googleAnalyticsId || '',
       googleTagManagerId: body.googleTagManagerId || '',
       googleSearchConsoleId: body.googleSearchConsoleId || '',
@@ -87,7 +98,7 @@ export async function PUT(request: NextRequest) {
     saveAnalytics(analyticsSettings)
     
     return NextResponse.json({ success: true, data: analyticsSettings })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating analytics:', error)
     return NextResponse.json(
       { success: false, message: 'Failed to update analytics settings' },

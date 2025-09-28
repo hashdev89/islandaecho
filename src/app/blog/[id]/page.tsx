@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { use, useState, useEffect } from 'react'
@@ -123,7 +124,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             
             {/* Tags */}
             <div className="flex flex-wrap gap-2 mb-6">
-              {post.tags.map(tag => (
+              {post.tags.map((tag: string) => (
                 <span
                   key={tag}
                   className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium"
@@ -205,7 +206,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                 <div className="bg-gray-100 rounded-lg p-6 mt-8">
                   <div className="flex items-center">
                     <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-4">
-                      {post.author.split(' ').map(n => n[0]).join('')}
+                      {post.author.split(' ').map((n: string) => n[0]).join('')}
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">{post.author}</h3>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, MapPin, Plus, Save } from 'lucide-react'
+import { X, Save } from 'lucide-react'
 
 interface DestinationManagerProps {
   isOpen: boolean

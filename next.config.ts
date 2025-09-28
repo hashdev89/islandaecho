@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ['next/font/google'],
+    optimizePackageImports: [],
   },
   // SEO optimizations
   compress: true,

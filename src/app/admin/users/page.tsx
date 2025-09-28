@@ -13,7 +13,6 @@ import {
   Shield,
   UserCheck,
   UserX,
-  Filter,
   X,
   AlertCircle
 } from 'lucide-react'
@@ -30,6 +29,8 @@ interface User {
   createdAt: string
   totalBookings: number
   totalSpent: number
+  address?: string
+  notes?: string
 }
 
 // Mock user data - in a real app, this would come from an API
@@ -137,9 +138,7 @@ export default function UsersPage() {
     phone: '',
     password: '',
     role: 'customer',
-    status: 'active',
-    address: '',
-    notes: ''
+    status: 'active'
   })
   const [editUser, setEditUser] = useState<Partial<User>>({
     name: '',
@@ -147,12 +146,8 @@ export default function UsersPage() {
     phone: '',
     password: '',
     role: 'customer',
-    status: 'active',
-    address: '',
-    notes: ''
+    status: 'active'
   })
-
-  // Load users from API on component mount
   useEffect(() => {
     const loadUsers = async () => {
       setLoading(true)
@@ -263,9 +258,7 @@ export default function UsersPage() {
             phone: '',
             password: '',
             role: 'customer',
-            status: 'active',
-            address: '',
-            notes: ''
+            status: 'active'
           })
           
           // Also save to localStorage as backup
@@ -283,11 +276,9 @@ export default function UsersPage() {
             lastLogin: new Date().toISOString(),
             createdAt: new Date().toISOString(),
             totalBookings: 0,
-            totalSpent: 0,
-            address: newUser.address || '',
-            notes: newUser.notes || ''
+            totalSpent: 0
           }
-          
+
           setUsers([...users, userToAdd])
           localStorage.setItem('admin-users', JSON.stringify([...users, userToAdd]))
           setShowAddModal(false)
@@ -297,9 +288,7 @@ export default function UsersPage() {
             phone: '',
             password: '',
             role: 'customer',
-            status: 'active',
-            address: '',
-            notes: ''
+            status: 'active'
           })
         }
       } catch (error) {
@@ -315,11 +304,9 @@ export default function UsersPage() {
           lastLogin: new Date().toISOString(),
           createdAt: new Date().toISOString(),
           totalBookings: 0,
-          totalSpent: 0,
-          address: newUser.address || '',
-          notes: newUser.notes || ''
+          totalSpent: 0
         }
-        
+
         setUsers([...users, userToAdd])
         localStorage.setItem('admin-users', JSON.stringify([...users, userToAdd]))
         setShowAddModal(false)
@@ -328,9 +315,7 @@ export default function UsersPage() {
           email: '',
           phone: '',
           role: 'customer',
-          status: 'active',
-          address: '',
-          notes: ''
+          status: 'active'
         })
       } finally {
         setLoading(false)
@@ -405,12 +390,14 @@ export default function UsersPage() {
   const handleUpdateUser = async () => {
     if (userToEdit && editUser.name && editUser.email && editUser.phone) {
       setLoading(true)
+      
+      // Only include password if it's provided
+      const updateData = { ...editUser }
+      if (!updateData.password || updateData.password.trim() === '') {
+        delete updateData.password
+      }
+      
       try {
-        // Only include password if it's provided
-        const updateData = { ...editUser }
-        if (!updateData.password || updateData.password.trim() === '') {
-          delete updateData.password
-        }
 
         const response = await fetch(`/api/users/${userToEdit.id}`, {
           method: 'PUT',

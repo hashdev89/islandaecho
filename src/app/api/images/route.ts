@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
+import sharp from 'sharp'
 
 // Persistent file-based storage for images metadata
 const IMAGES_FILE = path.join(process.cwd(), 'data', 'images.json')
@@ -18,8 +19,22 @@ const ensureDirectories = () => {
   }
 }
 
+interface ImageMetadata {
+  id: string
+  name: string
+  originalName: string
+  fileName: string
+  url: string
+  size: string
+  sizeBytes: number
+  dimensions: string
+  category: string
+  uploadedAt: string
+  usedIn: string[]
+}
+
 // Load images metadata from file
-const loadImages = (): any[] => {
+const loadImages = (): ImageMetadata[] => {
   try {
     ensureDirectories()
     if (fs.existsSync(IMAGES_FILE)) {
@@ -33,7 +48,7 @@ const loadImages = (): any[] => {
 }
 
 // Save images metadata to file
-const saveImages = (images: any[]) => {
+const saveImages = (images: ImageMetadata[]): void => {
   try {
     ensureDirectories()
     fs.writeFileSync(IMAGES_FILE, JSON.stringify(images, null, 2))
@@ -55,10 +70,9 @@ const getFileSize = (bytes: number): string => {
 // Get image dimensions
 const getImageDimensions = (filePath: string): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
-    const sharp = require('sharp')
     sharp(filePath)
       .metadata()
-      .then((metadata: any) => {
+      .then((metadata: { width: number; height: number }) => {
         resolve({
           width: metadata.width,
           height: metadata.height
@@ -79,11 +93,11 @@ export async function GET() {
       data: images,
       message: 'Images retrieved successfully' 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Images API error:', error)
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: (error as Error).message 
     }, { status: 500 })
   }
 }
@@ -143,7 +157,7 @@ export async function POST(request: Request) {
     }
 
     // Create image metadata
-    const imageData = {
+    const imageData: ImageMetadata = {
       id: uuidv4(),
       name: file.name,
       originalName: file.name,
@@ -169,11 +183,11 @@ export async function POST(request: Request) {
       data: imageData,
       message: 'Image uploaded successfully' 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Upload image error:', error)
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: (error as Error).message 
     }, { status: 500 })
   }
 }

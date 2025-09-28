@@ -2,8 +2,37 @@ import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 
+interface Tour {
+  id: string
+  name: string
+  image?: string
+  images?: string[]
+  itinerary?: Array<{
+    day: number
+    image?: string
+  }>
+}
+
+interface Destination {
+  id: string
+  name: string
+  image?: string
+}
+
+interface Blog {
+  id: string
+  title: string
+  image?: string
+}
+
+interface Image {
+  id: string
+  url: string
+  name: string
+}
+
 // Load tours data
-const loadTours = (): any[] => {
+const loadTours = (): Tour[] => {
   try {
     const toursFile = path.join(process.cwd(), 'data', 'tours.json')
     if (fs.existsSync(toursFile)) {
@@ -17,7 +46,7 @@ const loadTours = (): any[] => {
 }
 
 // Load destinations data
-const loadDestinations = (): any[] => {
+const loadDestinations = (): Destination[] => {
   try {
     const destinationsFile = path.join(process.cwd(), 'data', 'destinations.json')
     if (fs.existsSync(destinationsFile)) {
@@ -31,7 +60,7 @@ const loadDestinations = (): any[] => {
 }
 
 // Load blog data
-const loadBlogs = (): any[] => {
+const loadBlogs = (): Blog[] => {
   try {
     const blogFile = path.join(process.cwd(), 'data', 'blog.json')
     if (fs.existsSync(blogFile)) {
@@ -54,7 +83,7 @@ export async function GET() {
     
     // Get all uploaded images
     const imagesFile = path.join(process.cwd(), 'data', 'images.json')
-    let images: any[] = []
+    let images: Image[] = []
     if (fs.existsSync(imagesFile)) {
       const data = fs.readFileSync(imagesFile, 'utf8')
       images = JSON.parse(data)
@@ -80,7 +109,7 @@ export async function GET() {
         }
         // Check itinerary images
         if (tour.itinerary && Array.isArray(tour.itinerary)) {
-          tour.itinerary.forEach((day: any) => {
+          tour.itinerary.forEach((day: { day: number; image?: string }) => {
             if (day.image === image.url) {
               imageUsage[image.url].push(`Tour: ${tour.name} (Day ${day.day})`)
             }
@@ -110,11 +139,11 @@ export async function GET() {
       data: imageUsage,
       message: 'Image usage tracked successfully' 
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Image usage API error:', error)
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: (error as Error).message 
     }, { status: 500 })
   }
 }

@@ -46,7 +46,7 @@ export default function ToursManagement() {
           ...t,
           bookings: 0,
           revenue: 0,
-          lastUpdated: t.updatedAt?.slice(0,10) || t.updated_at?.slice(0,10) || ''
+          lastUpdated: (t as TourPackage & { updatedAt?: string; updated_at?: string }).updatedAt?.slice(0,10) || (t as TourPackage & { updatedAt?: string; updated_at?: string }).updated_at?.slice(0,10) || ''
         }))
         console.log('Enriched tours data:', enriched)
         setTours(enriched)

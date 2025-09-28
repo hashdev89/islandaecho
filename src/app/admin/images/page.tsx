@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Upload,
   Search,
@@ -56,7 +56,7 @@ export default function ImagesManagement() {
   }
 
   // Fetch images from API
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -75,7 +75,7 @@ export default function ImagesManagement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   // Delete image
   const deleteImage = async (imageId: string) => {
@@ -111,7 +111,7 @@ export default function ImagesManagement() {
   // Load images on component mount
   useEffect(() => {
     fetchImages()
-  }, [])
+  }, [fetchImages])
 
   const categories = [...new Set(images.map(img => img.category))]
 

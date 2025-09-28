@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
@@ -40,7 +41,7 @@ const saveMetaTags = (metaTags: any[]) => {
 }
 
 // Meta Tags API endpoints
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const metaTags = loadMetaTags()
     return NextResponse.json({ success: true, data: metaTags })

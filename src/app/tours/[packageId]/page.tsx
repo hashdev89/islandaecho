@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { use } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
 import {
   MapPin,
@@ -10,11 +11,6 @@ import {
   Star,
   Clock,
   CheckCircle,
-  ArrowRight,
-  Phone,
-  Mail,
-  Shield,
-  Award,
   Navigation,
   Calendar
 } from 'lucide-react'
@@ -738,6 +734,7 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
   const [selectedImage, setSelectedImage] = useState(0)
   const [tourPackage, setTourPackage] = useState<TourPackage | null>(null)
   const [loading, setLoading] = useState(true)
+  const [packageId, setPackageId] = useState<string>('')
   const [bookingData, setBookingData] = useState({
     startDate: searchParams.get('startDate') || '',
     endDate: searchParams.get('endDate') || '',
@@ -748,7 +745,14 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
     specialRequests: ''
   })
 
-  const resolvedParams = use(params)
+  // Resolve params
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params
+      setPackageId(resolvedParams.packageId)
+    }
+    resolveParams()
+  }, [params])
 
   // Function to normalize tour data from API
   const normalizeTourData = (tour: any): TourPackage => {
@@ -780,7 +784,7 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
         const response = await fetch('/api/tours')
         const data = await response.json()
         if (data.success) {
-          const tour = data.data.find((t: any) => t.id === resolvedParams.packageId)
+          const tour = data.data.find((t: any) => t.id === packageId)
           if (tour) {
             setTourPackage(normalizeTourData(tour))
           } else {
@@ -790,19 +794,21 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
       } catch (error) {
         console.error('Error fetching tour:', error)
         // Fallback to hardcoded data
-        const fallbackTour = tourPackages[resolvedParams.packageId]
+        const fallbackTour = tourPackages[packageId as keyof typeof tourPackages]
         setTourPackage(fallbackTour || null)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchTour()
-  }, [resolvedParams.packageId])
-
-  // Get map coordinates for this tour's destinations
-  const tourDestinations = tourPackage?.destinations?.map(dest => ({
-    name: dest,
+    if (packageId) {
+      fetchTour()
+    }
+  }, [packageId])
+      
+        // Get map coordinates for this tour's destinations
+        const tourDestinations = tourPackage?.destinations?.map((dest: string) => ({
+          name: dest,
     ...sriLankaDestinations[dest as keyof typeof sriLankaDestinations]
   })).filter(dest => dest.lat) || []
 
@@ -853,9 +859,9 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Tour Package Not Found</h1>
           <p className="text-gray-600">The tour package you&apos;re looking for doesn&apos;t exist.</p>
           <div className="mt-8">
-            <a href="/tours" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+            <Link href="/tours" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
               View All Tours
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -1349,5 +1355,5 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
         </div>
       </section>
     </div>
-  )
+  );
 }

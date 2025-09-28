@@ -145,7 +145,7 @@ export default function MapboxMap({ destinations, tourName }: MapboxMapProps) {
 
                   // Add marker to map with error handling
                   if (map.current && mapContainer.current) {
-                    const marker = new mapboxgl.default.Marker(markerEl)
+                    const _marker = new mapboxgl.default.Marker(markerEl)
                       .setLngLat([destination.lng, destination.lat])
                       .addTo(map.current)
 
@@ -163,6 +163,8 @@ export default function MapboxMap({ destinations, tourName }: MapboxMapProps) {
                         popup.setLngLat([destination.lng, destination.lat]).addTo(map.current)
                       }
                     })
+                    
+                    _marker.setPopup(popup)
                   }
                 } catch (error) {
                   console.warn('Error adding marker for destination:', destination.name, error)

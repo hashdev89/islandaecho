@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
@@ -110,7 +111,7 @@ const saveAnalytics = (analytics: any) => {
 }
 
 // Keywords API endpoints
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const keywords = loadKeywords()
     return NextResponse.json({ success: true, data: keywords })

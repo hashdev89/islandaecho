@@ -26,8 +26,23 @@ const readUsers = () => {
   return []
 }
 
+interface User {
+  id: string
+  name: string
+  email: string
+  phone: string
+  role: 'admin' | 'staff' | 'customer'
+  status: 'active' | 'inactive' | 'suspended'
+  lastLogin: string
+  createdAt: string
+  totalBookings: number
+  totalSpent: number
+  address?: string
+  notes?: string
+}
+
 // Write users to file
-const writeUsers = (users: any[]) => {
+const writeUsers = (users: User[]): boolean => {
   try {
     ensureDataDir()
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2))
@@ -41,11 +56,12 @@ const writeUsers = (users: any[]) => {
 // GET /api/users/[id] - Get a specific user
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const users = readUsers()
-    const user = users.find(u => u.id === params.id)
+    const resolvedParams = await params
+    const user = users.find((u: User) => u.id === resolvedParams.id)
     
     if (!user) {
       return NextResponse.json(
@@ -67,12 +83,13 @@ export async function GET(
 // PUT /api/users/[id] - Update a specific user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
     const users = readUsers()
-    const userIndex = users.findIndex(u => u.id === params.id)
+    const resolvedParams = await params
+    const userIndex = users.findIndex((u: User) => u.id === resolvedParams.id)
     
     if (userIndex === -1) {
       return NextResponse.json(
@@ -85,7 +102,7 @@ export async function PUT(
     users[userIndex] = {
       ...users[userIndex],
       ...body,
-      id: params.id // Ensure ID doesn't change
+      id: resolvedParams.id // Ensure ID doesn't change
     }
     
     if (writeUsers(users)) {
@@ -108,11 +125,12 @@ export async function PUT(
 // DELETE /api/users/[id] - Delete a specific user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const users = readUsers()
-    const userIndex = users.findIndex(u => u.id === params.id)
+    const resolvedParams = await params
+    const userIndex = users.findIndex((u: User) => u.id === resolvedParams.id)
     
     if (userIndex === -1) {
       return NextResponse.json(

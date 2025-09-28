@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, MapPin, Search, Check } from 'lucide-react'
+import { X, MapPin, Search, Check } from 'lucide-react'
 
 interface Destination {
   id: string

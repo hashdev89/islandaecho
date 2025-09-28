@@ -113,8 +113,23 @@ const readUsers = () => {
   ]
 }
 
+interface User {
+  id: string
+  name: string
+  email: string
+  phone: string
+  role: 'admin' | 'staff' | 'customer'
+  status: 'active' | 'inactive' | 'suspended'
+  lastLogin: string
+  createdAt: string
+  totalBookings: number
+  totalSpent: number
+  address?: string
+  notes?: string
+}
+
 // Write users to file
-const writeUsers = (users: any[]) => {
+const writeUsers = (users: User[]): boolean => {
   try {
     ensureDataDir()
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2))
@@ -146,7 +161,7 @@ export async function POST(request: NextRequest) {
     const users = readUsers()
     
     // Generate new ID
-    const newId = (Math.max(...users.map(u => parseInt(u.id)), 0) + 1).toString()
+    const newId = (Math.max(...users.map((u: User) => parseInt(u.id)), 0) + 1).toString()
     
     // Create new user
     const newUser = {

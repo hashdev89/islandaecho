@@ -68,7 +68,7 @@ export const generateBreadcrumbs = (path: string, baseUrl: string = "https://isl
   const breadcrumbs = [{ name: "Home", url: baseUrl }]
   
   let currentPath = ''
-  segments.forEach((segment, index) => {
+  segments.forEach((segment, _index) => {
     currentPath += `/${segment}`
     const name = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ')
     breadcrumbs.push({
