@@ -1,68 +1,87 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Plus, Edit, Trash2, Eye, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, Search, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
-// Mock blog posts data
-const mockBlogPosts = [
-  {
-    id: 1,
-    title: "Discovering the Ancient Wonders of Sigiriya",
-    excerpt: "A journey through the ancient rock fortress that has captivated travelers for centuries...",
-    author: "Isle & Echo Team",
-    date: "2024-01-15",
-    category: "Cultural Heritage",
-    status: "Published",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
-  },
-  {
-    id: 2,
-    title: "Tea Plantations of Nuwara Eliya: A Green Paradise",
-    excerpt: "From leaf to cup: exploring the world-famous tea plantations...",
-    author: "Travel Expert",
-    date: "2024-01-10",
-    category: "Nature",
-    status: "Published",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: null
-  },
-  {
-    id: 3,
-    title: "Wildlife Safari in Yala National Park",
-    excerpt: "A safari adventure through one of Asia's premier wildlife sanctuaries...",
-    author: "Wildlife Guide",
-    date: "2024-01-05",
-    category: "Wildlife",
-    status: "Draft",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: "https://www.youtube.com/embed/dQw4w9WgXcQ"
-  }
-]
+interface BlogPost {
+  id: number
+  title: string
+  description: string
+  excerpt: string
+  author: string
+  date: string
+  readTime: string
+  image: string
+  video?: string | null
+  category: string
+  status: string
+  tags: string[]
+  content: string
+}
 
-const categories = ["All", "Cultural Heritage", "Nature", "Wildlife", "Beaches"]
+const categories = ["All", "Cultural Heritage", "Nature", "Wildlife", "Beaches", "Adventure", "Food"]
 const statuses = ["All", "Published", "Draft", "Archived"]
 
 export default function AdminBlogPage() {
-  const [posts, setPosts] = useState(mockBlogPosts)
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [selectedStatus, setSelectedStatus] = useState("All")
 
+  useEffect(() => {
+    fetchBlogPosts()
+  }, [])
+
+  const fetchBlogPosts = async () => {
+    setRefreshing(true)
+    try {
+      const response = await fetch('/api/blog')
+      const result = await response.json()
+      
+      if (response.ok) {
+        setPosts(result)
+      } else {
+        console.error('Failed to fetch blog posts:', result.error)
+      }
+    } catch (error) {
+      console.error('Error fetching blog posts:', error)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (post.excerpt || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          post.author.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = selectedCategory === "All" || post.category === selectedCategory
     const matchesStatus = selectedStatus === "All" || post.status === selectedStatus
     return matchesSearch && matchesCategory && matchesStatus
   })
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this blog post?')) {
-      setPosts(posts.filter(post => post.id !== id))
+      try {
+        const response = await fetch(`/api/blog?id=${id}`, {
+          method: 'DELETE'
+        })
+        
+        if (response.ok) {
+          // Remove from local state
+          setPosts(posts.filter(post => post.id !== id))
+        } else {
+          const result = await response.json()
+          alert(`Failed to delete post: ${result.error}`)
+        }
+      } catch (error) {
+        console.error('Error deleting blog post:', error)
+        alert('Failed to delete blog post. Please try again.')
+      }
     }
   }
 
@@ -74,13 +93,23 @@ export default function AdminBlogPage() {
           <h1 className="text-2xl font-bold text-gray-900">Blog Posts</h1>
           <p className="text-gray-600">Manage your blog content and articles</p>
         </div>
-        <Link
-          href="/admin/blog/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Post
-        </Link>
+        <div className="flex space-x-3">
+          <button
+            onClick={fetchBlogPosts}
+            disabled={refreshing}
+            className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <Link
+            href="/admin/blog/new"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Post
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -156,8 +185,14 @@ export default function AdminBlogPage() {
 
       {/* Posts Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Loading blog posts...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -188,7 +223,7 @@ export default function AdminBlogPage() {
                       <div className="flex-shrink-0 h-12 w-12">
                         <Image
                           className="h-12 w-12 rounded-lg object-cover"
-                          src={post.image}
+                          src={post.image || '/placeholder-image.svg'}
                           alt={post.title}
                           width={48}
                           height={48}
@@ -250,13 +285,14 @@ export default function AdminBlogPage() {
               ))}
             </tbody>
           </table>
+          
+          {filteredPosts.length === 0 && (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No posts found</h3>
+              <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+            </div>
+          )}
         </div>
-
-        {filteredPosts.length === 0 && (
-          <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No posts found</h3>
-            <p className="text-gray-500">Try adjusting your search or filter criteria</p>
-          </div>
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-# ISLE & ECHO Admin Dashboard
+# ISLE & ECHO  Dashboard
 
 A comprehensive admin dashboard for managing tour packages, destinations, images, and website content with real-time data synchronization.
 
@@ -331,4 +331,4 @@ For technical support or feature requests:
 
 ---
 
-**ISLE & ECHO Admin Dashboard** - Empowering travel businesses with powerful content management tools.
+**ISLE & ECHO Dashboard** - Empowering travel businesses with powerful content management tools.

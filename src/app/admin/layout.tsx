@@ -15,7 +15,9 @@ import {
   X,
   Home,
   Calendar,
-  FileText
+  FileText,
+  Search,
+  BarChart3
 } from 'lucide-react'
 import AdminRoute from '../../components/AdminRoute'
 
@@ -34,6 +36,8 @@ export default function AdminLayout({
     { name: 'Blog Posts', href: '/admin/blog', icon: FileText },
     { name: 'Bookings', href: '/admin/bookings', icon: Calendar },
     { name: 'Images', href: '/admin/images', icon: ImageIcon },
+    { name: 'SEO & Analytics', href: '/admin/seo', icon: Search },
+    { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
     { name: 'Users', href: '/admin/users', icon: Users },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ]
@@ -46,7 +50,7 @@ export default function AdminLayout({
           <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
           <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
             <div className="flex h-16 items-center justify-between px-4">
-              <h1 className="text-xl font-bold text-gray-900">ISLE & ECHO Admin</h1>
+              <h1 className="text-xl font-bold text-gray-900">ISLE & ECHO</h1>
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -94,7 +98,7 @@ export default function AdminLayout({
         <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
           <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
             <div className="flex h-16 items-center px-4">
-              <h1 className="text-xl font-bold text-gray-900">ISLE & ECHO Admin</h1>
+              <h1 className="text-xl font-bold text-gray-900">ISLE & ECHO </h1>
             </div>
             <nav className="flex-1 space-y-1 px-2 py-4">
               {navigation.map((item) => {

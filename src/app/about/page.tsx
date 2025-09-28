@@ -174,7 +174,7 @@ export default function AboutPage() {
               {teamMembers.map((member, index) => (
                 <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden">
                   <Image
-                    src={member.image}
+                    src={member.image || '/placeholder-image.svg'}
                     alt={member.name}
                     width={400}
                     height={256}

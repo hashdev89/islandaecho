@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Plus,
@@ -9,7 +9,8 @@ import {
   Trash2,
   Eye,
   Filter,
-  MoreHorizontal
+  MoreHorizontal,
+  RefreshCw
 } from 'lucide-react'
 
 interface TourPackage {
@@ -17,8 +18,10 @@ interface TourPackage {
   name: string
   duration: string
   price: string
+  style: string
   destinations: string[]
   highlights: string[]
+  featured?: boolean
   status: 'active' | 'draft' | 'archived'
   bookings: number
   revenue: number
@@ -28,68 +31,48 @@ interface TourPackage {
 export default function ToursManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [tours, setTours] = useState<TourPackage[]>([
-    {
-      id: 'cultural-triangle',
-      name: 'Cultural Triangle Explorer',
-      duration: '5 Days / 4 Nights',
-      price: '$899',
-      destinations: ['Sigiriya', 'Dambulla', 'Polonnaruwa', 'Anuradhapura'],
-      highlights: ['UNESCO Sites', 'Ancient Temples', 'Historical Monuments'],
-      status: 'active',
-      bookings: 12,
-      revenue: 10788,
-      lastUpdated: '2024-01-15'
-    },
-    {
-      id: 'hill-country',
-      name: 'Hill Country Adventure',
-      duration: '6 Days / 5 Nights',
-      price: '$1,199',
-      destinations: ['Kandy', 'Nuwara Eliya', 'Ella', 'Tea Plantations'],
-      highlights: ['Tea Gardens', 'Mountain Views', 'Train Journey'],
-      status: 'active',
-      bookings: 8,
-      revenue: 9592,
-      lastUpdated: '2024-01-10'
-    },
-    {
-      id: 'beach-paradise',
-      name: 'Beach Paradise Tour',
-      duration: '7 Days / 6 Nights',
-      price: '$1,299',
-      destinations: ['Galle', 'Mirissa', 'Bentota', 'Hikkaduwa'],
-      highlights: ['Beach Resorts', 'Whale Watching', 'Water Sports'],
-      status: 'active',
-      bookings: 15,
-      revenue: 19485,
-      lastUpdated: '2024-01-12'
-    },
-    {
-      id: 'wildlife-safari',
-      name: 'Wildlife Safari Adventure',
-      duration: '4 Days / 3 Nights',
-      price: '$799',
-      destinations: ['Yala National Park', 'Udawalawe', 'Sinharaja Forest'],
-      highlights: ['Leopard Safari', 'Elephant Watching', 'Bird Watching'],
-      status: 'draft',
-      bookings: 0,
-      revenue: 0,
-      lastUpdated: '2024-01-08'
-    },
-    {
-      id: 'complete-sri-lanka',
-      name: 'Complete Sri Lanka Experience',
-      duration: '12 Days / 11 Nights',
-      price: '$2,199',
-      destinations: ['Colombo', 'Cultural Triangle', 'Hill Country', 'Beach Destinations'],
-      highlights: ['Full Island Tour', 'All Major Attractions', 'Luxury Accommodation'],
-      status: 'active',
-      bookings: 6,
-      revenue: 13194,
-      lastUpdated: '2024-01-14'
+  const [tours, setTours] = useState<TourPackage[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const loadTours = async () => {
+    try {
+      setLoading(true)
+      console.log('Loading tours...')
+      const res = await fetch('/api/tours')
+      const json = await res.json()
+      console.log('Tours API response:', json)
+      if (json.success) {
+        const enriched = json.data.map((t: TourPackage) => ({
+          ...t,
+          bookings: 0,
+          revenue: 0,
+          lastUpdated: t.updatedAt?.slice(0,10) || t.updated_at?.slice(0,10) || ''
+        }))
+        console.log('Enriched tours data:', enriched)
+        setTours(enriched)
+      } else {
+        console.error('Failed to load tours:', json.message)
+      }
+    } catch (error) {
+      console.error('Error loading tours:', error)
+    } finally {
+      setLoading(false)
     }
-  ])
+  }
+
+  useEffect(() => {
+    loadTours()
+  }, [])
+
+  // Refresh tours when returning from tour creation/editing
+  useEffect(() => {
+    const handleFocus = () => {
+      loadTours()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
 
   const filteredTours = tours.filter(tour => {
     const matchesSearch = tour.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,9 +94,32 @@ export default function ToursManagement() {
     )
   }
 
-  const handleDeleteTour = (tourId: string) => {
+  const handleDeleteTour = async (tourId: string) => {
     if (confirm('Are you sure you want to delete this tour?')) {
-      setTours(tours.filter(tour => tour.id !== tourId))
+      try {
+        setLoading(true)
+        console.log('Deleting tour:', tourId)
+        
+        const response = await fetch(`/api/tours?id=${tourId}`, {
+          method: 'DELETE',
+        })
+        
+        const result = await response.json()
+        console.log('Delete response:', result)
+        
+        if (result.success) {
+          // Remove the tour from local state
+          setTours(tours.filter(tour => tour.id !== tourId))
+          alert('Tour deleted successfully!')
+        } else {
+          alert(`Failed to delete tour: ${result.message}`)
+        }
+      } catch (error) {
+        console.error('Error deleting tour:', error)
+        alert('Error deleting tour. Please try again.')
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -125,13 +131,23 @@ export default function ToursManagement() {
           <h1 className="text-2xl font-bold text-gray-900">Tour Packages</h1>
           <p className="text-gray-600">Manage your tour packages and itineraries</p>
         </div>
-        <Link
-          href="/admin/tours/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Tour
-        </Link>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={loadTours}
+            disabled={loading}
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <Link
+            href="/admin/tours/new"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Tour
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -172,7 +188,7 @@ export default function ToursManagement() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
-            {filteredTours.length} Tour Packages
+            {loading ? 'Loading...' : `${filteredTours.length} Tour Packages`}
           </h3>
         </div>
         <div className="overflow-x-auto">
@@ -203,11 +219,31 @@ export default function ToursManagement() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTours.map((tour) => (
-                <tr key={tour.id} className="hover:bg-gray-50">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                    Loading tours...
+                  </td>
+                </tr>
+              ) : filteredTours.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                    No tours found. <Link href="/admin/tours/new" className="text-blue-600 hover:text-blue-800">Create your first tour</Link>
+                  </td>
+                </tr>
+              ) : (
+                filteredTours.map((tour) => (
+                <tr 
+                  key={tour.id} 
+                  className="hover:bg-gray-50 cursor-pointer group transition-colors"
+                  onClick={() => window.location.href = `/admin/tours/${tour.id}`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{tour.name}</div>
+                      <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {tour.name}
+                      </div>
                       <div className="text-sm text-gray-500">{tour.highlights.join(', ')}</div>
                     </div>
                   </td>
@@ -240,35 +276,39 @@ export default function ToursManagement() {
                     {new Date(tour.lastUpdated).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
+                    <div 
+                      className="flex items-center justify-end space-x-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Link
                         href={`/tours/${tour.id}`}
-                        className="text-blue-600 hover:text-blue-900 p-1"
+                        className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
                         title="View on website"
                       >
                         <Eye className="h-4 w-4" />
                       </Link>
                       <Link
                         href={`/admin/tours/${tour.id}`}
-                        className="text-gray-600 hover:text-gray-900 p-1"
+                        className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-100 transition-colors bg-gray-50"
                         title="Edit tour"
                       >
                         <Edit className="h-4 w-4" />
                       </Link>
                       <button
                         onClick={() => handleDeleteTour(tour.id)}
-                        className="text-red-600 hover:text-red-900 p-1"
+                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
                         title="Delete tour"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
-                      <button className="text-gray-400 hover:text-gray-600 p-1">
+                      <button className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors">
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>

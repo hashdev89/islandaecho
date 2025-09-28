@@ -1,60 +1,10 @@
 'use client'
 
-import { use } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Header from '../../../components/Header'
 import { Calendar, Clock, User, ArrowLeft, Play, Share2, Bookmark } from 'lucide-react'
-
-// Mock blog posts data
-const blogPosts = [
-  {
-    id: 1,
-    title: "Discovering the Ancient Wonders of Sigiriya",
-    description: "Explore the magnificent Sigiriya Rock Fortress, a UNESCO World Heritage site that stands as a testament to ancient Sri Lankan engineering and artistry.",
-    content: `
-
-    <h2 class="text-2xl font-bold text-gray-900 mb-4 mt-8">The History of Sigiriya</h2>
-      <p class="mb-6 text-lg leading-relaxed">
-        Sigiriya, often referred to as the "Eighth Wonder of the World," is one of Sri Lanka's most iconic landmarks. 
-        This ancient palace and fortress complex, built by King Kasyapa in the 5th century AD, stands majestically on a 
-        massive rock column rising 200 meters above the surrounding plains.
-      </p>
-      
-      
-      <p class="mb-6 text-lg leading-relaxed">
-        The story of Sigiriya begins with King Kasyapa, who seized the throne from his father, King Dhatusena, 
-        and fearing retribution from his half-brother Moggallana, built his palace on top of this impregnable rock.
-      </p>
-    `,
-    author: "Isle & Echo Team",
-    date: "2024-01-15",
-    readTime: "8 min read",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: null,
-    category: "Cultural Heritage",
-    tags: ["Sigiriya", "UNESCO", "Ancient", "Architecture"]
-  },
-  {
-    id: 2,
-    title: "Tea Plantations of Nuwara Eliya: A Green Paradise",
-    description: "Immerse yourself in the lush green tea plantations of Nuwara Eliya, the heart of Sri Lanka's tea country.",
-    content: `
-      <p class="mb-6 text-lg leading-relaxed">
-        Nuwara Eliya, often called "Little England" due to its colonial architecture and cool climate, is the heart 
-        of Sri Lanka's tea country. The rolling hills covered in emerald green tea bushes create one of the most 
-        picturesque landscapes in the country.
-      </p>
-    `,
-    author: "Travel Expert",
-    date: "2024-01-10",
-    readTime: "6 min read",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: null,
-    category: "Nature",
-    tags: ["Tea", "Nuwara Eliya", "Plantations", "Mountains"]
-  }
-]
 
 interface BlogPostPageProps {
   params: Promise<{ id: string }>
@@ -63,17 +13,64 @@ interface BlogPostPageProps {
 export default function BlogPostPage({ params }: BlogPostPageProps) {
   const resolvedParams = use(params)
   const router = useRouter()
-  
-  const post = blogPosts.find(p => p.id === parseInt(resolvedParams.id))
-  
-  if (!post) {
+  const [post, setPost] = useState<any>(null)
+  const [allPosts, setAllPosts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchBlogPost = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        const response = await fetch('/api/blog')
+        const posts = await response.json()
+        
+        if (response.ok) {
+          setAllPosts(posts)
+          const foundPost = posts.find((p: any) => p.id === parseInt(resolvedParams.id))
+          
+          if (foundPost && foundPost.status === 'Published') {
+            setPost(foundPost)
+          } else {
+            setError('Blog post not found or not published')
+          }
+        } else {
+          setError('Failed to load blog post')
+        }
+      } catch (err) {
+        console.error('Error fetching blog post:', err)
+        setError('Error loading blog post')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBlogPost()
+  }, [resolvedParams.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Loading blog post...</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !post) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-12">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Blog Post Not Found</h1>
-            <p className="text-gray-600 mb-8">The blog post you&apos;re looking for doesn&apos;t exist.</p>
+            <p className="text-gray-600 mb-8">{error || "The blog post you're looking for doesn't exist."}</p>
             <button
               onClick={() => router.push('/blog')}
               className="flex items-center mx-auto text-blue-600 font-medium hover:text-blue-700 transition-colors"
@@ -129,7 +126,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
               {post.tags.map(tag => (
                 <span
                   key={tag}
-                  className="bg-white bg-opacity-20 text-white px-3 py-1 rounded-full text-sm"
+                  className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium"
                 >
                   #{tag}
                 </span>
@@ -138,11 +135,11 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             
             {/* Action Buttons */}
             <div className="flex items-center gap-4">
-              <button className="flex items-center bg-white text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+              <button className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
               </button>
-              <button className="flex items-center bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-colors">
+              <button className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                 <Bookmark className="w-4 h-4 mr-2" />
                 Save
               </button>
@@ -176,7 +173,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                     </div>
                   ) : (
                     <Image
-                      src={post.image}
+                      src={post.image || '/placeholder-image.svg'}
                       alt={post.title}
                       width={800}
                       height={400}
@@ -187,10 +184,21 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
                 {/* Article Content */}
                 <article className="prose prose-lg max-w-none">
-                  <div 
-                    dangerouslySetInnerHTML={{ __html: post.content }}
-                    className="text-gray-700 leading-relaxed"
-                  />
+                  <div className="text-gray-700 leading-relaxed">
+                    {post.content ? (
+                      <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                    ) : (
+                      <div>
+                        <p className="mb-6 text-lg leading-relaxed">
+                          {post.description || post.excerpt || 'Content coming soon...'}
+                        </p>
+                        <p className="mb-6 text-lg leading-relaxed">
+                          This blog post is currently being updated with more detailed content. 
+                          Please check back soon for the complete article.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </article>
 
                 {/* Author Bio */}
@@ -214,13 +222,13 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                   <div className="bg-white rounded-lg shadow-lg p-6">
                     <h3 className="text-xl font-bold text-gray-900 mb-4">Related Posts</h3>
                     <div className="space-y-4">
-                      {blogPosts
-                        .filter(p => p.id !== post.id && p.category === post.category)
+                      {allPosts
+                        .filter(p => p.id !== post.id && p.category === post.category && p.status === 'Published')
                         .slice(0, 3)
                         .map(relatedPost => (
                           <div key={relatedPost.id} className="flex items-start space-x-3">
                             <Image
-                              src={relatedPost.image}
+                              src={relatedPost.image || '/placeholder-image.jpg'}
                               alt={relatedPost.title}
                               width={64}
                               height={64}
@@ -243,7 +251,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                   <div className="bg-white rounded-lg shadow-lg p-6">
                     <h3 className="text-xl font-bold text-gray-900 mb-4">Categories</h3>
                     <div className="space-y-2">
-                      {Array.from(new Set(blogPosts.map(p => p.category))).map(category => (
+                      {Array.from(new Set(allPosts.filter(p => p.status === 'Published').map(p => p.category))).map(category => (
                         <button
                           key={category}
                           onClick={() => router.push(`/blog?category=${category}`)}

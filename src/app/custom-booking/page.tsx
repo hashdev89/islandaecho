@@ -17,7 +17,8 @@ import {
   Shield,
   Award,
   Camera,
-  Navigation
+  Navigation,
+  Calendar
 } from 'lucide-react'
 import Header from '../../components/Header'
 import MapboxMap from '../../components/MapboxMap'
@@ -49,104 +50,169 @@ export default function CustomBookingPage() {
     startDate: '',
     endDate: '',
     guests: 1,
-    specialRequests: ''
+    specialRequests: '',
+    selectedTour: ''
   })
   const [isEditing, setIsEditing] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
+  const [availableTours, setAvailableTours] = useState<any[]>([])
+
+  // Fetch available tours on component mount
+  useEffect(() => {
+    const fetchTours = async () => {
+      try {
+        const res = await fetch('/api/tours')
+        const json = await res.json()
+        if (json.success) {
+          setAvailableTours(json.data || [])
+        }
+      } catch (error) {
+        console.error('Error fetching tours:', error)
+      }
+    }
+    fetchTours()
+  }, [])
+
+  // Handle tour selection and auto-set dates
+  const handleTourSelection = (tourId: string) => {
+    const selectedTour = availableTours.find(tour => tour.id === tourId)
+    if (selectedTour) {
+      setBookingData(prev => ({
+        ...prev,
+        selectedTour: tourId
+      }))
+      
+      // Auto-set dates based on tour duration
+      if (selectedTour.duration) {
+        const durationMatch = selectedTour.duration.match(/(\d+)\s*Days?/)
+        if (durationMatch) {
+          const days = parseInt(durationMatch[1])
+          const startDate = new Date() // Start from current day
+          const endDate = new Date()
+          endDate.setDate(startDate.getDate() + days) // End date is current date + tour duration days
+          
+          setBookingData(prev => ({
+            ...prev,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0]
+          }))
+        }
+      }
+    }
+  }
+
+  // Handle full name change and trigger date update
+  const handleFullNameChange = (value: string) => {
+    setBookingData(prev => ({
+      ...prev,
+      fullName: value
+    }))
+    
+    // If tour is selected and full name is entered, update dates
+    if (bookingData.selectedTour && value.trim()) {
+      const selectedTour = availableTours.find(tour => tour.id === bookingData.selectedTour)
+      if (selectedTour && selectedTour.duration) {
+        const durationMatch = selectedTour.duration.match(/(\d+)\s*Days?/)
+        if (durationMatch) {
+          const days = parseInt(durationMatch[1])
+          const startDate = new Date() // Start from current day
+          const endDate = new Date()
+          endDate.setDate(startDate.getDate() + days) // End date is current date + tour duration days
+          
+          setBookingData(prev => ({
+            ...prev,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0]
+          }))
+        }
+      }
+    }
+  }
+
+  // Handle start date change and update end date
+  const handleStartDateChange = (value: string) => {
+    setBookingData(prev => ({
+      ...prev,
+      startDate: value
+    }))
+    
+    // Update end date based on selected tour duration
+    if (bookingData.selectedTour && value) {
+      const selectedTour = availableTours.find(tour => tour.id === bookingData.selectedTour)
+      if (selectedTour && selectedTour.duration) {
+        const durationMatch = selectedTour.duration.match(/(\d+)\s*Days?/)
+        if (durationMatch) {
+          const days = parseInt(durationMatch[1])
+          const startDate = new Date(value)
+          const endDate = new Date(startDate)
+          endDate.setDate(startDate.getDate() + days) // End date is start date + tour duration days
+          
+          setBookingData(prev => ({
+            ...prev,
+            endDate: endDate.toISOString().split('T')[0]
+          }))
+        }
+      }
+    }
+  }
 
   // Available destinations with coordinates
-  const availableDestinations: Destination[] = [
-    { 
-      id: 'colombo', 
-      name: 'Colombo', 
-      region: 'Western Province',
-      description: 'The commercial capital of Sri Lanka with modern shopping centers and colonial architecture.',
-      image: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=400&h=300&fit=crop',
-      coordinates: [79.8612, 6.9271],
-      activities: ['City Tours', 'Shopping', 'Cultural Sites', 'Nightlife']
-    },
-    { 
-      id: 'kandy', 
-      name: 'Kandy', 
-      region: 'Central Province',
-      description: 'Cultural capital with the Temple of the Sacred Tooth Relic and beautiful botanical gardens.',
-      image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=300&fit=crop',
-      coordinates: [80.6337, 7.2906],
-      activities: ['Temple of the Tooth', 'Cultural Shows', 'Botanical Gardens', 'Tea Factory Tours']
-    },
-    { 
-      id: 'galle', 
-      name: 'Galle', 
-      region: 'Southern Province',
-      description: 'UNESCO World Heritage site with well-preserved colonial architecture.',
-      image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
-      coordinates: [80.2176, 6.0535],
-      activities: ['Fort Walking Tours', 'Beach Relaxation', 'Boutique Shopping', 'Sunset Views']
-    },
-    { 
-      id: 'sigiriya', 
-      name: 'Sigiriya', 
-      region: 'Cultural Triangle',
-      description: 'Ancient palace and fortress complex, a UNESCO World Heritage site.',
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
-      coordinates: [80.7604, 7.9570],
-      activities: ['Rock Climbing', 'Ancient Palace Tours', 'Fresco Viewing', 'Sunset Photography']
-    },
-    { 
-      id: 'ella', 
-      name: 'Ella', 
-      region: 'Uva Province',
-      description: 'Scenic hill country town with stunning mountain views and hiking trails.',
-      image: 'https://images.unsplash.com/photo-1502602898534-47d98d8b4b3b?w=400&h=300&fit=crop',
-      coordinates: [81.0519, 6.8751],
-      activities: ['Hiking', 'Train Journey', 'Tea Plantations', 'Mountain Views']
-    },
-    { 
-      id: 'mirissa', 
-      name: 'Mirissa', 
-      region: 'Southern Province',
-      description: 'Beautiful beach destination known for whale watching and water sports.',
-      image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=300&fit=crop',
-      coordinates: [80.4569, 5.9483],
-      activities: ['Whale Watching', 'Beach Activities', 'Water Sports', 'Sunset Views']
-    },
-    { 
-      id: 'anuradhapura', 
-      name: 'Anuradhapura', 
-      region: 'North Central Province',
-      description: 'Ancient capital with well-preserved ruins of an ancient Sinhalese civilization.',
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
-      coordinates: [80.4024, 8.3114],
-      activities: ['Ancient City Tours', 'Temple Visits', 'Historical Sites', 'Cultural Tours']
-    },
-    { 
-      id: 'polonnaruwa', 
-      name: 'Polonnaruwa', 
-      region: 'North Central Province',
-      description: 'Medieval capital with impressive archaeological ruins and ancient temples.',
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
-      coordinates: [81.0000, 7.9333],
-      activities: ['Archaeological Tours', 'Temple Visits', 'Historical Sites', 'Cultural Tours']
-    },
-    { 
-      id: 'nuwara-eliya', 
-      name: 'Nuwara Eliya', 
-      region: 'Central Province',
-      description: 'Known as Little England with cool climate and tea plantations.',
-      image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop',
-      coordinates: [80.7829, 6.9497],
-      activities: ['Tea Plantation Tours', 'Hiking', 'Golf', 'Cool Climate']
-    },
-    { 
-      id: 'dambulla', 
-      name: 'Dambulla', 
-      region: 'Cultural Triangle',
-      description: 'Famous for the Golden Temple and ancient cave temples.',
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
-      coordinates: [80.6490, 7.8567],
-      activities: ['Cave Temple Tours', 'Golden Temple', 'Cultural Tours', 'Historical Sites']
+  const [availableDestinations, setAvailableDestinations] = useState<Destination[]>([])
+
+  // Default activities for destinations
+  const getDefaultActivities = (region: string): string[] => {
+    switch (region) {
+      case 'Western Province':
+        return ['City Tours', 'Shopping', 'Cultural Sites', 'Nightlife']
+      case 'Central Province':
+        return ['Temple of the Tooth', 'Cultural Shows', 'Botanical Gardens', 'Tea Factory Tours']
+      case 'Southern Province':
+        return ['Fort Walking Tours', 'Beach Relaxation', 'Boutique Shopping', 'Sunset Views']
+      case 'Cultural Triangle':
+        return ['Rock Climbing', 'Ancient Palace Tours', 'Fresco Viewing', 'Sunset Photography']
+      case 'Uva Province':
+        return ['Hiking', 'Train Journey', 'Tea Plantations', 'Mountain Views']
+      case 'North Central Province':
+        return ['Ancient City Tours', 'Temple Visits', 'Historical Sites', 'Cultural Tours']
+      case 'Wildlife':
+        return ['Safari Tours', 'Wildlife Photography', 'Bird Watching', 'Nature Walks']
+      case 'Eastern Province':
+        return ['Beach Activities', 'Whale Watching', 'Water Sports', 'Cultural Tours']
+      case 'Northern Province':
+        return ['Cultural Tours', 'Historical Sites', 'Local Cuisine', 'Traditional Arts']
+      default:
+        return ['Sightseeing', 'Cultural Tours', 'Local Experiences', 'Photography']
     }
-  ]
+  }
+
+  useEffect(() => {
+    // Fetch destinations from API
+    const fetchDestinations = async () => {
+      try {
+        const response = await fetch('/api/destinations')
+        const result = await response.json()
+        if (result.success && result.data) {
+          // Transform API data to match Destination interface
+          const transformedDestinations = result.data.map((dest: any) => ({
+            id: dest.id,
+            name: dest.name,
+            region: dest.region,
+            description: dest.description,
+            image: dest.image,
+            coordinates: [dest.lng, dest.lat], // Note: API has lat/lng, we need lng/lat for coordinates
+            activities: getDefaultActivities(dest.region)
+          }))
+          setAvailableDestinations(transformedDestinations)
+        }
+      } catch (error) {
+        console.error('Error fetching destinations:', error)
+        // Fallback to empty array if API fails
+        setAvailableDestinations([])
+      }
+    }
+
+    fetchDestinations()
+  }, [])
 
   useEffect(() => {
     // Get trip data from localStorage
@@ -174,11 +240,55 @@ export default function CustomBookingPage() {
   // Calculate estimated price based on destinations and duration
   const estimatedPrice = selectedDestinations.length * 150 + (tripData?.guests || 1) * 50
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle booking submission
-    alert('Custom trip booking submitted successfully! We will contact you soon to finalize your itinerary.')
-    // You can add API call here to save the booking
+    
+    try {
+      const selectedTour = availableTours.find(tour => tour.id === bookingData.selectedTour)
+      const bookingPayload = {
+        tour_package_id: bookingData.selectedTour,
+        tour_package_name: selectedTour?.name || 'Custom Trip',
+        customer_name: bookingData.fullName,
+        customer_email: bookingData.email,
+        customer_phone: bookingData.phone,
+        start_date: bookingData.startDate,
+        end_date: bookingData.endDate,
+        guests: bookingData.guests,
+        special_requests: bookingData.specialRequests,
+        status: 'pending',
+        payment_status: 'pending'
+      }
+
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingPayload),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        alert('Tour booking submitted successfully! We will contact you soon to finalize your itinerary.')
+        // Reset form
+        setBookingData({
+          fullName: '',
+          email: '',
+          phone: '',
+          startDate: '',
+          endDate: '',
+          guests: 1,
+          specialRequests: '',
+          selectedTour: ''
+        })
+      } else {
+        alert('Error submitting booking. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error submitting booking:', error)
+      alert('Error submitting booking. Please try again.')
+    }
   }
 
   const removeDestination = (destinationId: string) => {
@@ -406,7 +516,7 @@ export default function CustomBookingPage() {
                   {selectedDestinations.slice(0, 6).map((destination, index) => (
                     <Image
                       key={index}
-                      src={destination.image}
+                      src={destination.image || '/placeholder-image.svg'}
                       alt={`${destination.name} - Image ${index + 1}`}
                       width={200}
                       height={150}
@@ -427,11 +537,37 @@ export default function CustomBookingPage() {
                 <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Quick Booking</h3>
                 <form onSubmit={handleBookingSubmit} className="space-y-4">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Tour Package</label>
+                    <select
+                      value={bookingData.selectedTour}
+                      onChange={(e) => handleTourSelection(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      required
+                    >
+                      <option value="">Choose a tour package...</option>
+                      {availableTours.map((tour) => (
+                        <option key={tour.id} value={tour.id}>
+                          {tour.name} - {tour.duration}
+                        </option>
+                      ))}
+                    </select>
+                    {bookingData.selectedTour && (
+                      <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          <strong>Selected:</strong> {availableTours.find(t => t.id === bookingData.selectedTour)?.name}
+                        </p>
+                        <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                          Duration: {availableTours.find(t => t.id === bookingData.selectedTour)?.duration}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
                     <input
                       type="text"
                       value={bookingData.fullName}
-                      onChange={(e) => setBookingData({...bookingData, fullName: e.target.value})}
+                      onChange={(e) => handleFullNameChange(e.target.value)}
                       placeholder="Enter your full name"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                       required
@@ -460,26 +596,34 @@ export default function CustomBookingPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tour Start Date</label>
+                    <div className="relative">
                     <input
                       type="date"
                       value={bookingData.startDate}
-                      onChange={(e) => setBookingData({...bookingData, startDate: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      onChange={(e) => handleStartDateChange(e.target.value)}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white cursor-pointer"
                       min={new Date().toISOString().split('T')[0]}
                       required
+                        placeholder="Select start date"
                     />
+                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tour End Date</label>
+                    <div className="relative">
                     <input
                       type="date"
                       value={bookingData.endDate}
                       onChange={(e) => setBookingData({...bookingData, endDate: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white cursor-pointer"
                       min={bookingData.startDate || new Date().toISOString().split('T')[0]}
                       required
+                        placeholder="Select end date"
                     />
+                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Number of Guests</label>
@@ -536,13 +680,6 @@ export default function CustomBookingPage() {
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Destinations</p>
                       <p className="font-medium text-gray-900 dark:text-white">{selectedDestinations.length} Locations</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Shield className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Difficulty</p>
-                      <p className="font-medium text-gray-900 dark:text-white">Easy to Moderate</p>
                     </div>
                   </div>
                 </div>

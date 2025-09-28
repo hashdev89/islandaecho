@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Calendar,
@@ -12,8 +12,9 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  MoreHorizontal,
-  Download
+  Download,
+  RefreshCw,
+  Trash2
 } from 'lucide-react'
 
 interface Booking {
@@ -33,94 +34,243 @@ interface Booking {
   paymentStatus: 'pending' | 'paid' | 'refunded'
 }
 
-// Mock bookings data
-const mockBookings: Booking[] = [
-  {
-    id: '1',
-    tourPackageId: 'cultural-triangle',
-    tourPackageName: 'Cultural Triangle Adventure',
-    customerName: 'John Doe',
-    customerEmail: 'john@example.com',
-    customerPhone: '+94 71 234 5678',
-    startDate: '2024-03-15',
-    endDate: '2024-03-20',
-    guests: 2,
-    totalPrice: 1200,
-    status: 'confirmed',
-    specialRequests: 'Vegetarian meals preferred, ocean view rooms',
-    bookingDate: '2024-02-01',
-    paymentStatus: 'paid'
-  },
-  {
-    id: '2',
-    tourPackageId: 'beach-paradise',
-    tourPackageName: 'Beach Paradise Escape',
-    customerName: 'Sarah Wilson',
-    customerEmail: 'sarah@example.com',
-    customerPhone: '+94 77 345 6789',
-    startDate: '2024-04-10',
-    endDate: '2024-04-15',
-    guests: 3,
-    totalPrice: 1800,
-    status: 'pending',
-    specialRequests: 'Ocean view rooms, gluten-free meals',
-    bookingDate: '2024-02-15',
-    paymentStatus: 'pending'
-  },
-  {
-    id: '3',
-    tourPackageId: 'wildlife-safari',
-    tourPackageName: 'Wildlife Safari Adventure',
-    customerName: 'Michael Brown',
-    customerEmail: 'michael@example.com',
-    customerPhone: '+94 76 456 7890',
-    startDate: '2024-05-20',
-    endDate: '2024-05-25',
-    guests: 4,
-    totalPrice: 2400,
-    status: 'completed',
-    specialRequests: 'Private guide, luxury accommodation',
-    bookingDate: '2024-01-20',
-    paymentStatus: 'paid'
-  },
-  {
-    id: '4',
-    tourPackageId: 'tea-country',
-    tourPackageName: 'Tea Country Experience',
-    customerName: 'Emily Davis',
-    customerEmail: 'emily@example.com',
-    customerPhone: '+94 75 567 8901',
-    startDate: '2024-06-12',
-    endDate: '2024-06-17',
-    guests: 2,
-    totalPrice: 1400,
-    status: 'cancelled',
-    specialRequests: 'Tea plantation tour, spa treatments',
-    bookingDate: '2024-02-10',
-    paymentStatus: 'refunded'
+async function fetchBookings(): Promise<Booking[]> {
+  try {
+    console.log('Fetching bookings from API...')
+    const res = await fetch('/api/bookings')
+    const json = await res.json()
+    console.log('Bookings API response:', json)
+    console.log('Bookings API response data:', json.data)
+    console.log('Bookings API response data length:', json.data?.length)
+    
+    if (!json.success) {
+      console.error('Bookings API error:', json.error)
+      throw new Error(json.error || 'Failed to load bookings')
+    }
+    
+    if (!json.data || !Array.isArray(json.data)) {
+      console.error('Invalid data format:', json.data)
+      throw new Error('Invalid data format received from API')
+    }
+    
+    // Map API fields to UI fields
+    const bookings = (json.data as unknown[]).map((b: unknown) => {
+      const booking = b as Record<string, unknown>
+      return {
+        id: booking.id as string,
+        tourPackageId: (booking.tour_package_id as string) || (booking.tourPackageId as string),
+        tourPackageName: (booking.tour_package_name as string) || (booking.tourPackageName as string),
+        customerName: (booking.customer_name as string) || (booking.customerName as string),
+        customerEmail: (booking.customer_email as string) || (booking.customerEmail as string),
+        customerPhone: (booking.customer_phone as string) || (booking.customerPhone as string),
+        startDate: (booking.start_date as string) || (booking.startDate as string),
+        endDate: (booking.end_date as string) || (booking.endDate as string),
+        guests: (booking.guests as number) || 1,
+        totalPrice: (booking.total_price as number) || (booking.totalPrice as number) || 0,
+        status: (booking.status as 'pending' | 'confirmed' | 'cancelled' | 'completed') || 'pending',
+        specialRequests: (booking.special_requests as string) || (booking.specialRequests as string) || '',
+        bookingDate: (booking.created_at as string) || (booking.createdAt as string) || new Date().toISOString(),
+        paymentStatus: (booking.payment_status as 'pending' | 'paid' | 'refunded') || (booking.paymentStatus as 'pending' | 'paid' | 'refunded') || 'pending',
+      }
+    })
+    
+    console.log('Mapped bookings:', bookings)
+    console.log('Mapped bookings count:', bookings.length)
+    return bookings
+  } catch (error) {
+    console.error('Error fetching bookings:', error)
+    throw error
   }
-]
+}
 
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings)
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const loadBookings = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Loading bookings...')
+      const data = await fetchBookings()
+      console.log('Received bookings data:', data)
+      setBookings(data)
+      console.log('Bookings loaded successfully:', data.length, 'bookings')
+      console.log('Bookings state updated:', data)
+    } catch (e: unknown) {
+      console.error('Error loading bookings:', e)
+      setError((e as Error).message || 'Failed to load bookings')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const refreshBookings = async () => {
+    try {
+      setRefreshing(true)
+      setError(null)
+      const data = await fetchBookings()
+      setBookings(data)
+      console.log('Bookings refreshed successfully:', data.length, 'bookings')
+    } catch (e: unknown) {
+      console.error('Error refreshing bookings:', e)
+      setError((e as Error).message || 'Failed to refresh bookings')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  const deleteBooking = async (bookingId: string) => {
+    try {
+      setDeleting(true)
+      setError(null)
+      
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'DELETE',
+      })
+      
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete booking')
+      }
+      
+      // Remove the booking from the local state
+      setBookings(prevBookings => prevBookings.filter(b => b.id !== bookingId))
+      
+      // Close the modal
+      setDeleteModalOpen(false)
+      setBookingToDelete(null)
+      
+      console.log('Booking deleted successfully:', bookingId)
+    } catch (e: unknown) {
+      console.error('Error deleting booking:', e)
+      setError((e as Error).message || 'Failed to delete booking')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteClick = (booking: Booking) => {
+    setBookingToDelete(booking)
+    setDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (bookingToDelete) {
+      deleteBooking(bookingToDelete.id)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false)
+    setBookingToDelete(null)
+  }
+
+  useEffect(() => {
+    loadBookings()
+  }, [])
+
+  // Auto-refresh when returning from other pages
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshBookings()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [dateFilter, setDateFilter] = useState<string>('all')
 
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = 
-      booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.tourPackageName.toLowerCase().includes(searchTerm.toLowerCase())
+      (booking.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.customerEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.tourPackageName || '').toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter
-    const matchesDate = dateFilter === 'all' || 
-      (dateFilter === 'upcoming' && new Date(booking.startDate) > new Date()) ||
-      (dateFilter === 'past' && new Date(booking.startDate) < new Date()) ||
-      (dateFilter === 'today' && booking.startDate === new Date().toISOString().split('T')[0])
+    
+    // Fix date filtering logic
+    let matchesDate = true
+    if (dateFilter !== 'all') {
+      const startDate = new Date(booking.startDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Reset time to start of day
+      
+      if (dateFilter === 'upcoming') {
+        matchesDate = startDate > today
+      } else if (dateFilter === 'past') {
+        matchesDate = startDate < today
+      } else if (dateFilter === 'today') {
+        const todayStr = today.toISOString().split('T')[0]
+        matchesDate = booking.startDate === todayStr
+      }
+    }
 
     return matchesSearch && matchesStatus && matchesDate
   })
+
+  console.log('Current bookings state:', bookings)
+  console.log('Filtered bookings:', filteredBookings)
+  console.log('Search term:', searchTerm)
+  console.log('Status filter:', statusFilter)
+  console.log('Date filter:', dateFilter)
+  
+  // Debug each booking's date filtering
+  bookings.forEach((booking, index) => {
+    const startDate = new Date(booking.startDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    console.log(`Booking ${index}:`, {
+      id: booking.id,
+      startDate: booking.startDate,
+      parsedStartDate: startDate,
+      today: today,
+      isUpcoming: startDate > today,
+      isPast: startDate < today,
+      isToday: booking.startDate === today.toISOString().split('T')[0]
+    })
+  })
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center">
+          <RefreshCw className="w-6 h-6 animate-spin mr-2" />
+          Loading bookings...
+        </div>
+      </div>
+    )
+  }
+  
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <XCircle className="w-5 h-5 text-red-400 mr-2" />
+            <div>
+              <h3 className="text-sm font-medium text-red-800">Error loading bookings</h3>
+              <p className="text-sm text-red-600 mt-1">{error}</p>
+              <button 
+                onClick={loadBookings}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -153,11 +303,10 @@ export default function BookingsPage() {
 
   const totalRevenue = bookings
     .filter(b => b.status === 'confirmed' || b.status === 'completed')
-    .reduce((sum, b) => sum + b.totalPrice, 0)
+    .reduce((sum, b) => sum + (b.totalPrice || 0), 0)
 
   const pendingBookings = bookings.filter(b => b.status === 'pending').length
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length
-  const completedBookings = bookings.filter(b => b.status === 'completed').length
 
   return (
     <div className="space-y-6">
@@ -168,12 +317,21 @@ export default function BookingsPage() {
           <p className="text-gray-600">Manage and track all tour bookings</p>
         </div>
         <div className="flex space-x-3">
+          <button 
+            onClick={refreshBookings}
+            disabled={refreshing}
+            className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
           <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <Download className="w-4 h-4 mr-2" />
             Export
           </button>
         </div>
       </div>
+
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -343,11 +501,16 @@ export default function BookingsPage() {
                       <Link
                         href={`/admin/bookings/${booking.id}`}
                         className="text-blue-600 hover:text-blue-900"
+                        title="View Details"
                       >
                         <Eye className="w-4 h-4" />
                       </Link>
-                      <button className="text-gray-600 hover:text-gray-900">
-                        <MoreHorizontal className="w-4 h-4" />
+                      <button 
+                        onClick={() => handleDeleteClick(booking)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete Booking"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -366,6 +529,65 @@ export default function BookingsPage() {
           <p className="mt-1 text-sm text-gray-500">
             Try adjusting your search or filter criteria.
           </p>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && bookingToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <XCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Delete Booking
+                </h3>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-2">
+                Are you sure you want to delete this booking? This action cannot be undone.
+              </p>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm font-medium text-gray-900">
+                  Booking #{bookingToDelete.id}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {bookingToDelete.customerName} - {bookingToDelete.tourPackageName}
+                </p>
+                <p className="text-sm text-gray-600">
+                  ${bookingToDelete.totalPrice} • {bookingToDelete.guests} guests
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <div className="flex items-center">
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Deleting...
+                  </div>
+                ) : (
+                  'Delete Booking'
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

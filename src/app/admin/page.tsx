@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Package,
@@ -11,11 +11,32 @@ import {
   DollarSign,
   Plus,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  RefreshCw
 } from 'lucide-react'
 
+interface Booking {
+  id: string
+  tourPackageId: string
+  tourPackageName: string
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  startDate: string
+  endDate: string
+  guests: number
+  totalPrice: number
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  specialRequests: string
+  bookingDate: string
+  paymentStatus: 'pending' | 'paid' | 'refunded'
+}
+
 export default function AdminDashboard() {
-  const stats = [
+  const [recentBookings, setRecentBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState([
     {
       name: 'Total Tours',
       value: '12',
@@ -48,34 +69,100 @@ export default function AdminDashboard() {
       icon: DollarSign,
       href: '/admin/bookings'
     }
-  ]
+  ])
 
-  const recentBookings = [
-    {
-      id: '1',
-      customerName: 'John Doe',
-      tourPackage: 'Cultural Triangle Adventure',
-      date: '2024-03-15',
-      status: 'confirmed',
-      amount: '$1,200'
-    },
-    {
-      id: '2',
-      customerName: 'Sarah Wilson',
-      tourPackage: 'Beach Paradise Escape',
-      date: '2024-04-10',
-      status: 'pending',
-      amount: '$1,800'
-    },
-    {
-      id: '3',
-      customerName: 'Michael Brown',
-      tourPackage: 'Wildlife Safari Adventure',
-      date: '2024-05-20',
-      status: 'completed',
-      amount: '$2,400'
+  // Function to fetch bookings data
+  const fetchBookings = async () => {
+    try {
+      const res = await fetch('/api/bookings')
+      const json = await res.json()
+      
+      if (json.success && json.data) {
+        // Map API fields to UI fields
+        const bookings = json.data.map((b: unknown) => {
+          const booking = b as Record<string, unknown>
+          return {
+            id: booking.id as string,
+            tourPackageId: (booking.tour_package_id as string) || (booking.tourPackageId as string),
+            tourPackageName: (booking.tour_package_name as string) || (booking.tourPackageName as string),
+            customerName: (booking.customer_name as string) || (booking.customerName as string),
+            customerEmail: (booking.customer_email as string) || (booking.customerEmail as string),
+            customerPhone: (booking.customer_phone as string) || (booking.customerPhone as string),
+            startDate: (booking.start_date as string) || (booking.startDate as string),
+            endDate: (booking.end_date as string) || (booking.endDate as string),
+            guests: (booking.guests as number) || 1,
+            totalPrice: (booking.total_price as number) || (booking.totalPrice as number) || 0,
+            status: (booking.status as 'pending' | 'confirmed' | 'cancelled' | 'completed') || 'pending',
+            specialRequests: (booking.special_requests as string) || (booking.specialRequests as string) || '',
+            bookingDate: (booking.created_at as string) || (booking.createdAt as string) || new Date().toISOString(),
+            paymentStatus: (booking.payment_status as 'pending' | 'paid' | 'refunded') || (booking.paymentStatus as 'pending' | 'paid' | 'refunded') || 'pending',
+          }
+        })
+        
+        // Get recent bookings (last 5)
+        const recent = bookings
+          .sort((a: { bookingDate: string | number | Date }, b: { bookingDate: string | number | Date }) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
+          .slice(0, 5)
+        
+        setRecentBookings(recent)
+        
+        // Update stats with real data
+        type Booking = {
+          status: string;
+          totalPrice: number;
+        };
+
+        const totalRevenue = bookings
+          .filter((b: Booking) => b.status === 'confirmed' || b.status === 'completed')
+          .reduce((sum: number, b: Booking) => sum + (b.totalPrice || 0), 0);
+
+        const pendingBookings = bookings.filter((b: Booking) => b.status === 'pending').length;
+        const confirmedBookings = bookings.filter((b: Booking) => b.status === 'confirmed').length;
+        setStats([
+          {
+            name: 'Total Tours',
+            value: '12',
+            change: '+12%',
+            changeType: 'positive',
+            icon: Package,
+            href: '/admin/tours'
+          },
+          {
+            name: 'Destinations',
+            value: '8',
+            change: '+2',
+            changeType: 'positive',
+            icon: MapPin,
+            href: '/admin/destinations'
+          },
+          {
+            name: 'Total Bookings',
+            value: bookings.length.toString(),
+            change: `+${confirmedBookings}`,
+            changeType: 'positive',
+            icon: Calendar,
+            href: '/admin/bookings'
+          },
+          {
+            name: 'Revenue',
+            value: `$${totalRevenue.toLocaleString()}`,
+            change: '+20.1%',
+            changeType: 'positive',
+            icon: DollarSign,
+            href: '/admin/bookings'
+          }
+        ])
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  useEffect(() => {
+    fetchBookings()
+  }, [])
 
   const quickActions = [
     {
@@ -113,7 +200,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome to your ISLE & ECHO admin dashboard</p>
+        <p className="text-gray-600">Welcome to your ISLE & ECHO Dashboard</p>
       </div>
 
       {/* Stats */}
@@ -187,50 +274,83 @@ export default function AdminDashboard() {
         <div className="px-4 py-5 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Bookings</h3>
-            <Link
-              href="/admin/bookings"
-              className="text-sm font-medium text-blue-600 hover:text-blue-500"
-            >
-              View all
-            </Link>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={fetchBookings}
+                disabled={loading}
+                className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <Link
+                href="/admin/bookings"
+                className="text-sm font-medium text-blue-600 hover:text-blue-500"
+              >
+                View all
+              </Link>
+            </div>
           </div>
           <div className="flow-root">
-            <ul className="-my-5 divide-y divide-gray-200">
-              {recentBookings.map((booking) => (
-                <li key={booking.id} className="py-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                        <Calendar className="h-4 w-4 text-gray-600" />
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-gray-600">Loading recent bookings...</span>
+              </div>
+            ) : recentBookings.length > 0 ? (
+              <ul className="-my-5 divide-y divide-gray-200">
+                {recentBookings.map((booking) => (
+                  <li key={booking.id} className="py-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
+                          <Calendar className="h-4 w-4 text-gray-600" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {booking.customerName}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {booking.tourPackageName}
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0 text-sm text-gray-500">
+                        {new Date(booking.bookingDate).toLocaleDateString()}
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                          booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {booking.status}
+                        </span>
+                      </div>
+                      <div className="flex-shrink-0 text-sm font-medium text-gray-900">
+                        ${booking.totalPrice || 0}
+                      </div>
+                      <div className="flex-shrink-0">
+                        <Link
+                          href={`/admin/bookings/${booking.id}`}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {booking.customerName}
-                      </p>
-                      <p className="text-sm text-gray-500 truncate">
-                        {booking.tourPackage}
-                      </p>
-                    </div>
-                    <div className="flex-shrink-0 text-sm text-gray-500">
-                      {booking.date}
-                    </div>
-                    <div className="flex-shrink-0">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                        booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
-                        {booking.status}
-                      </span>
-                    </div>
-                    <div className="flex-shrink-0 text-sm font-medium text-gray-900">
-                      {booking.amount}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-center py-8">
+                <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No recent bookings</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  New bookings will appear here as they come in.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -243,12 +363,14 @@ export default function AdminDashboard() {
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Calendar className="h-6 w-6 text-gray-400" />
+                  <Calendar className="h-6 w-6 text-yellow-400" />
                 </div>
                 <div className="ml-3 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Pending Bookings</dt>
-                    <dd className="text-lg font-medium text-gray-900">23</dd>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {loading ? '...' : recentBookings.filter(b => b.status === 'pending').length}
+                    </dd>
                   </dl>
                 </div>
               </div>
@@ -261,7 +383,9 @@ export default function AdminDashboard() {
                 <div className="ml-3 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Confirmed Bookings</dt>
-                    <dd className="text-lg font-medium text-gray-900">89</dd>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {loading ? '...' : recentBookings.filter(b => b.status === 'confirmed').length}
+                    </dd>
                   </dl>
                 </div>
               </div>
@@ -273,8 +397,13 @@ export default function AdminDashboard() {
                 </div>
                 <div className="ml-3 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Monthly Revenue</dt>
-                    <dd className="text-lg font-medium text-gray-900">$12,345</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Recent Revenue</dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {loading ? '...' : `$${recentBookings
+                        .filter(b => b.status === 'confirmed' || b.status === 'completed')
+                        .reduce((sum, b) => sum + (b.totalPrice || 0), 0)
+                        .toLocaleString()}`}
+                    </dd>
                   </dl>
                 </div>
               </div>

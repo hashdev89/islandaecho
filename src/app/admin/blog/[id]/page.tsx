@@ -6,34 +6,20 @@ import Image from 'next/image'
 import { Save, ArrowLeft, X } from 'lucide-react'
 import Link from 'next/link'
 
-// Mock blog post data for editing
-const mockPost = {
-  id: 1,
-  title: "Discovering the Ancient Wonders of Sigiriya",
-  description: "Explore the magnificent Sigiriya Rock Fortress, a UNESCO World Heritage site that stands as a testament to ancient Sri Lankan engineering and artistry. This comprehensive guide takes you through the history, architecture, and practical tips for visiting this iconic landmark.",
-  excerpt: "A journey through the ancient rock fortress that has captivated travelers for centuries...",
-  author: "Isle & Echo Team",
-  date: "2024-01-15",
-  readTime: "8 min read",
-  image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-  video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-  category: "Cultural Heritage",
-  status: "Published",
-  tags: ["Sigiriya", "UNESCO", "Ancient", "Architecture"],
-  content: "This is the full content of the blog post..."
-}
-
-const categories = ["Cultural Heritage", "Nature", "Wildlife", "Beaches", "Adventure", "Food & Culture"]
+const categories = ["Cultural Heritage", "Nature", "Wildlife", "Beaches", "Adventure", "Food"]
 const statuses = ["Draft", "Published", "Archived"]
 
 export default function BlogPostEditor({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [post, setPost] = useState({
+    id: 0,
     title: "",
     description: "",
     excerpt: "",
-    author: "",
+    author: "Isle & Echo Team",
     date: new Date().toISOString().split('T')[0],
     readTime: "",
     image: "",
@@ -48,12 +34,62 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
 
   useEffect(() => {
     const loadPost = async () => {
-      const resolvedParams = await params
-      if (resolvedParams.id === 'new') {
-        setIsNewPost(true)
-      } else {
-        // Load existing post data
-        setPost(mockPost)
+      try {
+        setLoading(true)
+        setError('')
+        const resolvedParams = await params
+        
+        if (resolvedParams.id === 'new') {
+          setIsNewPost(true)
+          setPost({
+            id: 0,
+            title: "",
+            description: "",
+            excerpt: "",
+            author: "Isle & Echo Team",
+            date: new Date().toISOString().split('T')[0],
+            readTime: "",
+            image: "",
+            video: "",
+            category: "Cultural Heritage",
+            status: "Draft",
+            tags: [],
+            content: ""
+          })
+        } else {
+          // Load existing post data from API
+          const response = await fetch('/api/blog')
+          const posts = await response.json()
+          const foundPost = posts.find((p: unknown) => {
+            const post = p as Record<string, unknown>
+            return post.id === parseInt(resolvedParams.id)
+          })
+          
+          if (foundPost) {
+            setPost({
+              id: foundPost.id,
+              title: foundPost.title || "",
+              description: foundPost.description || "",
+              excerpt: foundPost.excerpt || "",
+              author: foundPost.author || "Isle & Echo Team",
+              date: foundPost.date || new Date().toISOString().split('T')[0],
+              readTime: foundPost.readTime || "",
+              image: foundPost.image || "",
+              video: foundPost.video || "",
+              category: foundPost.category || "Cultural Heritage",
+              status: foundPost.status || "Draft",
+              tags: foundPost.tags || [],
+              content: foundPost.content || ""
+            })
+          } else {
+            setError('Blog post not found')
+          }
+        }
+      } catch (err) {
+        console.error('Error loading blog post:', err)
+        setError('Failed to load blog post')
+      } finally {
+        setLoading(false)
       }
     }
     loadPost()
@@ -61,10 +97,59 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
 
   const handleSave = async () => {
     setIsLoading(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsLoading(false)
-    router.push('/admin/blog')
+    setError('')
+
+    try {
+      // Validate required fields
+      if (!post.title || !post.description || !post.content) {
+        setError('Please fill in all required fields (Title, Description, Content)')
+        setIsLoading(false)
+        return
+      }
+
+      const postData = {
+        ...post,
+        readTime: post.readTime || `${Math.ceil(post.content.split(' ').length / 200)} min read`
+      }
+
+      if (isNewPost) {
+        // Create new post
+        const response = await fetch('/api/blog', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(postData),
+        })
+
+        if (!response.ok) {
+          const result = await response.json()
+          throw new Error(result.error || 'Failed to create blog post')
+        }
+      } else {
+        // Update existing post
+        const response = await fetch('/api/blog', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(postData),
+        })
+
+        if (!response.ok) {
+          const result = await response.json()
+          throw new Error(result.error || 'Failed to update blog post')
+        }
+      }
+
+      // Redirect to blog list
+      router.push('/admin/blog')
+    } catch (err: unknown) {
+      console.error('Error saving blog post:', err)
+      setError((err as Error).message || 'Failed to save blog post')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleAddTag = () => {
@@ -83,6 +168,33 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
       e.preventDefault()
       handleAddTag()
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600">Loading blog post...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <div className="text-red-600 mb-4">{error}</div>
+          <Link
+            href="/admin/blog"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Back to Blog Posts
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -113,6 +225,13 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
           {isLoading ? 'Saving...' : 'Save Post'}
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
@@ -323,7 +442,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
               {post.image && (
                 <div className="mt-4">
                   <Image
-                    src={post.image}
+                    src={post.image || '/placeholder-image.svg'}
                     alt="Preview"
                     width={600}
                     height={128}

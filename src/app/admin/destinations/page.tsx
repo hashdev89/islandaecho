@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -11,7 +11,8 @@ import {
   MapPin,
   Filter,
   MoreHorizontal,
-  Globe
+  Globe,
+  RefreshCw
 } from 'lucide-react'
 
 interface Destination {
@@ -30,68 +31,48 @@ interface Destination {
 export default function DestinationsManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [regionFilter, setRegionFilter] = useState('all')
-  const [destinations, setDestinations] = useState<Destination[]>([
-    {
-      id: 'sigiriya',
-      name: 'Sigiriya',
-      region: 'Cultural Triangle',
-      lat: 7.9570,
-      lng: 80.7603,
-      description: 'Ancient palace and fortress complex with stunning views',
-      image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
-      status: 'active',
-      toursCount: 3,
-      lastUpdated: '2024-01-15'
-    },
-    {
-      id: 'dambulla',
-      name: 'Dambulla',
-      region: 'Cultural Triangle',
-      lat: 7.8567,
-      lng: 80.6492,
-      description: 'Famous cave temple complex with Buddhist murals',
-      image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=400&h=300&fit=crop',
-      status: 'active',
-      toursCount: 2,
-      lastUpdated: '2024-01-10'
-    },
-    {
-      id: 'kandy',
-      name: 'Kandy',
-      region: 'Hill Country',
-      lat: 7.2906,
-      lng: 80.6337,
-      description: 'Cultural capital with Temple of the Tooth',
-      image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=300&fit=crop',
-      status: 'active',
-      toursCount: 4,
-      lastUpdated: '2024-01-12'
-    },
-    {
-      id: 'galle',
-      name: 'Galle',
-      region: 'Southern Coast',
-      lat: 6.0535,
-      lng: 80.2210,
-      description: 'Historic coastal city with Dutch fort',
-      image: 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=400&h=300&fit=crop',
-      status: 'active',
-      toursCount: 2,
-      lastUpdated: '2024-01-08'
-    },
-    {
-      id: 'yala',
-      name: 'Yala National Park',
-      region: 'Wildlife',
-      lat: 6.2619,
-      lng: 81.4157,
-      description: 'Famous wildlife sanctuary for leopards and elephants',
-      image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=400&h=300&fit=crop',
-      status: 'active',
-      toursCount: 1,
-      lastUpdated: '2024-01-14'
+  const [destinations, setDestinations] = useState<Destination[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    fetchDestinations()
+  }, [])
+
+  const fetchDestinations = async () => {
+    setRefreshing(true)
+    try {
+      const response = await fetch('/api/destinations')
+      const result = await response.json()
+      
+      if (result.success) {
+        // Map API data to component format
+        const mappedDestinations = result.data.map((dest: unknown) => {
+          const d = dest as Record<string, unknown>
+          return {
+            id: d.id as string,
+            name: d.name as string,
+            region: d.region as string,
+            lat: d.lat as number,
+            lng: d.lng as number,
+            description: (d.description as string) || '',
+            image: (d.image as string) || 'https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=400&h=300&fit=crop',
+            status: (d.status as 'active' | 'inactive') || 'active',
+            toursCount: 0, // This would need to be calculated from tours
+            lastUpdated: d.updated_at ? new Date(d.updated_at as string).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+          }
+        })
+        setDestinations(mappedDestinations)
+      } else {
+        console.error('Failed to fetch destinations:', result.message)
+      }
+    } catch (error) {
+      console.error('Error fetching destinations:', error)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
-  ])
+  }
 
   const filteredDestinations = destinations.filter(dest => {
     const matchesSearch = dest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -128,13 +109,23 @@ export default function DestinationsManagement() {
           <h1 className="text-2xl font-bold text-gray-900">Destinations</h1>
           <p className="text-gray-600">Manage destinations and their coordinates</p>
         </div>
-        <Link
-          href="/admin/destinations/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Destination
-        </Link>
+        <div className="flex space-x-3">
+          <button
+            onClick={fetchDestinations}
+            disabled={refreshing}
+            className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <Link
+            href="/admin/destinations/new"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Destination
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -172,12 +163,18 @@ export default function DestinationsManagement() {
       </div>
 
       {/* Destinations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDestinations.map((destination) => (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600">Loading destinations...</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDestinations.map((destination) => (
           <div key={destination.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow">
             <div className="relative">
               <Image
-                src={destination.image}
+                src={destination.image || '/placeholder-image.svg'}
                 alt={destination.name}
                 width={400}
                 height={192}
@@ -249,10 +246,11 @@ export default function DestinationsManagement() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Empty State */}
-      {filteredDestinations.length === 0 && (
+      {!loading && filteredDestinations.length === 0 && (
         <div className="text-center py-12">
           <Globe className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No destinations found</h3>

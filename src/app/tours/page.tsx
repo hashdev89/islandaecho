@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import {
   MapPin,
   Users,
@@ -12,8 +13,10 @@ import {
   ArrowRight
 } from 'lucide-react'
 import Header from '../../components/Header'
+import StructuredData, { breadcrumbSchema } from '../../components/StructuredData'
 
 export default function ToursPage() {
+  const router = useRouter()
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [priceRange, setPriceRange] = useState([0, 2000])
   const [duration, setDuration] = useState('all')
@@ -52,97 +55,24 @@ export default function ToursPage() {
     { id: 'wildlife', name: 'Wildlife' }
   ]
 
-  const tours = [
-    {
-      id: 1,
-      name: "Bali Adventure Tour",
-      category: "adventure",
-      location: "Bali, Indonesia",
-      image: "https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=400&h=300&fit=crop",
-      price: 899,
-      duration: "7 days",
-      rating: 4.8,
-      reviews: 156,
-      description: "Explore the best of Bali with adventure activities, cultural experiences, and stunning landscapes.",
-      highlights: ["Temple visits", "Rice terraces", "Beach activities", "Local cuisine"],
-      badge: "Popular"
-    },
-    {
-      id: 2,
-      name: "Tokyo Cultural Experience",
-      category: "cultural",
-      location: "Tokyo, Japan",
-      image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop",
-      price: 1299,
-      duration: "5 days",
-      rating: 4.9,
-      reviews: 234,
-      description: "Immerse yourself in Japanese culture with traditional experiences and modern city life.",
-      highlights: ["Temple visits", "Tea ceremony", "Sushi making", "Shopping districts"],
-      badge: "Best Seller"
-    },
-    {
-      id: 3,
-      name: "Santorini Sunset Tour",
-      category: "beach",
-      location: "Santorini, Greece",
-      image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=300&fit=crop",
-      price: 1499,
-      duration: "6 days",
-      rating: 4.7,
-      reviews: 189,
-      description: "Experience the magic of Santorini with stunning sunsets and beautiful beaches.",
-      highlights: ["Sunset views", "Beach relaxation", "Wine tasting", "Island hopping"],
-      badge: "Romantic"
-    },
-    {
-      id: 4,
-      name: "Swiss Alps Expedition",
-      category: "mountain",
-      location: "Swiss Alps",
-      image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=300&fit=crop",
-      price: 1799,
-      duration: "8 days",
-      rating: 4.6,
-      reviews: 98,
-      description: "Conquer the Swiss Alps with guided hiking and breathtaking mountain views.",
-      highlights: ["Mountain hiking", "Alpine villages", "Scenic trains", "Local cuisine"],
-      badge: "Adventure"
-    },
-    {
-      id: 5,
-      name: "Dubai City Explorer",
-      category: "city",
-      location: "Dubai, UAE",
-      image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop",
-      price: 999,
-      duration: "4 days",
-      rating: 4.5,
-      reviews: 267,
-      description: "Discover the modern marvels of Dubai with luxury experiences and desert adventures.",
-      highlights: ["Burj Khalifa", "Desert safari", "Shopping malls", "Luxury dining"],
-      badge: "Luxury"
-    },
-    {
-      id: 6,
-      name: "African Safari Adventure",
-      category: "wildlife",
-      location: "Serengeti, Tanzania",
-      image: "https://images.unsplash.com/photo-1549366021-9f761d450615?w=400&h=300&fit=crop",
-      price: 2499,
-      duration: "10 days",
-      rating: 4.9,
-      reviews: 76,
-      description: "Witness the incredible wildlife of Africa with guided safari experiences.",
-      highlights: ["Wildlife viewing", "Luxury lodges", "Cultural visits", "Photography"],
-      badge: "Premium"
+  const [tours, setTours] = useState<any[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/tours')
+        const json = await res.json()
+        if (json.success) setTours(json.data)
+      } catch {}
     }
-  ]
+    load()
+  }, [])
 
   const filteredTours = tours.filter(tour => {
     const categoryMatch = selectedCategory === 'all' || tour.category === selectedCategory
-    const priceMatch = tour.price >= priceRange[0] && tour.price <= priceRange[1]
-    const durationMatch = duration === 'all' || tour.duration.includes(duration)
+    const numericPrice = typeof tour.price === 'number' ? tour.price : parseFloat(String(tour.price || '').replace(/[^0-9.]/g, ''))
+    const priceMatch = !isNaN(numericPrice) ? (numericPrice >= priceRange[0] && numericPrice <= priceRange[1]) : true
+    const durationMatch = duration === 'all' || String(tour.duration || '').includes(duration)
     return categoryMatch && priceMatch && durationMatch
   })
 
@@ -240,15 +170,18 @@ export default function ToursPage() {
                 <div key={tour.id} style={{ border: `1px solid ${colors.primary[100]}` }} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                   <div className="relative">
                     <Image
-                      src={tour.image}
+                      src={tour.image || (tour.images?.[0] ?? '/next.svg')}
                       alt={tour.name}
                       width={400}
                       height={192}
                       className="w-full h-48 object-cover"
                     />
-                    <div style={{ background: `linear-gradient(90deg, ${colors.secondary[400]}, ${colors.secondary[500]})` }} className="absolute top-3 left-3 text-white px-3 py-1 rounded-full text-xs font-bold">
-                      {tour.badge}
-                    </div>
+                    {/* Style Tag */}
+                    {tour.style && (
+                      <div style={{ background: 'rgb(160, 255, 7)' }} className="absolute top-3 left-20 text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
+                        {tour.style}
+                      </div>
+                    )}
                     <button style={{ background: colors.primary[50] }} className="absolute top-3 right-3 p-2 rounded-full shadow-md hover:bg-[#DBEAFE] transition-colors">
                       <Heart className="w-5 h-5" style={{ color: colors.primary[500] }} />
                     </button>
@@ -258,13 +191,13 @@ export default function ToursPage() {
                     <h3 style={{ color: colors.text.base }} className="text-xl font-semibold mb-2">{tour.name}</h3>
                     <p style={{ color: colors.text.muted }} className="text-sm mb-3 flex items-center">
                       <MapPin className="w-4 h-4 mr-1" style={{ color: colors.primary[500] }} />
-                      {tour.location}
+                      {(tour.location) || (Array.isArray(tour.destinations) ? tour.destinations.slice(0,2).join(', ') : 'Sri Lanka')}
                     </p>
                     
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-1">
                         <Star className="w-4 h-4" style={{ color: colors.secondary[400] }} />
-                        <span style={{ color: colors.text.muted }} className="text-sm">{tour.rating} ({tour.reviews})</span>
+                        <span style={{ color: colors.text.muted }} className="text-sm">{tour.rating ?? '4.8'} ({tour.reviews ?? 120})</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <Clock className="w-4 h-4" style={{ color: colors.primary[500] }} />
@@ -272,19 +205,19 @@ export default function ToursPage() {
                       </div>
                     </div>
                     
-                    <p style={{ color: colors.text.muted }} className="text-sm mb-4">{tour.description}</p>
+                    <p style={{ color: colors.text.muted }} className="text-sm mb-4 line-clamp-5">{tour.description}</p>
                     
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {tour.highlights.slice(0, 3).map((highlight, index) => (
-                        <span key={index} style={{ background: colors.primary[100], color: colors.primary[500] }} className="px-2 py-1 rounded-full text-xs">
-                          {highlight}
-                        </span>
-                      ))}
-                    </div>
                     
                     <div className="flex items-center justify-between">
-                      <div style={{ color: colors.primary[500] }} className="text-2xl font-bold">${tour.price}</div>
-                      <button style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all flex items-center space-x-1">
+                      <div style={{ color: colors.primary[500] }} className="text-2xl font-bold">{typeof tour.price === 'number' ? `$${tour.price}` : tour.price}</div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <button 
+                        onClick={() => router.push(`/tours/${tour.id}?startDate=&endDate=&guests=1`)}
+                        style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} 
+                        className="text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all flex items-center space-x-1"
+                      >
                         <span>Book Now</span>
                         <ArrowRight className="w-4 h-4" />
                       </button>
@@ -296,6 +229,12 @@ export default function ToursPage() {
           </div>
         </div>
       </div>
+      
+      {/* Structured Data */}
+      <StructuredData data={breadcrumbSchema([
+        { name: "Home", url: "https://isleandecho.com" },
+        { name: "Tours", url: "https://isleandecho.com/tours" }
+      ])} />
     </div>
   )
 } 

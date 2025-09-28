@@ -1,104 +1,52 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Header from '../../components/Header'
 import { Calendar, Clock, User, ArrowRight, Play } from 'lucide-react'
 
-// Mock blog posts data
-const blogPosts = [
-  {
-    id: 1,
-    title: "Discovering the Ancient Wonders of Sigiriya",
-    description: "Explore the magnificent Sigiriya Rock Fortress, a UNESCO World Heritage site that stands as a testament to ancient Sri Lankan engineering and artistry. This comprehensive guide takes you through the history, architecture, and practical tips for visiting this iconic landmark.",
-    excerpt: "A journey through the ancient rock fortress that has captivated travelers for centuries...",
-    author: "Isle & Echo Team",
-    date: "2024-01-15",
-    readTime: "8 min read",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    category: "Cultural Heritage",
-    tags: ["Sigiriya", "UNESCO", "Ancient", "Architecture"]
-  },
-  {
-    id: 2,
-    title: "Tea Plantations of Nuwara Eliya: A Green Paradise",
-    description: "Immerse yourself in the lush green tea plantations of Nuwara Eliya, the heart of Sri Lanka's tea country. Learn about the tea-making process, visit historic tea factories, and experience the cool mountain climate that makes this region perfect for tea cultivation.",
-    excerpt: "From leaf to cup: exploring the world-famous tea plantations...",
-    author: "Travel Expert",
-    date: "2024-01-10",
-    readTime: "6 min read",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: null,
-    category: "Nature",
-    tags: ["Tea", "Nuwara Eliya", "Plantations", "Mountains"]
-  },
-  {
-    id: 3,
-    title: "Wildlife Safari in Yala National Park",
-    description: "Experience the thrill of spotting leopards, elephants, and exotic birds in their natural habitat at Yala National Park. This guide provides essential tips for the best wildlife viewing experience, including the best times to visit and what to expect.",
-    excerpt: "A safari adventure through one of Asia's premier wildlife sanctuaries...",
-    author: "Wildlife Guide",
-    date: "2024-01-05",
-    readTime: "10 min read",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    category: "Wildlife",
-    tags: ["Yala", "Safari", "Leopards", "Wildlife"]
-  },
-  {
-    id: 4,
-    title: "Beach Paradise: The Best Beaches in Sri Lanka",
-    description: "From pristine white sand beaches to hidden coves, discover the most beautiful beaches that Sri Lanka has to offer. Whether you're looking for surfing, snorkeling, or simply relaxing, this guide covers the best coastal destinations.",
-    excerpt: "Crystal clear waters and golden sands await at these stunning beaches...",
-    author: "Beach Lover",
-    date: "2023-12-28",
-    readTime: "7 min read",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: null,
-    category: "Beaches",
-    tags: ["Beaches", "Coast", "Surfing", "Relaxation"]
-  },
-  {
-    id: 5,
-    title: "Temple of the Tooth: Sacred Relic in Kandy",
-    description: "Visit the sacred Temple of the Tooth Relic in Kandy, one of Buddhism's most important pilgrimage sites. Learn about the temple's history, the sacred tooth relic, and the daily rituals that take place in this spiritual sanctuary.",
-    excerpt: "A spiritual journey to one of Buddhism's most revered temples...",
-    author: "Cultural Guide",
-    date: "2023-12-20",
-    readTime: "5 min read",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    category: "Cultural Heritage",
-    tags: ["Kandy", "Buddhism", "Temple", "Sacred"]
-  },
-  {
-    id: 6,
-    title: "Adventure in the Sinharaja Rainforest",
-    description: "Explore the biodiversity hotspot of Sinharaja Forest Reserve, a UNESCO World Heritage site. Trek through pristine rainforest, spot endemic birds and wildlife, and learn about the importance of conservation in this unique ecosystem.",
-    excerpt: "A rainforest adventure through one of the world's biodiversity hotspots...",
-    author: "Nature Explorer",
-    date: "2023-12-15",
-    readTime: "9 min read",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    video: null,
-    category: "Nature",
-    tags: ["Sinharaja", "Rainforest", "Biodiversity", "Trekking"]
-  }
-]
-
-const categories = ["All", "Cultural Heritage", "Nature", "Wildlife", "Beaches"]
+const categories = ["All", "Cultural Heritage", "Nature", "Wildlife", "Beaches", "Adventure", "Food"]
 
 export default function BlogPage() {
   const router = useRouter()
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
+  const [blogPosts, setBlogPosts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchBlogPosts = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        const response = await fetch('/api/blog')
+        const posts = await response.json()
+        
+        if (response.ok) {
+          // Only show published posts
+          const publishedPosts = posts.filter((post: any) => post.status === 'Published')
+          setBlogPosts(publishedPosts)
+        } else {
+          setError('Failed to load blog posts')
+        }
+      } catch (err) {
+        console.error('Error fetching blog posts:', err)
+        setError('Error loading blog posts')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBlogPosts()
+  }, [])
 
   const filteredPosts = blogPosts.filter(post => {
     const matchesCategory = selectedCategory === "All" || post.category === selectedCategory
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.description.toLowerCase().includes(searchTerm.toLowerCase())
+                         (post.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (post.excerpt || '').toLowerCase().includes(searchTerm.toLowerCase())
     return matchesCategory && matchesSearch
   })
 
@@ -156,8 +104,31 @@ export default function BlogPage() {
       {/* Blog Posts Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredPosts.map(post => (
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">Loading blog posts...</span>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-12">
+              <div className="text-red-600 mb-4">{error}</div>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Blog Posts Grid */}
+          {!loading && !error && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredPosts.map(post => (
               <article key={post.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                 {/* Image/Video */}
                 <div className="relative h-48 bg-gray-200">
@@ -177,7 +148,7 @@ export default function BlogPage() {
                     </div>
                   ) : (
                     <Image
-                      src={post.image}
+                      src={post.image || '/placeholder-image.svg'}
                       alt={post.title}
                       width={400}
                       height={250}
@@ -212,9 +183,9 @@ export default function BlogPage() {
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {post.tags.slice(0, 3).map(tag => (
+                    {post.tags.slice(0, 3).map((tag: string, idx: number) => (
                       <span
-                        key={tag}
+                        key={tag ?? idx}
                         className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs"
                       >
                         #{tag}
@@ -231,10 +202,13 @@ export default function BlogPage() {
                   </button>
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {filteredPosts.length === 0 && (
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && filteredPosts.length === 0 && (
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold text-gray-600 mb-2">No posts found</h3>
               <p className="text-gray-500">Try adjusting your search or filter criteria</p>

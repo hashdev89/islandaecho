@@ -290,7 +290,7 @@ export default function RentCarPage() {
                 <div key={car.id} style={{ border: `1px solid ${colors.primary[100]}` }} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                   <div className="relative">
                     <Image
-                      src={car.image}
+                      src={car.image || '/placeholder-image.svg'}
                       alt={car.name}
                       width={400}
                       height={192}

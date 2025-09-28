@@ -10,13 +10,12 @@ import {
   MapPin,
   Plus,
   Trash2,
-  Eye,
-  Calendar,
-  Users,
-  DollarSign,
   Map
 } from 'lucide-react'
 import MapboxMap from '../../../../components/MapboxMap'
+import DestinationSelector from '../../../../components/DestinationSelector'
+import DestinationManager from '../../../../components/DestinationManager'
+import { dataSync } from '../../../../lib/dataSync'
 
 interface Day {
   day: number
@@ -25,6 +24,9 @@ interface Day {
   activities: string[]
   accommodation: string
   meals: string[]
+  transportation?: string
+  travelTime?: string
+  image?: string
 }
 
 interface TourPackage {
@@ -32,19 +34,28 @@ interface TourPackage {
   name: string
   duration: string
   price: string
+  style: string
   destinations: string[]
   highlights: string[]
+  keyExperiences?: string[]
   description: string
   itinerary: Day[]
   inclusions: string[]
   exclusions: string[]
+  importantInfo?: {
+    requirements: {
+      activity: string
+      requirements: string[]
+    }[]
+    whatToBring: string[]
+  }
   accommodation: string[]
   transportation: string
   groupSize: string
-  difficulty: string
   bestTime: string
   images: string[]
   status: 'active' | 'draft' | 'archived'
+  featured?: boolean
 }
 
 interface Destination {
@@ -65,8 +76,10 @@ export default function TourEditor() {
     name: '',
     duration: '',
     price: '',
+    style: '',
     destinations: [],
     highlights: [],
+    keyExperiences: [],
     description: '',
     itinerary: [],
     inclusions: [],
@@ -74,35 +87,48 @@ export default function TourEditor() {
     accommodation: [],
     transportation: '',
     groupSize: '',
-    difficulty: '',
     bestTime: '',
     images: [],
-    status: 'draft'
+    status: 'draft',
+    featured: false
   })
 
-  const [availableDestinations] = useState<Destination[]>([
-    { name: 'Sigiriya', lat: 7.9570, lng: 80.7603, region: 'Cultural Triangle' },
-    { name: 'Dambulla', lat: 7.8567, lng: 80.6492, region: 'Cultural Triangle' },
-    { name: 'Polonnaruwa', lat: 7.9403, lng: 81.0187, region: 'Cultural Triangle' },
-    { name: 'Anuradhapura', lat: 8.3114, lng: 80.4037, region: 'Cultural Triangle' },
-    { name: 'Kandy', lat: 7.2906, lng: 80.6337, region: 'Hill Country' },
-    { name: 'Nuwara Eliya', lat: 6.9497, lng: 80.7891, region: 'Hill Country' },
-    { name: 'Ella', lat: 6.8767, lng: 81.0463, region: 'Hill Country' },
-    { name: 'Galle', lat: 6.0535, lng: 80.2210, region: 'Southern Coast' },
-    { name: 'Mirissa', lat: 5.9483, lng: 80.4718, region: 'Southern Coast' },
-    { name: 'Bentota', lat: 6.4185, lng: 79.9953, region: 'Southern Coast' },
-    { name: 'Hikkaduwa', lat: 6.1394, lng: 80.1038, region: 'Southern Coast' },
-    { name: 'Yala National Park', lat: 6.2619, lng: 81.4157, region: 'Wildlife' },
-    { name: 'Udawalawe', lat: 6.4500, lng: 80.8833, region: 'Wildlife' },
-    { name: 'Sinharaja Forest', lat: 6.4000, lng: 80.4500, region: 'Wildlife' },
-    { name: 'Colombo', lat: 6.9271, lng: 79.8612, region: 'Western Province' }
-  ])
+  const [availableDestinations, setAvailableDestinations] = useState<Destination[]>([])
+
+  // Fetch destinations from API
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        const response = await fetch('/api/destinations')
+        const result = await response.json()
+        
+        if (result.success) {
+          // Map API data to Destination format
+          const mappedDestinations = result.data.map((dest: any) => ({
+            name: dest.name,
+            lat: dest.lat,
+            lng: dest.lng,
+            region: dest.region
+          }))
+          setAvailableDestinations(mappedDestinations)
+        }
+      } catch (error) {
+        console.error('Error fetching destinations:', error)
+      }
+    }
+    
+    fetchDestinations()
+  }, [])
 
   const [newInclusion, setNewInclusion] = useState('')
   const [newExclusion, setNewExclusion] = useState('')
   const [newAccommodation, setNewAccommodation] = useState('')
   const [newHighlight, setNewHighlight] = useState('')
+  const [newKeyExperience, setNewKeyExperience] = useState('')
   const [newImage, setNewImage] = useState('')
+  const [newWhatToBring, setNewWhatToBring] = useState('')
+  const [showDestinationSelector, setShowDestinationSelector] = useState(false)
+  const [showDestinationManager, setShowDestinationManager] = useState(false)
 
   // Get map coordinates for selected destinations
   const tourDestinations = tour.destinations.map(destName => {
@@ -110,47 +136,91 @@ export default function TourEditor() {
     return dest || null
   }).filter(Boolean) as Destination[]
 
+  // Debug logging
+  console.log('Tour destinations:', tour.destinations)
+  console.log('Available destinations:', availableDestinations)
+  console.log('Mapped tour destinations:', tourDestinations)
+
   useEffect(() => {
-    if (!isNew) {
-      // Load existing tour data
-      // In a real app, this would fetch from your backend
-      const existingTour: TourPackage = {
-        id: 'cultural-triangle',
-        name: 'Cultural Triangle Explorer',
-        duration: '5 Days / 4 Nights',
-        price: '$899',
-        destinations: ['Sigiriya', 'Dambulla', 'Polonnaruwa', 'Anuradhapura'],
-        highlights: ['UNESCO Sites', 'Ancient Temples', 'Historical Monuments'],
-        description: 'Discover the heart of Sri Lanka\'s ancient civilization with this comprehensive tour of the Cultural Triangle.',
-        itinerary: [
-          {
-            day: 1,
-            title: 'Arrival & Sigiriya Introduction',
-            description: 'Arrive in Sigiriya and visit the magnificent Lion Rock fortress.',
-            activities: ['Airport pickup', 'Sigiriya Rock Fortress', 'Sunset at Pidurangala'],
-            accommodation: 'Sigiriya Village Hotel',
-            meals: ['Dinner']
-          }
-        ],
-        inclusions: ['All accommodation in 3-4 star hotels', 'Daily breakfast, lunch, and dinner'],
-        exclusions: ['International flights', 'Personal expenses'],
-        accommodation: ['Sigiriya Village Hotel', 'Polonnaruwa Rest House'],
-        transportation: 'Air-conditioned van with professional driver',
-        groupSize: '2-12 people',
-        difficulty: 'Easy to Moderate',
-        bestTime: 'January to April, July to September',
-        images: ['https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop'],
-        status: 'active'
+    const load = async () => {
+      if (!isNew) {
+        console.log('Fetching tours for tourId:', tourId)
+        const all = await dataSync.fetchTours()
+        console.log('All tours:', all)
+        const found = (all as unknown[]).find(t => (t as Record<string, unknown>).id === tourId)
+        if (found) {
+          console.log('Found tour data:', found)
+          console.log('Tour destinations:', found.destinations)
+          setTour(found)
+        } else {
+          console.log('Tour not found with ID:', tourId)
+        }
       }
-      setTour(existingTour)
     }
+    load()
   }, [isNew, tourId])
 
-  const handleSave = () => {
-    // Save tour data
-    console.log('Saving tour:', tour)
-    alert('Tour saved successfully!')
-    router.push('/admin/tours')
+  // Force re-render when availableDestinations changes
+  useEffect(() => {
+    console.log('Available destinations updated:', availableDestinations)
+  }, [availableDestinations])
+
+  // Force re-render when tour destinations change
+  useEffect(() => {
+    console.log('Tour destinations updated:', tour.destinations)
+  }, [tour.destinations])
+
+  const handleSave = async () => {
+    try {
+      // Client-side validation for required fields
+      if (!tour.name?.trim()) {
+        alert('Please enter a tour name')
+        return
+      }
+      if (!tour.duration?.trim()) {
+        alert('Please enter a duration')
+        return
+      }
+      if (!tour.price?.trim()) {
+        alert('Please enter a price')
+        return
+      }
+
+      const payload = { ...tour }
+      console.log('Full tour payload before processing:', payload)
+      
+      if (isNew) {
+        const { id, ...createData } = payload as Record<string, unknown>
+        console.log('Creating tour with data:', createData)
+        console.log('Required fields check:', {
+          name: createData.name,
+          duration: createData.duration,
+          price: createData.price
+        })
+        
+        const created = await dataSync.createTour(createData as Record<string, unknown>)
+        if (created) {
+          console.log('Tour created successfully:', created)
+          alert('Tour created successfully!')
+        } else {
+          console.error('Failed to create tour - dataSync returned null')
+          alert('Failed to create tour. Please check the console for errors.')
+        }
+      } else {
+        const updated = await dataSync.updateTour(payload as Record<string, unknown>)
+        if (updated) {
+          console.log('Tour updated successfully:', updated)
+          alert('Tour updated successfully!')
+        } else {
+          console.error('Failed to update tour')
+          alert('Failed to update tour. Please check the console for errors.')
+        }
+      }
+      router.push('/admin/tours')
+    } catch (error) {
+      console.error('Error saving tour:', error)
+      alert('Error saving tour. Please check the console for details.')
+    }
   }
 
   const addInclusion = () => {
@@ -181,6 +251,13 @@ export default function TourEditor() {
     }
   }
 
+  const addKeyExperience = () => {
+    if (newKeyExperience.trim()) {
+      setTour({ ...tour, keyExperiences: [...(tour.keyExperiences || []), newKeyExperience.trim()] })
+      setNewKeyExperience('')
+    }
+  }
+
   const addImage = () => {
     if (newImage.trim()) {
       setTour({ ...tour, images: [...tour.images, newImage.trim()] })
@@ -198,6 +275,252 @@ export default function TourEditor() {
       ? tour.destinations.filter(d => d !== destinationName)
       : [...tour.destinations, destinationName]
     setTour({ ...tour, destinations: newDestinations })
+  }
+
+  const handleDestinationSelect = (destinationName: string) => {
+    if (!tour.destinations.includes(destinationName)) {
+      setTour({ ...tour, destinations: [...tour.destinations, destinationName] })
+    }
+  }
+
+  const handleDestinationDeselect = (destinationName: string) => {
+    setTour({ ...tour, destinations: tour.destinations.filter(d => d !== destinationName) })
+  }
+
+  const handleDestinationAdded = () => {
+    // Refresh the destination selector when a new destination is added
+    setShowDestinationSelector(false)
+    setShowDestinationManager(false)
+    
+    // Refetch destinations from API
+    const fetchDestinations = async () => {
+      try {
+        const response = await fetch('/api/destinations')
+        const result = await response.json()
+        
+        if (result.success) {
+          const mappedDestinations = result.data.map((dest: unknown) => {
+            const d = dest as Record<string, unknown>
+            return {
+              name: d.name as string,
+              lat: d.lat as number,
+              lng: d.lng as number,
+              region: d.region as string
+            }
+          })
+          setAvailableDestinations(mappedDestinations)
+        }
+      } catch (error) {
+        console.error('Error fetching destinations:', error)
+      }
+    }
+    
+    fetchDestinations()
+  }
+
+  // Itinerary management functions
+  const addDay = () => {
+    const currentItinerary = tour.itinerary || []
+    const newDay: Day = {
+      day: currentItinerary.length + 1,
+      title: '',
+      description: '',
+      activities: [],
+      accommodation: '',
+      meals: [],
+      transportation: '',
+      travelTime: '',
+      image: ''
+    }
+    setTour({ ...tour, itinerary: [...currentItinerary, newDay] })
+  }
+
+  const removeDay = (dayIndex: number) => {
+    const currentItinerary = tour.itinerary || []
+    const newItinerary = currentItinerary.filter((_, index) => index !== dayIndex)
+    // Renumber days
+    const renumberedItinerary = newItinerary.map((day, index) => ({
+      ...day,
+      day: index + 1
+    }))
+    setTour({ ...tour, itinerary: renumberedItinerary })
+  }
+
+  const updateDay = (dayIndex: number, field: keyof Day, value: string) => {
+    const currentItinerary = tour.itinerary || []
+    const newItinerary = [...currentItinerary]
+    newItinerary[dayIndex] = { ...newItinerary[dayIndex], [field]: value }
+    setTour({ ...tour, itinerary: newItinerary })
+  }
+
+  const addDayActivity = (dayIndex: number) => {
+    const currentItinerary = tour.itinerary || []
+    const newItinerary = [...currentItinerary]
+    if (!newItinerary[dayIndex].activities) {
+      newItinerary[dayIndex].activities = []
+    }
+    newItinerary[dayIndex].activities.push('')
+    setTour({ ...tour, itinerary: newItinerary })
+  }
+
+  const removeDayActivity = (dayIndex: number, activityIndex: number) => {
+    const currentItinerary = tour.itinerary || []
+    const newItinerary = [...currentItinerary]
+    if (newItinerary[dayIndex].activities) {
+      newItinerary[dayIndex].activities = newItinerary[dayIndex].activities.filter((_, index) => index !== activityIndex)
+    }
+    setTour({ ...tour, itinerary: newItinerary })
+  }
+
+  const updateDayActivity = (dayIndex: number, activityIndex: number, value: string) => {
+    const currentItinerary = tour.itinerary || []
+    const newItinerary = [...currentItinerary]
+    if (newItinerary[dayIndex].activities) {
+      newItinerary[dayIndex].activities[activityIndex] = value
+    }
+    setTour({ ...tour, itinerary: newItinerary })
+  }
+
+  const addDayMeal = (dayIndex: number) => {
+    const currentItinerary = tour.itinerary || []
+    const newItinerary = [...currentItinerary]
+    if (!newItinerary[dayIndex].meals) {
+      newItinerary[dayIndex].meals = []
+    }
+    newItinerary[dayIndex].meals.push('')
+    setTour({ ...tour, itinerary: newItinerary })
+  }
+
+  const removeDayMeal = (dayIndex: number, mealIndex: number) => {
+    const currentItinerary = tour.itinerary || []
+    const newItinerary = [...currentItinerary]
+    if (newItinerary[dayIndex].meals) {
+      newItinerary[dayIndex].meals = newItinerary[dayIndex].meals.filter((_, index) => index !== mealIndex)
+    }
+    setTour({ ...tour, itinerary: newItinerary })
+  }
+
+  const updateDayMeal = (dayIndex: number, mealIndex: number, value: string) => {
+    const currentItinerary = tour.itinerary || []
+    const newItinerary = [...currentItinerary]
+    if (newItinerary[dayIndex].meals) {
+      newItinerary[dayIndex].meals[mealIndex] = value
+    }
+    setTour({ ...tour, itinerary: newItinerary })
+  }
+
+  // Important Information management functions
+  const addRequirement = () => {
+    const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
+    const newRequirement = {
+      activity: '',
+      requirements: ['']
+    }
+    setTour({
+      ...tour,
+      importantInfo: {
+        ...currentImportantInfo,
+        requirements: [...currentImportantInfo.requirements, newRequirement]
+      }
+    })
+  }
+
+  const removeRequirement = (reqIndex: number) => {
+    const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
+    const newRequirements = currentImportantInfo.requirements.filter((_, index) => index !== reqIndex)
+    setTour({
+      ...tour,
+      importantInfo: {
+        ...currentImportantInfo,
+        requirements: newRequirements
+      }
+    })
+  }
+
+  const addRequirementItem = (reqIndex: number) => {
+    const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
+    const newRequirements = [...currentImportantInfo.requirements]
+    if (newRequirements[reqIndex]) {
+      newRequirements[reqIndex].requirements.push('')
+    }
+    setTour({
+      ...tour,
+      importantInfo: {
+        ...currentImportantInfo,
+        requirements: newRequirements
+      }
+    })
+  }
+
+  const removeRequirementItem = (reqIndex: number, requirementIndex: number) => {
+    const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
+    const newRequirements = [...currentImportantInfo.requirements]
+    if (newRequirements[reqIndex]) {
+      newRequirements[reqIndex].requirements = newRequirements[reqIndex].requirements.filter((_, index) => index !== requirementIndex)
+    }
+    setTour({
+      ...tour,
+      importantInfo: {
+        ...currentImportantInfo,
+        requirements: newRequirements
+      }
+    })
+  }
+
+  const updateRequirement = (reqIndex: number, requirementIndex: number, value: string) => {
+    const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
+    const newRequirements = [...currentImportantInfo.requirements]
+    if (newRequirements[reqIndex] && newRequirements[reqIndex].requirements[requirementIndex] !== undefined) {
+      newRequirements[reqIndex].requirements[requirementIndex] = value
+    }
+    setTour({
+      ...tour,
+      importantInfo: {
+        ...currentImportantInfo,
+        requirements: newRequirements
+      }
+    })
+  }
+
+  const updateRequirementActivity = (reqIndex: number, value: string) => {
+    const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
+    const newRequirements = [...currentImportantInfo.requirements]
+    if (newRequirements[reqIndex]) {
+      newRequirements[reqIndex].activity = value
+    }
+    setTour({
+      ...tour,
+      importantInfo: {
+        ...currentImportantInfo,
+        requirements: newRequirements
+      }
+    })
+  }
+
+  const addWhatToBring = () => {
+    if (newWhatToBring.trim()) {
+      const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
+      setTour({
+        ...tour,
+        importantInfo: {
+          ...currentImportantInfo,
+          whatToBring: [...currentImportantInfo.whatToBring, newWhatToBring.trim()]
+        }
+      })
+      setNewWhatToBring('')
+    }
+  }
+
+  const removeWhatToBring = (index: number) => {
+    const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
+    const newWhatToBring = currentImportantInfo.whatToBring.filter((_, i) => i !== index)
+    setTour({
+      ...tour,
+      importantInfo: {
+        ...currentImportantInfo,
+        whatToBring: newWhatToBring
+      }
+    })
   }
 
   return (
@@ -245,34 +568,61 @@ export default function TourEditor() {
             <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tour Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tour Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={tour.name}
                   onChange={(e) => setTour({ ...tour, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter tour name"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Duration <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={tour.duration}
                   onChange={(e) => setTour({ ...tour, duration: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., 5 Days / 4 Nights"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={tour.price}
                   onChange={(e) => setTour({ ...tour, price: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., $899"
+                  required
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Style</label>
+                <select
+                  value={tour.style}
+                  onChange={(e) => setTour({ ...tour, style: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select style</option>
+                  <option value="Fun & Adventure">Fun & Adventure</option>
+                  <option value="Cultural & Heritage">Cultural & Heritage</option>
+                  <option value="Nature & Wildlife">Nature & Wildlife</option>
+                  <option value="Relaxation & Wellness">Relaxation & Wellness</option>
+                  <option value="Family Friendly">Family Friendly</option>
+                  <option value="Luxury Experience">Luxury Experience</option>
+                  <option value="Budget Travel">Budget Travel</option>
+                  <option value="Romantic Getaway">Romantic Getaway</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Group Size</label>
@@ -283,21 +633,6 @@ export default function TourEditor() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., 2-12 people"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
-                <select
-                  value={tour.difficulty}
-                  onChange={(e) => setTour({ ...tour, difficulty: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select difficulty</option>
-                  <option value="Easy">Easy</option>
-                  <option value="Easy to Moderate">Easy to Moderate</option>
-                  <option value="Moderate">Moderate</option>
-                  <option value="Moderate to Hard">Moderate to Hard</option>
-                  <option value="Hard">Hard</option>
-                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Best Time</label>
@@ -324,24 +659,61 @@ export default function TourEditor() {
 
           {/* Destinations & Map */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Destinations & Route</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Destinations & Route</h2>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDestinationSelector(true)}
+                  className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <MapPin className="h-4 w-4 mr-1" />
+                  Select Destinations
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDestinationManager(true)}
+                  className="flex items-center px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add New
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Destinations</label>
-                <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
-                  {availableDestinations.map((dest) => (
-                    <label key={dest.name} className="flex items-center space-x-2 py-1">
-                      <input
-                        type="checkbox"
-                        checked={tour.destinations.includes(dest.name)}
-                        onChange={() => toggleDestination(dest.name)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">{dest.name}</span>
-                      <span className="text-xs text-gray-500">({dest.region})</span>
-                    </label>
-                  ))}
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Selected Destinations</label>
+                {tour.destinations.length > 0 ? (
+                  <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                    {tour.destinations.map((destName) => {
+                      const dest = availableDestinations.find(d => d.name === destName)
+                      return (
+                        <div key={destName} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg mb-2">
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-700">{destName}</span>
+                            {dest && <span className="text-xs text-gray-500">({dest.region})</span>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleDestination(destName)}
+                            className="text-red-500 hover:text-red-700 text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="max-h-60 border border-gray-300 rounded-lg p-6 flex items-center justify-center text-gray-500">
+                    <div className="text-center">
+                      <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm">No destinations selected</p>
+                      <p className="text-xs">Click &quot;Select Destinations&quot; to add destinations</p>
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tour Route Map</label>
@@ -394,6 +766,39 @@ export default function TourEditor() {
             </div>
           </div>
 
+          {/* Key Experiences */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Key Experiences</h2>
+            <div className="flex space-x-2 mb-4">
+              <input
+                type="text"
+                value={newKeyExperience}
+                onChange={(e) => setNewKeyExperience(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Add a key experience"
+              />
+              <button
+                onClick={addKeyExperience}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {(tour.keyExperiences || []).map((item, index) => (
+                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                  <span className="text-sm">{item}</span>
+                  <button
+                    onClick={() => removeItem(tour.keyExperiences || [], index, 'keyExperiences')}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Images */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Tour Images</h2>
@@ -416,7 +821,7 @@ export default function TourEditor() {
               {tour.images.map((image, index) => (
                 <div key={index} className="relative group">
                   <Image
-                    src={image}
+                    src={image || '/placeholder-image.svg'}
                     alt={`Tour image ${index + 1}`}
                     width={200}
                     height={128}
@@ -430,6 +835,162 @@ export default function TourEditor() {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Itinerary */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Daily Itinerary</h2>
+            <div className="space-y-4">
+              {(tour.itinerary || []).map((day, dayIndex) => (
+                <div key={dayIndex} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium">Day {day.day}</h3>
+                    <button
+                      onClick={() => removeDay(dayIndex)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Day Title</label>
+                      <input
+                        type="text"
+                        value={day.title}
+                        onChange={(e) => updateDay(dayIndex, 'title', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Day title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Accommodation</label>
+                      <input
+                        type="text"
+                        value={day.accommodation}
+                        onChange={(e) => updateDay(dayIndex, 'accommodation', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Accommodation"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea
+                      value={day.description}
+                      onChange={(e) => updateDay(dayIndex, 'description', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                      placeholder="Day description"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Transportation</label>
+                      <input
+                        type="text"
+                        value={day.transportation || ''}
+                        onChange={(e) => updateDay(dayIndex, 'transportation', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Transportation"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Travel Time</label>
+                      <input
+                        type="text"
+                        value={day.travelTime || ''}
+                        onChange={(e) => updateDay(dayIndex, 'travelTime', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Travel time"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Day Image URL</label>
+                    <input
+                      type="text"
+                      value={day.image || ''}
+                      onChange={(e) => updateDay(dayIndex, 'image', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Image URL for this day"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Activities</label>
+                    <div className="space-y-2">
+                      {(day.activities || []).map((activity, activityIndex) => (
+                        <div key={activityIndex} className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={activity}
+                            onChange={(e) => updateDayActivity(dayIndex, activityIndex, e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Activity"
+                          />
+                          <button
+                            onClick={() => removeDayActivity(dayIndex, activityIndex)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => addDayActivity(dayIndex)}
+                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                      >
+                        <Plus className="h-4 w-4 inline mr-1" />
+                        Add Activity
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Meals</label>
+                    <div className="space-y-2">
+                      {(day.meals || []).map((meal, mealIndex) => (
+                        <div key={mealIndex} className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={meal}
+                            onChange={(e) => updateDayMeal(dayIndex, mealIndex, e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Meal"
+                          />
+                          <button
+                            onClick={() => removeDayMeal(dayIndex, mealIndex)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => addDayMeal(dayIndex)}
+                        className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      >
+                        <Plus className="h-4 w-4 inline mr-1" />
+                        Add Meal
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <button
+                onClick={addDay}
+                className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 text-gray-600 hover:text-blue-600"
+              >
+                <Plus className="h-4 w-4 inline mr-2" />
+                Add New Day
+              </button>
             </div>
           </div>
         </div>
@@ -452,7 +1013,7 @@ export default function TourEditor() {
 
           {/* Inclusions */}
           <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-lg font-semibold mb-4">What&apos;s Included</h3>
+            <h3 className="text-lg font-semibold mb-4">What&apos;s Included</h3>
             <div className="flex space-x-2 mb-4">
               <input
                 type="text"
@@ -560,8 +1121,135 @@ export default function TourEditor() {
               placeholder="e.g., Air-conditioned van with professional driver"
             />
           </div>
+
+          {/* Important Information */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Important Information</h3>
+            
+            {/* Requirements */}
+            <div className="mb-6">
+              <h4 className="text-md font-medium mb-3">Activity Requirements</h4>
+              <div className="space-y-4">
+                {(tour.importantInfo?.requirements || []).map((req, reqIndex) => (
+                  <div key={reqIndex} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <input
+                        type="text"
+                        value={req.activity}
+                        onChange={(e) => updateRequirementActivity(reqIndex, e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium"
+                        placeholder="Activity name"
+                      />
+                      <button
+                        onClick={() => removeRequirement(reqIndex)}
+                        className="text-red-600 hover:text-red-800 ml-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {req.requirements.map((requirement, requirementIndex) => (
+                        <div key={requirementIndex} className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={requirement}
+                            onChange={(e) => updateRequirement(reqIndex, requirementIndex, e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                            placeholder="Requirement"
+                          />
+                          <button
+                            onClick={() => removeRequirementItem(reqIndex, requirementIndex)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => addRequirementItem(reqIndex)}
+                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                      >
+                        <Plus className="h-3 w-3 inline mr-1" />
+                        Add Requirement
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={addRequirement}
+                  className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 text-gray-600 hover:text-blue-600"
+                >
+                  <Plus className="h-4 w-4 inline mr-2" />
+                  Add Activity Requirement
+                </button>
+              </div>
+            </div>
+
+            {/* What to Bring */}
+            <div>
+              <h4 className="text-md font-medium mb-3">What to Bring</h4>
+              <div className="flex space-x-2 mb-4">
+                <input
+                  type="text"
+                  value={newWhatToBring}
+                  onChange={(e) => setNewWhatToBring(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Add item to bring"
+                />
+                <button
+                  onClick={addWhatToBring}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {(tour.importantInfo?.whatToBring || []).map((item, index) => (
+                  <div key={index} className="flex items-center justify-between bg-blue-50 p-2 rounded">
+                    <span className="text-sm">{item}</span>
+                    <button
+                      onClick={() => removeWhatToBring(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Featured Toggle */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Featured</h3>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={!!tour.featured}
+                onChange={(e) => setTour({ ...tour, featured: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Show as featured tour package</span>
+            </label>
+          </div>
         </div>
       </div>
+
+      {/* Destination Selector Modal */}
+      <DestinationSelector
+        isOpen={showDestinationSelector}
+        onClose={() => setShowDestinationSelector(false)}
+        selectedDestinations={tour.destinations}
+        onDestinationSelect={handleDestinationSelect}
+        onDestinationDeselect={handleDestinationDeselect}
+      />
+
+      {/* Destination Manager Modal */}
+      <DestinationManager
+        isOpen={showDestinationManager}
+        onClose={() => setShowDestinationManager(false)}
+        onDestinationAdded={handleDestinationAdded}
+      />
     </div>
   )
 }

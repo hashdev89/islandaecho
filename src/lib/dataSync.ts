@@ -1,21 +1,43 @@
 // Data synchronization service for updating frontend data from backend
 
+export interface Day {
+  day: number
+  title: string
+  description: string
+  activities: string[]
+  accommodation: string
+  meals: string[]
+  transportation?: string
+  travelTime?: string
+  image?: string
+}
+
 export interface TourData {
   id: string
   name: string
   duration: string
   price: string
+  style: string
   destinations: string[]
   highlights: string[]
+  keyExperiences?: string[]
   description: string
+  itinerary: Day[]
   inclusions: string[]
   exclusions: string[]
+  importantInfo?: {
+    requirements: {
+      activity: string
+      requirements: string[]
+    }[]
+    whatToBring: string[]
+  }
   accommodation: string[]
   transportation: string
   groupSize: string
-  difficulty: string
   bestTime: string
   images: string[]
+  featured?: boolean
   status: 'active' | 'draft' | 'archived'
 }
 
@@ -93,6 +115,14 @@ class DataSyncService {
 
   async createTour(tourData: Omit<TourData, 'id'>): Promise<TourData | null> {
     try {
+      console.log('DataSync: Creating tour with data:', tourData)
+      console.log('DataSync: Tour data keys:', Object.keys(tourData))
+      console.log('DataSync: Required fields validation:', {
+        name: tourData.name,
+        duration: tourData.duration,
+        price: tourData.price
+      })
+      
       const response = await fetch('/api/tours', {
         method: 'POST',
         headers: {
@@ -100,20 +130,29 @@ class DataSyncService {
         },
         body: JSON.stringify(tourData),
       })
+      
+      console.log('DataSync: Response status:', response.status)
+      console.log('DataSync: Response ok:', response.ok)
+      
       const result = await response.json()
+      console.log('DataSync: Create tour response:', result)
+      
       if (result.success) {
         this.notify('tours', await this.fetchTours())
         return result.data
+      } else {
+        console.error('DataSync: Tour creation failed:', result.message)
+        return null
       }
-      return null
     } catch (error) {
-      console.error('Failed to create tour:', error)
+      console.error('DataSync: Failed to create tour:', error)
       return null
     }
   }
 
   async updateTour(tourData: TourData): Promise<TourData | null> {
     try {
+      console.log('Updating tour with data:', tourData)
       const response = await fetch('/api/tours', {
         method: 'PUT',
         headers: {
@@ -122,11 +161,14 @@ class DataSyncService {
         body: JSON.stringify(tourData),
       })
       const result = await response.json()
+      console.log('Update tour response:', result)
       if (result.success) {
         this.notify('tours', await this.fetchTours())
         return result.data
+      } else {
+        console.error('Tour update failed:', result.message)
+        return null
       }
-      return null
     } catch (error) {
       console.error('Failed to update tour:', error)
       return null

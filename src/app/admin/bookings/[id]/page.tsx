@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
-  Calendar,
-  Users,
-  DollarSign,
+  // Calendar,
+  // Users,
+  // DollarSign,
   Phone,
   Mail,
   Clock,
@@ -46,38 +46,81 @@ interface Booking {
   }
 }
 
-// Mock booking data
-const mockBooking: Booking = {
-  id: '1',
-  tourPackageId: 'cultural-triangle',
-  tourPackageName: 'Cultural Triangle Adventure',
-  customerName: 'John Doe',
-  customerEmail: 'john@example.com',
-  customerPhone: '+94 71 234 5678',
-  startDate: '2024-03-15',
-  endDate: '2024-03-20',
-  guests: 2,
-  totalPrice: 1200,
-  status: 'confirmed',
-  specialRequests: 'Vegetarian meals preferred, ocean view rooms, private guide for temple visits',
-  bookingDate: '2024-02-01',
-  paymentStatus: 'paid',
-  accommodation: '4-star hotels with ocean view',
-  transportation: 'Private air-conditioned vehicle',
-  dietaryRestrictions: ['vegetarian'],
-  emergencyContact: {
-    name: 'Jane Doe',
-    phone: '+94 71 234 5679',
-    relationship: 'Spouse'
+// Function to fetch booking data
+async function fetchBooking(id: string): Promise<Booking | null> {
+  try {
+    const res = await fetch(`/api/bookings/${id}`)
+    const json = await res.json()
+    
+    if (!json.success) {
+      console.error('Booking API error:', json.error)
+      return null
+    }
+    
+    // Map API fields to UI fields
+    const booking = json.data
+    return {
+      id: booking.id,
+      tourPackageId: booking.tour_package_id || booking.tourPackageId,
+      tourPackageName: booking.tour_package_name || booking.tourPackageName,
+      customerName: booking.customer_name || booking.customerName,
+      customerEmail: booking.customer_email || booking.customerEmail,
+      customerPhone: booking.customer_phone || booking.customerPhone,
+      startDate: booking.start_date || booking.startDate,
+      endDate: booking.end_date || booking.endDate,
+      guests: booking.guests || 1,
+      totalPrice: booking.total_price || booking.totalPrice || 0,
+      status: booking.status || 'pending',
+      specialRequests: booking.special_requests || booking.specialRequests || '',
+      bookingDate: booking.created_at || booking.createdAt || new Date().toISOString(),
+      paymentStatus: booking.payment_status || booking.paymentStatus || 'pending',
+      accommodation: booking.accommodation || 'Standard accommodation',
+      transportation: booking.transportation || 'Air-conditioned vehicle',
+      dietaryRestrictions: booking.dietary_restrictions || booking.dietaryRestrictions || [],
+      emergencyContact: booking.emergency_contact || booking.emergencyContact || {
+        name: 'Not provided',
+        phone: 'Not provided',
+        relationship: 'Not provided'
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching booking:', error)
+    return null
   }
 }
 
 export default function BookingDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [booking, setBooking] = useState<Booking>(mockBooking)
+  const [booking, setBooking] = useState<Booking | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [editedBooking, setEditedBooking] = useState<Booking>(mockBooking)
+  const [editedBooking, setEditedBooking] = useState<Booking | null>(null)
+
+  useEffect(() => {
+    const loadBooking = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const bookingId = params.id as string
+        const bookingData = await fetchBooking(bookingId)
+        if (bookingData) {
+          setBooking(bookingData)
+          setEditedBooking(bookingData)
+        } else {
+          setError('Booking not found')
+        }
+      } catch (e: unknown) {
+        console.error('Error loading booking:', e)
+        setError((e as Error).message || 'Failed to load booking')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadBooking()
+  }, [params.id])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -109,7 +152,7 @@ export default function BookingDetailPage() {
   }
 
   const handleStatusChange = (newStatus: Booking['status']) => {
-    setEditedBooking(prev => ({ ...prev, status: newStatus }))
+    setEditedBooking(prev => prev ? { ...prev, status: newStatus } : prev)
   }
 
   const handleSave = () => {
@@ -124,11 +167,43 @@ export default function BookingDetailPage() {
   }
 
   const calculateDuration = () => {
+    if (!booking) return 0
     const start = new Date(booking.startDate)
     const end = new Date(booking.endDate)
     const diffTime = Math.abs(end.getTime() - start.getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     return diffDays
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading booking details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !booking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">
+            <XCircle className="h-12 w-12 mx-auto" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Booking</h2>
+          <p className="text-gray-600 mb-4">{error || 'Booking not found'}</p>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -296,7 +371,7 @@ export default function BookingDetailPage() {
                   onClick={() => handleStatusChange(status)}
                   disabled={!isEditing}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    editedBooking.status === status
+                    editedBooking?.status === status
                       ? 'bg-blue-100 text-blue-900'
                       : 'text-gray-700 hover:bg-gray-100'
                   } ${!isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}

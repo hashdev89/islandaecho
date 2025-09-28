@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import Image from 'next/image'
+import { useState, useEffect } from 'react'
 import {
   Upload,
   Search,
@@ -13,8 +12,11 @@ import {
   Image as ImageIcon,
   FolderOpen,
   Grid,
-  List
+  List,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react'
+import ImageUploadModal from '@/components/ImageUploadModal'
 
 interface ImageItem {
   id: string
@@ -32,68 +34,84 @@ export default function ImagesManagement() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedImages, setSelectedImages] = useState<string[]>([])
-  const [images, setImages] = useState<ImageItem[]>([
-    {
-      id: '1',
-      name: 'sigiriya-rock.jpg',
-      url: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop',
-      size: '2.4 MB',
-      dimensions: '1920x1080',
-      category: 'Destinations',
-      uploadedAt: '2024-01-15',
-      usedIn: ['Cultural Triangle Tour', 'Homepage Hero']
-    },
-    {
-      id: '2',
-      name: 'dambulla-temple.jpg',
-      url: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800&h=600&fit=crop',
-      size: '1.8 MB',
-      dimensions: '1600x900',
-      category: 'Destinations',
-      uploadedAt: '2024-01-14',
-      usedIn: ['Cultural Triangle Tour']
-    },
-    {
-      id: '3',
-      name: 'kandy-lake.jpg',
-      url: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&h=600&fit=crop',
-      size: '3.1 MB',
-      dimensions: '2048x1152',
-      category: 'Destinations',
-      uploadedAt: '2024-01-13',
-      usedIn: ['Hill Country Tour', 'Destinations Page']
-    },
-    {
-      id: '4',
-      name: 'galle-fort.jpg',
-      url: 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=800&h=600&fit=crop',
-      size: '2.7 MB',
-      dimensions: '1920x1080',
-      category: 'Destinations',
-      uploadedAt: '2024-01-12',
-      usedIn: ['Beach Paradise Tour']
-    },
-    {
-      id: '5',
-      name: 'yala-leopard.jpg',
-      url: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&h=600&fit=crop',
-      size: '4.2 MB',
-      dimensions: '2560x1440',
-      category: 'Wildlife',
-      uploadedAt: '2024-01-11',
-      usedIn: ['Wildlife Safari Tour']
-    },
-    {
-      id: '6',
-      name: 'tea-plantations.jpg',
-      url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop',
-      size: '2.9 MB',
-      dimensions: '1920x1080',
-      category: 'Landscapes',
-      uploadedAt: '2024-01-10',
-      usedIn: ['Hill Country Tour']
+  const [images, setImages] = useState<ImageItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [imageUsage, setImageUsage] = useState<{ [key: string]: string[] }>({})
+
+  // Fetch image usage from API
+  const fetchImageUsage = async () => {
+    try {
+      const response = await fetch('/api/images/usage')
+      const result = await response.json()
+      
+      if (result.success) {
+        setImageUsage(result.data)
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch image usage:', err)
     }
-  ])
+  }
+
+  // Fetch images from API
+  const fetchImages = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await fetch('/api/images')
+      const result = await response.json()
+      
+      if (result.success) {
+        setImages(result.data)
+        // Also fetch usage information
+        await fetchImageUsage()
+      } else {
+        setError(result.error || 'Failed to load images')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load images')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Delete image
+  const deleteImage = async (imageId: string) => {
+    try {
+      setDeleting(imageId)
+      const response = await fetch(`/api/images/${imageId}`, {
+        method: 'DELETE',
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        setImages(prev => prev.filter(img => img.id !== imageId))
+        setSelectedImages(prev => prev.filter(id => id !== imageId))
+      } else {
+        setError(result.error || 'Failed to delete image')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete image')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  // Handle upload success
+  const handleUploadSuccess = (newImage: ImageItem) => {
+    setImages(prev => [newImage, ...prev])
+    setUploadModalOpen(false)
+    // Refresh usage data
+    fetchImageUsage()
+  }
+
+  // Load images on component mount
+  useEffect(() => {
+    fetchImages()
+  }, [])
 
   const categories = [...new Set(images.map(img => img.category))]
 
@@ -120,10 +138,18 @@ export default function ImagesManagement() {
     }
   }
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (confirm(`Are you sure you want to delete ${selectedImages.length} image(s)?`)) {
-      setImages(images.filter(img => !selectedImages.includes(img.id)))
+      for (const imageId of selectedImages) {
+        await deleteImage(imageId)
+      }
       setSelectedImages([])
+    }
+  }
+
+  const handleDeleteSingle = async (imageId: string) => {
+    if (confirm('Are you sure you want to delete this image?')) {
+      await deleteImage(imageId)
     }
   }
 
@@ -141,12 +167,50 @@ export default function ImagesManagement() {
           <p className="text-gray-600">Upload and manage images for your website</p>
         </div>
         <div className="flex space-x-3">
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+          <button 
+            onClick={() => setUploadModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          >
             <Upload className="h-4 w-4 mr-2" />
             Upload Images
           </button>
+          <button 
+            onClick={fetchImages}
+            disabled={loading}
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
       </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertCircle className="w-5 h-5 text-red-400 mr-2" />
+            <div>
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <p className="text-sm text-red-600 mt-1">{error}</p>
+              <button 
+                onClick={() => setError(null)}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-6 h-6 animate-spin mr-2" />
+          Loading images...
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -260,36 +324,44 @@ export default function ImagesManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredImages.map((image) => (
             <div key={image.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="relative group">
-                <Image
+              <div className="relative">
+                {/* Header with Preview Thumbnail */}
+                <div className="bg-gray-50 p-3 flex items-center space-x-3">
+                  <img
                   src={image.url}
                   alt={image.name}
-                  width={300}
-                  height={192}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
+                    className="w-12 h-8 object-cover rounded border"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder-image.svg';
+                      target.alt = 'Image not found';
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{image.name}</p>
+                    <span className="text-xs text-gray-500">{image.category}</span>
+                  </div>
+                  <div className="flex space-x-1">
                     <button
                       onClick={() => copyImageUrl(image.url)}
-                      className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100"
+                      className="text-gray-400 hover:text-gray-600"
                       title="Copy URL"
                     >
                       <Copy className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => window.open(image.url, '_blank')}
-                      className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100"
+                      className="text-gray-400 hover:text-gray-600"
                       title="View full size"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleImageSelect(image.id)}
-                      className={`p-2 rounded-full ${
+                      className={`${
                         selectedImages.includes(image.id)
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white text-gray-800 hover:bg-gray-100'
+                          ? 'text-blue-600'
+                          : 'text-gray-400 hover:text-gray-600'
                       }`}
                       title="Select image"
                     >
@@ -303,11 +375,18 @@ export default function ImagesManagement() {
                     </button>
                   </div>
                 </div>
-                <div className="absolute top-2 left-2">
-                  <span className="bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-                    {image.category}
-                  </span>
-                </div>
+                
+                {/* Main Image */}
+                <img
+                  src={image.url}
+                  alt={image.name}
+                  className="w-full h-40 object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/placeholder-image.svg';
+                    target.alt = 'Image not found';
+                  }}
+                />
               </div>
               
               <div className="p-4">
@@ -323,7 +402,7 @@ export default function ImagesManagement() {
                   </div>
                   <div className="flex justify-between">
                     <span>Used in:</span>
-                    <span>{image.usedIn.length} places</span>
+                    <span>{imageUsage[image.url]?.length || 0} places</span>
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-200">
@@ -389,12 +468,15 @@ export default function ImagesManagement() {
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Image
+                    <img
                       src={image.url}
                       alt={image.name}
-                      width={48}
-                      height={48}
                       className="h-12 w-12 object-cover rounded"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/placeholder-image.png'; // Fallback image
+                        target.alt = 'Image not found';
+                      }}
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -410,7 +492,7 @@ export default function ImagesManagement() {
                     {image.size}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {image.usedIn.length} places
+                    {imageUsage[image.url]?.length || 0} places
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(image.uploadedAt).toLocaleDateString()}
@@ -432,11 +514,16 @@ export default function ImagesManagement() {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleImageSelect(image.id)}
-                        className="text-red-600 hover:text-red-900"
+                        onClick={() => handleDeleteSingle(image.id)}
+                        disabled={deleting === image.id}
+                        className="text-red-600 hover:text-red-900 disabled:opacity-50"
                         title="Delete"
                       >
+                        {deleting === image.id ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
                         <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -465,6 +552,13 @@ export default function ImagesManagement() {
           )}
         </div>
       )}
+
+      {/* Upload Modal */}
+      <ImageUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        onUploadSuccess={handleUploadSuccess}
+      />
     </div>
   )
 }

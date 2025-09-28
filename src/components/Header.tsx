@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Menu,
   X,
@@ -65,6 +65,22 @@ export default function Header() {
     { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' }
   ]
 
+  const [featuredTours, setFeaturedTours] = useState<{ id: string, name: string, duration?: string }[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/tours')
+        const json = await res.json()
+        if (json.success) {
+          const items = json.data.filter((t: any) => t.featured).map((t: any) => ({ id: t.id, name: t.name, duration: t.duration }))
+          setFeaturedTours(items)
+        }
+      } catch {}
+    }
+    load()
+  }, [])
+
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Tour Package', href: '/tours' },
@@ -77,7 +93,7 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 transition-all duration-500 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl shadow-lg border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo Section */}
             <div className="flex items-center space-x-4">
@@ -101,17 +117,50 @@ export default function Header() {
             </div>
 
             {/* Desktop Navigation */}
-                               <nav className="hidden lg:flex items-center space-x-8">
-                     {navigation.map((item) => (
-                       <Link
-                         key={item.name}
-                         href={item.href}
-                         className="text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 font-medium relative group"
-                       >
-                         {item.name}
-                       </Link>
-                     ))}
-                   </nav>
+            <nav className="hidden lg:flex items-center space-x-8">
+              {navigation.map((item) => (
+                item.name !== 'Tour Package' ? (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 font-medium relative group"
+                  >
+                    {item.name}
+                  </Link>
+                ) : (
+                  <div key={item.name} className="relative">
+                    <button
+                      onClick={() => toggleDropdown('tours')}
+                      className="flex items-center space-x-1 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 font-medium"
+                    >
+                      <span>Tour Package</span>
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    {activeDropdown === 'tours' && (
+                      <div className="absolute left-0 mt-2 w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 z-10 border border-white/20 dark:border-gray-700/20">
+                        <Link
+                          href="/tours"
+                          className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-white transition-all duration-200 rounded-lg mx-2 hover:bg-gradient-to-r hover:from-[#4091FE] hover:to-[#187BFF]"
+                          onClick={() => setActiveDropdown('')}
+                        >
+                          All Tour Packages
+                        </Link>
+                        {featuredTours.map(t => (
+                          <Link
+                            key={t.id}
+                            href={`/tours/${t.id}`}
+                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-white transition-all duration-200 rounded-lg mx-2 hover:bg-gradient-to-r hover:from-[#4091FE] hover:to-[#187BFF]"
+                            onClick={() => setActiveDropdown('')}
+                          >
+                            {t.name} {t.duration ? `– ${t.duration}` : ''}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              ))}
+            </nav>
 
                                {/* Desktop Utility Buttons */}
                    <div className="hidden lg:flex items-center space-x-4">
