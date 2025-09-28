@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import {
   Upload,
   Search,
@@ -327,9 +328,11 @@ export default function ImagesManagement() {
               <div className="relative">
                 {/* Header with Preview Thumbnail */}
                 <div className="bg-gray-50 p-3 flex items-center space-x-3">
-                  <img
-                  src={image.url}
-                  alt={image.name}
+                  <Image
+                    src={image.url}
+                    alt={image.name}
+                    width={48}
+                    height={32}
                     className="w-12 h-8 object-cover rounded border"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -377,9 +380,11 @@ export default function ImagesManagement() {
                 </div>
                 
                 {/* Main Image */}
-                <img
+                <Image
                   src={image.url}
                   alt={image.name}
+                  width={400}
+                  height={160}
                   className="w-full h-40 object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -468,9 +473,11 @@ export default function ImagesManagement() {
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <img
+                    <Image
                       src={image.url}
                       alt={image.name}
+                      width={48}
+                      height={48}
                       className="h-12 w-12 object-cover rounded"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
