@@ -91,10 +91,27 @@ export default function HomePage() {
         const res = await fetch('/api/tours')
         const json = await res.json()
         if (json.success) {
-          setAllTours(json.data || [])
-          setFeaturedTours((json.data || []).filter((t: Tour) => t.featured))
+          const tours = json.data || []
+          console.log('All tours:', tours)
+          
+          // Filter and validate featured tours
+          const featured = tours.filter((t: Tour) => {
+            const isValid = t && t.featured && t.id && t.name
+            if (!isValid) {
+              console.log('Invalid tour data:', t)
+            }
+            return isValid
+          })
+          
+          console.log('Found tour data:', featured)
+          setAllTours(tours)
+          setFeaturedTours(featured)
         }
-      } catch {}
+      } catch (error) {
+        console.error('Error loading tours:', error)
+        setFeaturedTours([])
+        setAllTours([])
+      }
     }
     load()
   }, [])
@@ -777,7 +794,7 @@ export default function HomePage() {
               className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide scroll-smooth px-2 sm:px-0"
               style={{ scrollBehavior: 'smooth' }}
             >
-              {featuredTours.map((tour, index) => (
+              {featuredTours && featuredTours.length > 0 ? featuredTours.map((tour, index) => (
                 <div key={index} className="flex-shrink-0 w-72 sm:w-80">
                   <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
                     <div className="relative">
@@ -830,10 +847,18 @@ export default function HomePage() {
           </div>
         </div>
               </div>
-            ))}
+            )) : (
+              <div className="flex items-center justify-center w-full py-8">
+                <div className="text-center">
+                  <p className="text-gray-500 text-lg">No featured tours available</p>
+                  <p className="text-gray-400 text-sm">Please check back later</p>
+                </div>
+              </div>
+            )}
             </div>
 
             {/* Dots Indicator - Active highlighting and click navigation */}
+            {featuredTours && featuredTours.length > 0 && (
             <div className="flex justify-center mt-4 sm:mt-6 space-x-2">
               {featuredTours.map((_: Tour, index: number) => (
                 <button
@@ -848,6 +873,7 @@ export default function HomePage() {
                 />
               ))}
             </div>
+            )}
           </div>
         </div>
       </section>

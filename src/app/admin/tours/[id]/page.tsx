@@ -134,7 +134,7 @@ export default function TourEditor() {
   const [showDestinationManager, setShowDestinationManager] = useState(false)
 
   // Get map coordinates for selected destinations
-  const tourDestinations = tour.destinations.map(destName => {
+  const tourDestinations = (tour.destinations || []).map(destName => {
     const dest = availableDestinations.find(d => d.name === destName)
     return dest || null
   }).filter(Boolean) as Destination[]
