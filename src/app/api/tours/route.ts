@@ -3,9 +3,19 @@ import { supabaseAdmin } from '@/lib/supabaseClient'
 import fs from 'fs'
 import path from 'path'
 
+interface SupabaseError {
+  code?: string
+  message: string
+  details?: string
+  hint?: string
+}
+
+interface SupabaseResponse<T> {
+  data: T | null
+  error: SupabaseError | null
+}
+
 interface Tour {
-  createdAt: string
-  keyExperiences: never[]
   id: string
   name: string
   duration: string
@@ -15,15 +25,40 @@ interface Tour {
   rating: number
   reviews: number
   destinations?: string[]
+  highlights?: string[]
+  keyExperiences?: string[]
+  key_experiences?: string[]
+  itinerary?: Record<string, unknown>[]
+  inclusions?: string[]
+  exclusions?: string[]
+  accommodation?: Record<string, unknown>[]
+  importantInfo?: Record<string, unknown>
   style?: string
   featured?: boolean
   status?: string
+  createdAt?: string
+  created_at?: string
+  createdat?: string
   updatedAt?: string
   updated_at?: string
+  updatedat?: string
+  description?: string
+  transportation?: string
+  groupSize?: string
+  difficulty?: string
+  destinationsRoute?: string
+  destinations_route?: string
+  includingAll?: string
+  including_all?: string
 }
 
 // Persistent file-based storage for fallback
 const FALLBACK_FILE = path.join(process.cwd(), 'data', 'tours.json')
+
+// In-memory cache for better performance
+let toursCache: Tour[] | null = null
+let cacheTimestamp: number = 0
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
 // Ensure data directory exists
 const ensureDataDir = () => {
@@ -33,13 +68,28 @@ const ensureDataDir = () => {
   }
 }
 
-// Load tours from file
+// Load tours from file with caching
 const loadFallbackTours = (): Tour[] => {
   try {
     ensureDataDir()
+    
+    // Check if we have valid cached data
+    const now = Date.now()
+    if (toursCache && (now - cacheTimestamp) < CACHE_DURATION) {
+      console.log('Using cached tours data')
+      return toursCache
+    }
+    
     if (fs.existsSync(FALLBACK_FILE)) {
       const data = fs.readFileSync(FALLBACK_FILE, 'utf8')
-      return JSON.parse(data)
+      const tours = JSON.parse(data)
+      
+      // Update cache
+      toursCache = tours
+      cacheTimestamp = now
+      
+      console.log('Loaded tours from file and cached:', tours.length)
+      return tours
     }
   } catch (error) {
     console.error('Error loading fallback tours:', error)
@@ -47,26 +97,54 @@ const loadFallbackTours = (): Tour[] => {
   return []
 }
 
-// Save tours to file
+// Save tours to file and update cache
 const saveFallbackTours = (tours: Tour[]) => {
   try {
     ensureDataDir()
     fs.writeFileSync(FALLBACK_FILE, JSON.stringify(tours, null, 2))
-    console.log('Tours saved to fallback file:', FALLBACK_FILE)
+    
+    // Update cache
+    toursCache = tours
+    cacheTimestamp = Date.now()
+    
+    console.log('Tours saved to fallback file and cache updated:', tours.length)
   } catch (error) {
     console.error('Error saving fallback tours:', error)
   }
 }
 
+// Clear cache when data is modified
+// const clearCache = () => {
+//   toursCache = null
+//   cacheTimestamp = 0
+// }
+
 export async function GET() {
+  const startTime = Date.now()
+  
   try {
-    console.log('GET /api/tours - Fetching tours from Supabase...')
+    console.log('GET /api/tours - Starting request...')
     
     // Check if Supabase is configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+                                process.env.SUPABASE_SERVICE_ROLE_KEY &&
+                                process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
+                                process.env.SUPABASE_SERVICE_ROLE_KEY !== 'placeholder-service-key' &&
+                                process.env.NEXT_PUBLIC_SUPABASE_URL.includes('supabase.co')
+    
+    console.log('Supabase configuration check:', {
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      isConfigured: isSupabaseConfigured
+    })
+    
+    if (!isSupabaseConfigured) {
       console.log('Supabase not configured, using fallback data')
       const fallbackTours = loadFallbackTours()
-      console.log('Loaded fallback tours from file:', fallbackTours.length)
+      const responseTime = Date.now() - startTime
+      console.log(`Loaded ${fallbackTours.length} fallback tours in ${responseTime}ms`)
+      
       return NextResponse.json({ 
         success: true, 
         data: fallbackTours.map(tour => ({
@@ -75,37 +153,113 @@ export async function GET() {
           createdAt: tour.createdAt || new Date().toISOString(),
           updatedAt: tour.updatedAt || new Date().toISOString()
         })), 
-        message: 'Tours retrieved from fallback storage' 
+        message: 'Tours retrieved from fallback storage',
+        responseTime: `${responseTime}ms`
       })
     }
     
-    const { data, error } = await supabaseAdmin
+    console.log('Attempting Supabase query...')
+    
+    // Try Supabase with timeout
+    const supabasePromise = supabaseAdmin
       .from('tours')
       .select('*')
-      .order('created_at', { ascending: false })
-
-    console.log('Supabase query result:', { data, error })
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Supabase query timeout')), 3000)
+    )
+    
+          const { data, error } = await Promise.race([supabasePromise, timeoutPromise]) as SupabaseResponse<Tour[]>
+    
+    console.log('Supabase query result:', { 
+      dataCount: data?.length || 0, 
+      error: error ? { code: error.code, message: error.message } : null 
+    })
     
     if (error) {
-      console.error('Supabase error:', error)
+      console.error('Supabase error details:', error)
       throw error
     }
     
-    // Transform database field names to frontend format
-    const transformedData = (data || []).map(tour => ({
+    let toursData = data
+    
+    // If Supabase is empty but we have fallback data, migrate it
+    if ((!toursData || toursData.length === 0) && loadFallbackTours().length > 0) {
+      console.log('Supabase is empty, migrating fallback tours...')
+      const fallbackTours = loadFallbackTours()
+      
+      for (const tour of fallbackTours.slice(0, 3)) { // Migrate first 3 tours
+        try {
+          const simpleTour = {
+            id: tour.id,
+            name: tour.name,
+            duration: tour.duration,
+            price: tour.price,
+            description: tour.description || 'Tour description',
+            transportation: tour.transportation || 'Air conditioned car or van',
+            groupsize: tour.groupSize || 'Private / Group Tour',
+            difficulty: tour.difficulty || 'Moderate',
+            status: tour.status || 'active',
+            featured: tour.featured || false
+          }
+          
+          await supabaseAdmin.from('tours').insert(simpleTour)
+          console.log(`Migrated tour: ${tour.name}`)
+        } catch (migrateError) {
+          console.error(`Failed to migrate tour ${tour.name}:`, migrateError)
+        }
+      }
+      
+      // Retry the query after migration
+      const { data: newData, error: newError } = await supabaseAdmin
+        .from('tours')
+        .select('*')
+        .order('createdat', { ascending: false })
+      
+      if (!newError && newData) {
+        toursData = newData
+        console.log(`After migration: ${toursData.length} tours in Supabase`)
+      }
+    }
+    
+          // Transform database field names to frontend format
+          const transformedData = (toursData || []).map((tour: Tour) => ({
       ...tour,
       keyExperiences: tour.key_experiences || [],
-      createdAt: tour.created_at,
-      updatedAt: tour.updated_at
+      createdAt: tour.createdat || tour.createdAt,
+      updatedAt: tour.updatedat || tour.updatedAt,
+      destinations: tour.destinations || [],
+      highlights: tour.highlights || [],
+      itinerary: tour.itinerary || [],
+      inclusions: tour.inclusions || [],
+      exclusions: tour.exclusions || [],
+      accommodation: tour.accommodation || [],
+      images: tour.images || [],
+      importantInfo: tour.importantInfo || {},
+      style: tour.style || 'Adventure',
+      rating: tour.rating || 0,
+      reviews: tour.reviews || 0,
+      destinationsRoute: tour.destinations_route || '',
+      includingAll: tour.including_all || ''
     }))
     
-    console.log('Transformed data:', transformedData)
-    return NextResponse.json({ success: true, data: transformedData, message: 'Tours retrieved successfully' })
+    const responseTime = Date.now() - startTime
+    console.log(`Retrieved ${transformedData.length} tours from Supabase in ${responseTime}ms`)
+    
+    return NextResponse.json({ 
+      success: true, 
+      data: transformedData, 
+      message: 'Tours retrieved successfully',
+      responseTime: `${responseTime}ms`
+    })
   } catch (error) {
+    const responseTime = Date.now() - startTime
     console.error('API error:', error)
-    console.log('Falling back to in-memory storage')
+    console.log('Falling back to cached storage')
+    
     const fallbackTours = loadFallbackTours()
-    console.log('Loaded fallback tours from file (error case):', fallbackTours.length)
+    console.log(`Loaded ${fallbackTours.length} fallback tours from cache in ${responseTime}ms`)
+    
     return NextResponse.json({ 
       success: true, 
       data: fallbackTours.map(tour => ({
@@ -114,7 +268,8 @@ export async function GET() {
         createdAt: tour.createdAt || new Date().toISOString(),
         updatedAt: tour.updatedAt || new Date().toISOString()
       })), 
-      message: 'Tours retrieved from fallback storage due to error' 
+      message: 'Tours retrieved from fallback storage due to error',
+      responseTime: `${responseTime}ms`
     })
   }
 }
@@ -149,7 +304,12 @@ export async function POST(request: NextRequest) {
     console.log('Prepared tour data:', newTour)
 
     // Check if Supabase is configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+                                process.env.SUPABASE_SERVICE_ROLE_KEY &&
+                                process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
+                                process.env.SUPABASE_SERVICE_ROLE_KEY !== 'placeholder-service-key'
+    
+    if (!isSupabaseConfigured) {
       console.log('Supabase not configured, using fallback storage')
       const fallbackTours = loadFallbackTours()
       fallbackTours.push(newTour)
@@ -220,7 +380,12 @@ export async function PUT(request: NextRequest) {
     console.log('Prepared updated tour data:', updatedTour)
 
     // Check if Supabase is configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+                                process.env.SUPABASE_SERVICE_ROLE_KEY &&
+                                process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
+                                process.env.SUPABASE_SERVICE_ROLE_KEY !== 'placeholder-service-key'
+    
+    if (!isSupabaseConfigured) {
       console.log('Supabase not configured, using fallback storage for update')
       const fallbackTours = loadFallbackTours()
       const tourIndex = fallbackTours.findIndex(tour => tour.id === id)
@@ -326,7 +491,12 @@ export async function DELETE(request: NextRequest) {
     console.log('DELETE /api/tours - Deleting tour with ID:', id)
 
     // Check if Supabase is configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+                                process.env.SUPABASE_SERVICE_ROLE_KEY &&
+                                process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
+                                process.env.SUPABASE_SERVICE_ROLE_KEY !== 'placeholder-service-key'
+    
+    if (!isSupabaseConfigured) {
       console.log('Supabase not configured, using fallback storage')
       const fallbackTours = loadFallbackTours()
       const initialLength = fallbackTours.length

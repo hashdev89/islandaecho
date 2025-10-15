@@ -28,6 +28,7 @@ body {
 /* Ensure immediate theme changes for critical elements */
 html {
   transition: none;
+  scroll-behavior: smooth;
 }
 
 html * {
@@ -295,4 +296,102 @@ input[type="date"]::-moz-calendar-picker-indicator {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 6;
   line-clamp: 6;
+}
+
+/* Background image class with parallax effect */
+.bg-image-bg {
+  background-image: url('/uploads/454e1082-20c8-4681-aded-e6509eea0077.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Darker animated blue gradient overlay for better text visibility */
+.bg-image-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    rgba(37, 99, 235, 0.7) 0%, 
+    rgba(12, 234, 27, 0.7) 20%, 
+    rgba(96, 165, 250, 0.7) 40%, 
+    rgba(147, 197, 253, 0.7) 60%, 
+    rgba(59, 130, 246, 0.7) 80%, 
+    rgba(37, 99, 235, 0.7) 100%);
+  background-size: 200% 100%;
+  animation: wave-flow 6s ease-in-out infinite;
+  z-index: 1;
+}
+
+/* Wave animation keyframes - color only animation */
+@keyframes wave-flow {
+  0% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 50% 0%;
+  }
+  50% {
+    background-position: 100% 0%;
+  }
+  75% {
+    background-position: 50% 0%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+/* Ensure content is above the overlay */
+.bg-image-bg > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Animated gradient text for Sri Lanka heading */
+.animated-gradient-text {
+  background: linear-gradient(90deg, 
+    #2563eb 0%, 
+    #3b82f6 20%, 
+    #60a5fa 40%, 
+    #14db17 60%, 
+    #3b82f6 80%, 
+    #2563eb 100%);
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: wave-flow 6s ease-in-out infinite;
+}
+
+/* Destinations section gradient background */
+.destinations-gradient-bg {
+  background: linear-gradient(135deg, 
+    rgba(37, 99, 235, 0.05) 0%, 
+    rgba(59, 130, 246, 0.08) 20%, 
+    rgba(96, 165, 250, 0.06) 40%, 
+    rgba(20, 219, 23, 0.08) 60%, 
+    rgba(59, 130, 246, 0.05) 80%, 
+    rgba(37, 99, 235, 0.05) 100%);
+  background-size: 400% 400%;
+  animation: destinations-gradient-flow 12s ease-in-out infinite;
+}
+
+/* Destinations gradient animation */
+@keyframes destinations-gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }

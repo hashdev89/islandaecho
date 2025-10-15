@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   Search,
   Star,
@@ -361,7 +362,7 @@ export default function HomePage() {
               Your browser does not support the video tag.
             </video>
             {/* Video Overlay */}
-            <div className="absolute inset-0 bg-black/40"></div>
+            <div className="absolute inset-0 bg-black/80"></div>
           </div>
         </div>
 
@@ -369,7 +370,7 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <div className="text-center max-w-4xl mx-auto">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600/20 backdrop-blur-sm border border-blue-400/30 mb-8">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600/20 backdrop-blur-sm border border-blue-400/30 mb-8 ">
               <Award className="w-4 h-4 mr-2 text-blue-100" />
               <span className="text-blue-100 font-medium">Top Rated Travel Agency</span>
             </div>
@@ -377,7 +378,7 @@ export default function HomePage() {
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               Discover the Magic of{' '}<br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 animated-gradient-text">
                 Sri Lanka
               </span>
             </h1>
@@ -505,9 +506,9 @@ export default function HomePage() {
                            <div className="space-y-4">
                              {/* Tour Info */}
                              <div className="flex items-center justify-between">
-                               <div>
+                               <div className="text-left">
                                  <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100">{selectedTour.name}</h3>
-                                 <p className="text-blue-600 dark:text-blue-400 font-medium">{selectedTour.duration}</p>
+                                 <p className="text-blue-600 dark:text-blue-400 font-medium pb-2">{selectedTour.duration}</p>
                                </div>
                                <div className="text-right">
                                  <div className="flex items-center space-x-1">
@@ -868,6 +869,15 @@ export default function HomePage() {
                    </div>
       </section>
 
+
+      <section className='py-20 bg-image-bg'>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className='text-8xl font-bold text-center text-white text-shadow-sri-lanka'>
+            Sri Lanka
+          </h1>
+          <p className='text-2xl text-center text-black text-shadow-subtitle'>Mystic Isle of Echoes</p>
+        </div>  
+      </section>
       {/* Features Section - Inspired by Swimlane's features */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -879,6 +889,8 @@ export default function HomePage() {
               We provide exceptional travel experiences with unmatched service and attention to detail.
             </p>
                 </div>
+                      
+ 
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
@@ -892,6 +904,267 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+      
+      {/* Destinations & Activities Section */}
+      <section className="py-20 destinations-gradient-bg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Discover Sri Lanka&apos;s Destinations
+            </h2>
+            <p className="text-xl text-gray-800 max-w-3xl mx-auto">
+              Explore the diverse beauty of Sri Lanka with our curated list of destinations and activities.
+            </p>
+          </div>
+
+          {/* Top Filter Bar */}
+          <div className="mb-8">
+            <div className="flex flex-wrap justify-center gap-4 mb-6">
+              <input
+                type="text"
+                placeholder="Search destinations..."
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">All Regions</option>
+                <option value="Western Province">Western Province</option>
+                <option value="Hill Country">Hill Country</option>
+                <option value="Southern Province">Southern Province</option>
+                <option value="Cultural Triangle">Cultural Triangle</option>
+                <option value="Uva Province">Uva Province</option>
+                <option value="Wildlife">Wildlife</option>
+                <option value="Eastern Province">Eastern Province</option>
+                <option value="Northern Province">Northern Province</option>
+              </select>
+            </div>
+
+            {/* Category Chips */}
+            <div className="flex flex-wrap justify-center gap-3">
+              {['All', 'Beaches', 'Mountains', 'Wildlife', 'Culture', 'Adventure', 'Relaxation', 'Food'].map((category) => (
+                <button
+                  key={category}
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Live-refine Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Colombo */}
+            <Link href="/destinations/colombo" className="block">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                  <h3 className="text-2xl font-bold text-white">Colombo</h3>
+                </div>
+                <div className="p-6">
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Capital City</h4>
+                  <p className="text-gray-600 mb-4">The commercial capital of Sri Lanka with modern shopping centers and colonial architecture.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                      Visit Gangaramaya Temple
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                      Explore Pettah Market
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                      Walk along Galle Face Green
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                      Visit National Museum
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                      Enjoy rooftop dining
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Kandy */}
+            <Link href="/destinations/kandy" className="block">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                  <h3 className="text-2xl font-bold text-white">Kandy</h3>
+                </div>
+                <div className="p-6">
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Cultural Capital</h4>
+                  <p className="text-gray-600 mb-4">Cultural capital with the Temple of the Sacred Tooth Relic and beautiful botanical gardens.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      Visit Temple of the Tooth
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      Explore Royal Botanical Gardens
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      Watch Cultural Dance Show
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      Visit Tea Museum
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      Walk around Kandy Lake
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Sigiriya */}
+            <Link href="/destinations/sigiriya" className="block">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                  <h3 className="text-2xl font-bold text-white">Sigiriya</h3>
+                </div>
+                <div className="p-6">
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Ancient Rock Fortress</h4>
+                  <p className="text-gray-600 mb-4">Ancient palace and fortress complex, a UNESCO World Heritage site.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                      Climb Sigiriya Rock Fortress
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                      Visit Dambulla Cave Temple
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                      Explore Minneriya National Park
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                      See Ancient Frescoes
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                      Visit Polonnaruwa Ancient City
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Ella */}
+            <Link href="/destinations/ella" className="block">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="h-48 bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                  <h3 className="text-2xl font-bold text-white">Ella</h3>
+                </div>
+                <div className="p-6">
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Hill Country Gem</h4>
+                  <p className="text-gray-600 mb-4">Scenic hill country town with stunning mountain views and hiking trails.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                      Hike Little Adam&apos;s Peak
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                      Visit Nine Arch Bridge
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                      Try Flying Ravana Zipline
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                      Take Scenic Train Ride
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                      Visit Ravana Falls
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Mirissa */}
+            <Link href="/destinations/mirissa" className="block">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="h-48 bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center">
+                  <h3 className="text-2xl font-bold text-white">Mirissa</h3>
+                </div>
+                <div className="p-6">
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Beach Paradise</h4>
+                  <p className="text-gray-600 mb-4">Beautiful beach destination known for whale watching and water sports.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
+                      Whale Watching Tour
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
+                      Surfing Lessons
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
+                      Visit Coconut Tree Hill
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
+                      Beach Party & Nightlife
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
+                      Secret Beach Exploration
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Yala */}
+            <Link href="/destinations/yala" className="block">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="h-48 bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                  <h3 className="text-2xl font-bold text-white">Yala National Park</h3>
+                </div>
+                <div className="p-6">
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Wildlife Safari</h4>
+                  <p className="text-gray-600 mb-4">Yala National Park is a forest reserve and is located in Uva, Sri Lanka.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                      Jeep Safari in Yala National Park
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                      Spot Leopards & Elephants
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                      Bird Watching
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                      Visit Sithulpawwa Rock Temple
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                      Campfire BBQ Experience
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>  
       </section>
 
       {/* Solutions Section - Inspired by Swimlane's solutions */}
