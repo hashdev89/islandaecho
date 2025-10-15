@@ -70,6 +70,7 @@ export default function TourEditor() {
   const router = useRouter()
   const tourId = params.id as string
   const isNew = tourId === 'new'
+  const [isLoading, setIsLoading] = useState(true)
 
   const [tour, setTour] = useState<TourPackage>({
     id: '',
@@ -102,21 +103,25 @@ export default function TourEditor() {
         const response = await fetch('/api/destinations')
         const result = await response.json()
         
-        if (result.success) {
+        if (result.success && Array.isArray(result.data)) {
           // Map API data to Destination format
           const mappedDestinations = result.data.map((dest: unknown) => {
             const d = dest as Record<string, unknown>
             return {
-              name: d.name as string,
-              lat: d.lat as number,
-              lng: d.lng as number,
-              region: d.region as string
+              name: (d.name as string) || 'Unknown',
+              lat: (d.lat as number) || 0,
+              lng: (d.lng as number) || 0,
+              region: (d.region as string) || 'Unknown'
             }
           })
           setAvailableDestinations(mappedDestinations)
+        } else {
+          console.error('Invalid destinations data received:', result)
+          setAvailableDestinations([])
         }
       } catch (error) {
         console.error('Error fetching destinations:', error)
+        setAvailableDestinations([])
       }
     }
     
@@ -146,18 +151,86 @@ export default function TourEditor() {
 
   useEffect(() => {
     const load = async () => {
+      if (isNew) {
+        setIsLoading(false)
+        return
+      }
+      
       if (!isNew) {
-        console.log('Fetching tours for tourId:', tourId)
-        const all = await dataSync.fetchTours()
-        console.log('All tours:', all)
-        const found = (all as unknown[]).find(t => (t as Record<string, unknown>).id === tourId)
-        if (found) {
-          console.log('Found tour data:', found)
-          const tourData = found as Record<string, unknown>
-          console.log('Tour destinations:', tourData.destinations)
-          setTour(found as TourPackage)
-        } else {
-          console.log('Tour not found with ID:', tourId)
+        try {
+          console.log('Fetching tours for tourId:', tourId)
+          const all = await dataSync.fetchTours()
+          console.log('All tours:', all)
+          
+          if (!Array.isArray(all)) {
+            console.error('Invalid tours data received:', all)
+            return
+          }
+          
+          const found = all.find(t => t.id === tourId)
+          if (found) {
+            console.log('Found tour data:', found)
+            console.log('Tour destinations:', found.destinations)
+            setTour(found as TourPackage)
+          } else {
+            console.log('Tour not found with ID:', tourId)
+            // Set a default tour structure to prevent crashes
+            setTour({
+              id: tourId,
+              name: 'New Tour',
+              duration: '',
+              price: '',
+              style: '',
+              destinations: [],
+              highlights: [],
+              keyExperiences: [],
+              description: '',
+              itinerary: [],
+              inclusions: [],
+              exclusions: [],
+              importantInfo: {
+                requirements: [],
+                whatToBring: []
+              },
+              accommodation: [],
+              transportation: '',
+              groupSize: '',
+              bestTime: '',
+              images: [],
+              featured: false,
+              status: 'draft'
+            })
+          }
+          setIsLoading(false)
+        } catch (error) {
+          console.error('Error loading tour:', error)
+          // Set a default tour structure to prevent crashes
+          setTour({
+            id: tourId,
+            name: 'New Tour',
+            duration: '',
+            price: '',
+            style: '',
+            destinations: [],
+            highlights: [],
+            keyExperiences: [],
+            description: '',
+            itinerary: [],
+            inclusions: [],
+            exclusions: [],
+            importantInfo: {
+              requirements: [],
+              whatToBring: []
+            },
+            accommodation: [],
+            transportation: '',
+            groupSize: '',
+            bestTime: '',
+            images: [],
+            featured: false,
+            status: 'draft'
+          })
+          setIsLoading(false)
         }
       }
     }
@@ -525,6 +598,18 @@ export default function TourEditor() {
         whatToBring: newWhatToBring
       }
     })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Tour Editor</h2>
+          <p className="text-gray-600">Please wait while we load the tour data...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

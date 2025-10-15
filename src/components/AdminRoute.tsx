@@ -13,11 +13,16 @@ export default function AdminRoute({ children }: AdminRouteProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
+  // Allow access in development mode or if user is admin
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  const isAdmin = user?.role === 'admin'
+  const hasAccess = isDevelopment || isAdmin
+
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== 'admin')) {
+    if (!isLoading && !hasAccess) {
       router.push('/')
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, router, hasAccess])
 
   if (isLoading) {
     return (
@@ -30,8 +35,21 @@ export default function AdminRoute({ children }: AdminRouteProps) {
     )
   }
 
-  if (!user || user.role !== 'admin') {
-    return null
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-6">You need admin privileges to access this page.</p>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return <>{children}</>
