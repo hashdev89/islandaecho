@@ -348,20 +348,23 @@ export default function TourEditor() {
   }
 
   const toggleDestination = (destinationName: string) => {
-    const newDestinations = tour.destinations.includes(destinationName)
-      ? tour.destinations.filter(d => d !== destinationName)
-      : [...tour.destinations, destinationName]
+    const currentDestinations = tour.destinations || []
+    const newDestinations = currentDestinations.includes(destinationName)
+      ? currentDestinations.filter(d => d !== destinationName)
+      : [...currentDestinations, destinationName]
     setTour({ ...tour, destinations: newDestinations })
   }
 
   const handleDestinationSelect = (destinationName: string) => {
-    if (!tour.destinations.includes(destinationName)) {
-      setTour({ ...tour, destinations: [...tour.destinations, destinationName] })
+    const currentDestinations = tour.destinations || []
+    if (!currentDestinations.includes(destinationName)) {
+      setTour({ ...tour, destinations: [...currentDestinations, destinationName] })
     }
   }
 
   const handleDestinationDeselect = (destinationName: string) => {
-    setTour({ ...tour, destinations: tour.destinations.filter(d => d !== destinationName) })
+    const currentDestinations = tour.destinations || []
+    setTour({ ...tour, destinations: currentDestinations.filter(d => d !== destinationName) })
   }
 
   const handleDestinationAdded = () => {
@@ -772,7 +775,7 @@ export default function TourEditor() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Selected Destinations</label>
-                {tour.destinations.length > 0 ? (
+                {(tour.destinations && tour.destinations.length > 0) ? (
                   <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
                     {tour.destinations.map((destName) => {
                       const dest = availableDestinations.find(d => d.name === destName)
@@ -841,11 +844,11 @@ export default function TourEditor() {
               </button>
             </div>
             <div className="space-y-2">
-              {tour.highlights.map((highlight, index) => (
+              {(tour.highlights || []).map((highlight, index) => (
                 <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                   <span className="text-sm">{highlight}</span>
                   <button
-                    onClick={() => removeItem(tour.highlights, index, 'highlights')}
+                    onClick={() => removeItem(tour.highlights || [], index, 'highlights')}
                     className="text-red-600 hover:text-red-800"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -907,7 +910,7 @@ export default function TourEditor() {
               </button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {tour.images.map((image, index) => (
+              {(tour.images || []).map((image, index) => (
                 <div key={index} className="relative group">
                   <Image
                     src={image || '/placeholder-image.svg'}
@@ -1119,11 +1122,11 @@ export default function TourEditor() {
               </button>
             </div>
             <div className="space-y-2">
-              {tour.inclusions.map((inclusion, index) => (
+              {(tour.inclusions || []).map((inclusion, index) => (
                 <div key={index} className="flex items-center justify-between bg-green-50 p-2 rounded">
                   <span className="text-sm">{inclusion}</span>
                   <button
-                    onClick={() => removeItem(tour.inclusions, index, 'inclusions')}
+                    onClick={() => removeItem(tour.inclusions || [], index, 'inclusions')}
                     className="text-red-600 hover:text-red-800"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -1152,11 +1155,11 @@ export default function TourEditor() {
               </button>
             </div>
             <div className="space-y-2">
-              {tour.exclusions.map((exclusion, index) => (
+              {(tour.exclusions || []).map((exclusion, index) => (
                 <div key={index} className="flex items-center justify-between bg-red-50 p-2 rounded">
                   <span className="text-sm">{exclusion}</span>
                   <button
-                    onClick={() => removeItem(tour.exclusions, index, 'exclusions')}
+                    onClick={() => removeItem(tour.exclusions || [], index, 'exclusions')}
                     className="text-red-600 hover:text-red-800"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -1185,11 +1188,11 @@ export default function TourEditor() {
               </button>
             </div>
             <div className="space-y-2">
-              {tour.accommodation.map((acc, index) => (
+              {(tour.accommodation || []).map((acc, index) => (
                 <div key={index} className="flex items-center justify-between bg-blue-50 p-2 rounded">
                   <span className="text-sm">{acc}</span>
                   <button
-                    onClick={() => removeItem(tour.accommodation, index, 'accommodation')}
+                    onClick={() => removeItem(tour.accommodation || [], index, 'accommodation')}
                     className="text-red-600 hover:text-red-800"
                   >
                     <Trash2 className="h-4 w-4" />
