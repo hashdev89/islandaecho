@@ -215,8 +215,14 @@ export default function HomePage() {
         video.pause();
         setIsVideoPlaying(false);
       } else {
-        video.play();
-        setIsVideoPlaying(true);
+        // Preload video when user clicks play
+        video.preload = 'auto';
+        video.play().then(() => {
+          setIsVideoPlaying(true);
+        }).catch((error) => {
+          console.error('Video play failed:', error);
+          setIsVideoPlaying(false);
+        });
       }
     }
   }
@@ -372,9 +378,17 @@ export default function HomePage() {
               src="/isleandechovideo.mp4"
               muted
               loop
-              autoPlay
               playsInline
+              preload="metadata"
+              poster="/sigiriya.jpeg"
               onEnded={() => setIsVideoPlaying(false)}
+              onLoadedData={() => {
+                // Only autoplay after video metadata is loaded
+                const video = document.getElementById('hero-video') as HTMLVideoElement;
+                if (video && isVideoPlaying) {
+                  video.play().catch(console.error);
+                }
+              }}
             >
               Your browser does not support the video tag.
             </video>

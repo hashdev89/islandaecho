@@ -24,6 +24,24 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Video optimization
+  async headers() {
+    return [
+      {
+        source: '/(.*\\.(mp4|webm|ogg))',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Content-Encoding',
+            value: 'gzip',
+          },
+        ],
+      },
+    ];
+  },
   experimental: {
     optimizePackageImports: [],
   },

@@ -25,9 +25,18 @@ const getFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+// Get image dimensions from file buffer
+const getImageDimensions = (buffer: Buffer): Promise<{ width: number; height: number }> => {
+  return new Promise((resolve, reject) => {
+    // Simple approach - we'll get dimensions after upload
+    // For now, return unknown dimensions
+    resolve({ width: 0, height: 0 })
+  })
+}
+
 export async function GET() {
   try {
-    console.log('GET /api/images - Fetching images from Supabase...')
+    console.log('GET /api/images/supabase - Fetching images from Supabase...')
     
     // Check if Supabase is configured
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -74,6 +83,11 @@ export async function GET() {
             .from('isleandecho')
             .getPublicUrl(`main/images/${file.name}`)
 
+          // Get file metadata from Supabase
+          const { data: metadata } = await supabaseAdmin.storage
+            .from('isleandecho')
+            .getMetadata(`main/images/${file.name}`)
+
           const imageData: ImageMetadata = {
             id: file.id || uuidv4(),
             name: file.name,
@@ -103,7 +117,7 @@ export async function GET() {
       message: `Retrieved ${images.length} images from Supabase storage` 
     })
   } catch (error: unknown) {
-    console.error('Images API error:', error)
+    console.error('Supabase images API error:', error)
     return NextResponse.json({ 
       success: false, 
       error: (error as Error).message 
@@ -113,7 +127,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    console.log('POST /api/images - Uploading image to Supabase...')
+    console.log('POST /api/images/supabase - Uploading image to Supabase...')
     
     const formData = await request.formData()
     const file = formData.get('image') as File
