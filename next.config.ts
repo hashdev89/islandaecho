@@ -24,11 +24,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Video optimization
+  experimental: {
+    optimizePackageImports: [],
+  },
+  // SEO optimizations
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: true,
+  // Enable static optimization
+  trailingSlash: false,
+  // Combined headers for video optimization and security
   async headers() {
     return [
       {
-        source: '/(.*\\.(mp4|webm|ogg))',
+        source: '/:path*\\.(mp4|webm|ogg)',
         headers: [
           {
             key: 'Cache-Control',
@@ -40,20 +49,6 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-    ];
-  },
-  experimental: {
-    optimizePackageImports: [],
-  },
-  // SEO optimizations
-  compress: true,
-  poweredByHeader: false,
-  generateEtags: true,
-  // Enable static optimization
-  trailingSlash: false,
-  // Add security headers
-  async headers() {
-    return [
       {
         source: '/(.*)',
         headers: [

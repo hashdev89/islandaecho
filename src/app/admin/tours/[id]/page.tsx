@@ -267,7 +267,8 @@ export default function TourEditor() {
       console.log('Full tour payload before processing:', payload)
       
       if (isNew) {
-        const { id: _id, ...createData } = payload as Record<string, unknown>
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...createData } = payload as Record<string, unknown>
         console.log('Creating tour with data:', createData)
         console.log('Required fields check:', {
           name: createData.name,

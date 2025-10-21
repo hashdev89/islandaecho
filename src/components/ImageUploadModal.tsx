@@ -3,6 +3,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import Image from 'next/image'
 
 interface ImageUploadModalProps {
   isOpen: boolean
@@ -258,9 +259,11 @@ export default function ImageUploadModal({ isOpen, onClose, onUploadSuccess }: I
                     {/* Preview */}
                     <div className="flex-shrink-0">
                       {file.preview ? (
-                        <img
+                        <Image
                           src={file.preview}
                           alt={file.file.name}
+                          width={48}
+                          height={48}
                           className="h-12 w-12 object-cover rounded"
                         />
                       ) : (

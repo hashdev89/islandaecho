@@ -37,7 +37,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToRegister }: Sig
       } else {
         setError('Invalid email or password')
       }
-    } catch (_err) {
+    } catch {
       setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
@@ -56,7 +56,7 @@ export default function SignInModal({ isOpen, onClose, onSwitchToRegister }: Sig
         onClose()
         router.push('/admin')
       }
-    } catch (_err) {
+    } catch {
       setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)

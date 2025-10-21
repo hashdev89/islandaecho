@@ -57,6 +57,7 @@ export default function HomePage() {
   const [allTours, setAllTours] = useState<Tour[]>([])
   const [isVideoPlaying, setIsVideoPlaying] = useState(true)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [videoUrl, setVideoUrl] = useState('/isleandechovideo.mp4') // Fallback to local video
 
   // Update dateRange when selectedStartDate or selectedEndDate changes
   useEffect(() => {
@@ -84,6 +85,26 @@ export default function HomePage() {
       }))
     }
   }, [selectedStartDate, selectedEndDate])
+
+  // Load video URL from Supabase
+  useEffect(() => {
+    const loadVideoUrl = async () => {
+      try {
+        const res = await fetch('/api/upload-video')
+        const json = await res.json()
+        if (json.success && json.videoUrl) {
+          console.log('Loading video from Supabase:', json.videoUrl)
+          setVideoUrl(json.videoUrl)
+        } else {
+          console.log('Using fallback local video')
+        }
+      } catch (error) {
+        console.error('Error loading video URL:', error)
+        // Keep fallback local video
+      }
+    }
+    loadVideoUrl()
+  }, [])
 
   useEffect(() => {
     const load = async () => {
@@ -375,7 +396,7 @@ export default function HomePage() {
             <video
               id="hero-video"
               className="w-full h-full object-cover"
-              src="/isleandechovideo.mp4"
+              src={videoUrl}
               muted
               loop
               playsInline
