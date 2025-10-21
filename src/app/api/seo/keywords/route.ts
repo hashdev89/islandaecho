@@ -6,8 +6,8 @@ import path from 'path'
 // File paths for SEO data storage
 const SEO_DATA_DIR = path.join(process.cwd(), 'data', 'seo')
 const KEYWORDS_FILE = path.join(SEO_DATA_DIR, 'keywords.json')
-// const META_TAGS_FILE = path.join(SEO_DATA_DIR, 'meta-tags.json')
-// const ANALYTICS_FILE = path.join(SEO_DATA_DIR, 'analytics.json')
+const META_TAGS_FILE = path.join(SEO_DATA_DIR, 'meta-tags.json')
+const ANALYTICS_FILE = path.join(SEO_DATA_DIR, 'analytics.json')
 
 // Ensure SEO data directory exists
 const ensureSEODir = () => {
@@ -43,72 +43,72 @@ const saveKeywords = (keywords: any[]) => {
 }
 
 // Load meta tags from file
-// const loadMetaTags = (): any[] => {
-//   try {
-//     ensureSEODir()
-//     if (fs.existsSync(META_TAGS_FILE)) {
-//       const data = fs.readFileSync(META_TAGS_FILE, 'utf8')
-//       return JSON.parse(data)
-//     }
-//     return []
-//   } catch (error) {
-//     console.error('Error loading meta tags:', error)
-//     return []
-//   }
-// }
+const loadMetaTags = (): any[] => {
+  try {
+    ensureSEODir()
+    if (fs.existsSync(META_TAGS_FILE)) {
+      const data = fs.readFileSync(META_TAGS_FILE, 'utf8')
+      return JSON.parse(data)
+    }
+    return []
+  } catch (error) {
+    console.error('Error loading meta tags:', error)
+    return []
+  }
+}
 
 // Save meta tags to file
-// const saveMetaTags = (metaTags: any[]) => {
-//   try {
-//     ensureSEODir()
-//     fs.writeFileSync(META_TAGS_FILE, JSON.stringify(metaTags, null, 2))
-//   } catch (error) {
-//     console.error('Error saving meta tags:', error)
-//     throw error
-//   }
-// }
+const saveMetaTags = (metaTags: any[]) => {
+  try {
+    ensureSEODir()
+    fs.writeFileSync(META_TAGS_FILE, JSON.stringify(metaTags, null, 2))
+  } catch (error) {
+    console.error('Error saving meta tags:', error)
+    throw error
+  }
+}
 
 // Load analytics settings from file
-// const loadAnalytics = (): any => {
-//   try {
-//     ensureSEODir()
-//     if (fs.existsSync(ANALYTICS_FILE)) {
-//       const data = fs.readFileSync(ANALYTICS_FILE, 'utf8')
-//       return JSON.parse(data)
-//     }
-//     return {
-//       googleAnalyticsId: '',
-//       googleTagManagerId: '',
-//       googleSearchConsoleId: '',
-//       facebookPixelId: '',
-//       googleAdsId: '',
-//       bingWebmasterId: '',
-//       yandexWebmasterId: ''
-//     }
-//   } catch (error) {
-//     console.error('Error loading analytics:', error)
-//     return {
-//       googleAnalyticsId: '',
-//       googleTagManagerId: '',
-//       googleSearchConsoleId: '',
-//       facebookPixelId: '',
-//       googleAdsId: '',
-//       bingWebmasterId: '',
-//       yandexWebmasterId: ''
-//     }
-//   }
-// }
+const loadAnalytics = (): any => {
+  try {
+    ensureSEODir()
+    if (fs.existsSync(ANALYTICS_FILE)) {
+      const data = fs.readFileSync(ANALYTICS_FILE, 'utf8')
+      return JSON.parse(data)
+    }
+    return {
+      googleAnalyticsId: '',
+      googleTagManagerId: '',
+      googleSearchConsoleId: '',
+      facebookPixelId: '',
+      googleAdsId: '',
+      bingWebmasterId: '',
+      yandexWebmasterId: ''
+    }
+  } catch (error) {
+    console.error('Error loading analytics:', error)
+    return {
+      googleAnalyticsId: '',
+      googleTagManagerId: '',
+      googleSearchConsoleId: '',
+      facebookPixelId: '',
+      googleAdsId: '',
+      bingWebmasterId: '',
+      yandexWebmasterId: ''
+    }
+  }
+}
 
 // Save analytics settings to file
-// const saveAnalytics = (analytics: any) => {
-//   try {
-//     ensureSEODir()
-//     fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2))
-//   } catch (error) {
-//     console.error('Error saving analytics:', error)
-//     throw error
-//   }
-// }
+const saveAnalytics = (analytics: any) => {
+  try {
+    ensureSEODir()
+    fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2))
+  } catch (error) {
+    console.error('Error saving analytics:', error)
+    throw error
+  }
+}
 
 // Keywords API endpoints
 export async function GET() {

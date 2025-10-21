@@ -166,7 +166,7 @@ export async function POST(request: Request) {
     const buffer = await file.arrayBuffer()
 
     // Upload to Supabase storage
-    const { error: uploadError } = await supabaseAdmin.storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('isleandecho')
       .upload(filePath, buffer, {
         contentType: file.type,

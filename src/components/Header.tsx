@@ -26,7 +26,6 @@ export default function Header() {
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false)
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isNewUser, setIsNewUser] = useState(false)
   
   const { user, logout } = useAuth()

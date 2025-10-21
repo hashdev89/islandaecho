@@ -120,7 +120,7 @@ export async function POST() {
 
         // Upload to Supabase storage
         const supabasePath = `main/images/${fileName}`
-        const { error: uploadError } = await supabaseAdmin.storage
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
           .from('isleandecho')
           .upload(supabasePath, fileBuffer, {
             contentType: contentType,

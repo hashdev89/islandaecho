@@ -26,13 +26,13 @@ const getFileSize = (bytes: number): string => {
 }
 
 // Get image dimensions from file buffer
-// const getImageDimensions = (): Promise<{ width: number; height: number }> => {
-//   return new Promise((resolve) => {
-//     // Simple approach - we'll get dimensions after upload
-//     // For now, return unknown dimensions
-//     resolve({ width: 0, height: 0 })
-//   })
-// }
+const getImageDimensions = (buffer: Buffer): Promise<{ width: number; height: number }> => {
+  return new Promise((resolve, reject) => {
+    // Simple approach - we'll get dimensions after upload
+    // For now, return unknown dimensions
+    resolve({ width: 0, height: 0 })
+  })
+}
 
 export async function GET() {
   try {
@@ -84,10 +84,9 @@ export async function GET() {
             .getPublicUrl(`main/images/${file.name}`)
 
           // Get file metadata from Supabase
-          // Note: getMetadata is not available in current Supabase version
-          // const { data: metadata } = await supabaseAdmin.storage
-          //   .from('isleandecho')
-          //   .getMetadata(`main/images/${file.name}`)
+          const { data: metadata } = await supabaseAdmin.storage
+            .from('isleandecho')
+            .getMetadata(`main/images/${file.name}`)
 
           const imageData: ImageMetadata = {
             id: file.id || uuidv4(),
@@ -181,7 +180,7 @@ export async function POST(request: Request) {
     const buffer = await file.arrayBuffer()
 
     // Upload to Supabase storage
-    const { error: uploadError } = await supabaseAdmin.storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('isleandecho')
       .upload(filePath, buffer, {
         contentType: file.type,
