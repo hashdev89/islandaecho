@@ -55,8 +55,12 @@ export default function HomePage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [featuredTours, setFeaturedTours] = useState<Tour[]>([])
   const [allTours, setAllTours] = useState<Tour[]>([])
-  const [isVideoPlaying, setIsVideoPlaying] = useState(true)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false) // Start with video not playing to avoid issues
+  const [videoError, setVideoError] = useState(false)
+  const [videoLoaded, setVideoLoaded] = useState(false)
+  const [useFallbackImage, setUseFallbackImage] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0)
 
   // Update dateRange when selectedStartDate or selectedEndDate changes
   useEffect(() => {
@@ -114,6 +118,44 @@ export default function HomePage() {
       }
     }
     load()
+  }, [])
+
+  // Handle YouTube video initialization and state tracking
+  useEffect(() => {
+    const iframe = document.getElementById('hero-video') as HTMLIFrameElement;
+    if (iframe) {
+      console.log('YouTube iframe found:', iframe);
+      console.log('YouTube src:', iframe.src);
+      
+      // Listen for YouTube API events
+      const handleMessage = (event: MessageEvent) => {
+        if (event.origin !== 'https://www.youtube.com') return;
+        
+        try {
+          const data = JSON.parse(event.data);
+          
+          switch (data.event) {
+            case 'video-progress':
+              setVideoCurrentTime(data.info?.currentTime || 0);
+              break;
+            case 'video-pause':
+              setIsVideoPlaying(false);
+              break;
+            case 'video-play':
+              setIsVideoPlaying(true);
+              break;
+          }
+        } catch {
+          // Ignore non-JSON messages
+        }
+      };
+      
+      window.addEventListener('message', handleMessage);
+      
+      return () => {
+        window.removeEventListener('message', handleMessage);
+      };
+    }
   }, [])
 
   // Statistics data inspired by Swimlane's approach
@@ -209,21 +251,23 @@ export default function HomePage() {
   ]
 
   const handleVideoPlay = () => {
-    const video = document.getElementById('hero-video') as HTMLVideoElement;
-    if (video) {
+    const iframe = document.getElementById('hero-video') as HTMLIFrameElement;
+    if (iframe) {
+      console.log('Play button clicked, current state:', isVideoPlaying);
+      
       if (isVideoPlaying) {
-        video.pause();
+        console.log('Pausing YouTube video...');
+        // Pause the video by sending a message to the iframe
+        iframe.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
         setIsVideoPlaying(false);
       } else {
-        // Preload video when user clicks play
-        video.preload = 'auto';
-        video.play().then(() => {
-          setIsVideoPlaying(true);
-        }).catch((error) => {
-          console.error('Video play failed:', error);
-          setIsVideoPlaying(false);
-        });
+        console.log('Resuming YouTube video...');
+        // Resume the video by sending a message to the iframe
+        iframe.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        setIsVideoPlaying(true);
       }
+    } else {
+      console.error('Video iframe not found!');
     }
   }
 
@@ -364,41 +408,44 @@ export default function HomePage() {
       <Header />
 
       {/* Hero Section - Inspired by Swimlane's hero */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white overflow-hidden min-h-screen flex items-center">
+      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white overflow-hidden h-screen w-full flex items-center">
         {/* Background Video/Image */}
-        <div className="absolute inset-0">
-          {/* Sigiriya Background - shown when video is not playing */}
-          <div className={`w-full h-full sigiriya-bg bg-cover bg-center transition-opacity duration-500 ${isVideoPlaying ? 'opacity-0' : 'opacity-100'}`}></div>
+        <div className="absolute inset-0 z-0">
+          {/* Sigiriya Background - shown when video is not playing or failed */}
+          <div className={`w-full h-full sigiriya-bg bg-cover bg-center transition-opacity duration-500 ${isVideoPlaying && !useFallbackImage ? 'opacity-0' : 'opacity-100'}`}></div>
           
-          {/* Video Background - shown when video is playing */}
-          <div className={`absolute inset-0 transition-opacity duration-500 ${isVideoPlaying ? 'opacity-100' : 'opacity-0'}`}>
-            <video
-              id="hero-video"
-              className="w-full h-full object-cover"
-              src="/isleandechovideo.mp4"
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              poster="/sigiriya.jpeg"
-              onEnded={() => setIsVideoPlaying(false)}
-              onLoadedData={() => {
-                // Only autoplay after video metadata is loaded
-                const video = document.getElementById('hero-video') as HTMLVideoElement;
-                if (video && isVideoPlaying) {
-                  video.play().catch(console.error);
-                }
-              }}
-            >
-              Your browser does not support the video tag.
-            </video>
+          {/* YouTube Video Background - shown when video is playing and not using fallback */}
+          <div className={`absolute inset-0 transition-opacity duration-500 ${isVideoPlaying && !useFallbackImage ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="youtube-container">
+              <iframe
+                id="hero-video"
+                src="https://www.youtube.com/embed/y5bHGWAE50c?autoplay=1&mute=1&loop=1&playlist=y5bHGWAE50c&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&start=0&cc_load_policy=0&playsinline=1&enablejsapi=1&origin=*&widget_referrer=*&widgetid=1"
+                title="Sri Lanka Travel Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                onLoad={() => {
+                  console.log('YouTube video loaded');
+                  setVideoLoaded(true);
+                  setIsVideoPlaying(true);
+                }}
+                onError={() => {
+                  console.error('YouTube video failed to load');
+                  setIsVideoPlaying(false);
+                  setVideoError(true);
+                  setUseFallbackImage(true);
+                }}
+              />
+              {/* CSS Overlay to hide YouTube controls */}
+              <div className="youtube-overlay"></div>
+            </div>
             {/* Video Overlay */}
             <div className="absolute inset-0 bg-black/80"></div>
           </div>
         </div>
 
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 z-10">
           <div className="text-center max-w-4xl mx-auto">
             {/* Badge */}
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600/20 backdrop-blur-sm border border-blue-400/30 mb-8 ">
@@ -430,9 +477,17 @@ export default function HomePage() {
               </button>
               <button 
                 onClick={handleVideoPlay}
-                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center"
+                disabled={videoError}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isVideoPlaying ? (
+                {videoError || useFallbackImage ? (
+                  <>
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    {useFallbackImage ? 'Using Image' : 'Video Error'}
+                  </>
+                ) : isVideoPlaying ? (
                   <>
                     <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
@@ -442,7 +497,7 @@ export default function HomePage() {
                 ) : (
                   <>
                     <Play className="w-5 h-5 mr-2" />
-                    Watch Video
+                    {videoLoaded ? 'Play Video' : 'Loading Video...'}
                   </>
                 )}
               </button>
@@ -1278,6 +1333,80 @@ export default function HomePage() {
           background-position: center;
           background-repeat: no-repeat;
           background-size: cover;
+        }
+        
+        .youtube-container {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          overflow: hidden;
+          z-index: -1;
+        }
+        
+        .youtube-container iframe {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 100vw;
+          height: 56.25vw; /* 16:9 aspect ratio */
+          min-height: 100vh;
+          min-width: 177.77vh; /* 16:9 aspect ratio */
+          transform: translate(-50%, -50%);
+          border: none;
+          outline: none;
+          pointer-events: none;
+        }
+        
+        .youtube-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: transparent;
+          z-index: 0;
+          pointer-events: none;
+        }
+        
+        /* Hide YouTube controls with CSS */
+        .youtube-container iframe::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: transparent;
+          z-index: 10;
+          pointer-events: none;
+        }
+        
+        /* Additional CSS to hide YouTube UI elements */
+        .youtube-container {
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+        }
+        
+        /* Force fullscreen and hide all YouTube elements */
+        .youtube-container iframe {
+          -webkit-transform: translate(-50%, -50%) scale(1.1);
+          transform: translate(-50%, -50%) scale(1.1);
+          filter: brightness(1.1) contrast(1.1);
+        }
+        
+        /* Hide any remaining YouTube UI */
+        .youtube-overlay::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: transparent;
+          z-index: 999;
+          pointer-events: none;
         }
         
         @keyframes fade-in-up {
