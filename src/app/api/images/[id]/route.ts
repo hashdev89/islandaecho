@@ -1,84 +1,57 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-
-// Persistent file-based storage for images metadata
-const IMAGES_FILE = path.join(process.cwd(), 'data', 'images.json')
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads')
-
-interface ImageMetadata {
-  id: string
-  fileName: string
-  name: string
-  url: string
-  size: string
-  sizeBytes: number
-  dimensions: string
-  category: string
-  uploadedAt: string
-  updatedAt?: string
-  usedIn: string[]
-}
-
-// Load images metadata from file
-const loadImages = (): ImageMetadata[] => {
-  try {
-    if (fs.existsSync(IMAGES_FILE)) {
-      const data = fs.readFileSync(IMAGES_FILE, 'utf8')
-      return JSON.parse(data)
-    }
-  } catch (error) {
-    console.error('Error loading images:', error)
-  }
-  return []
-}
-
-// Save images metadata to file
-const saveImages = (images: ImageMetadata[]): void => {
-  try {
-    fs.writeFileSync(IMAGES_FILE, JSON.stringify(images, null, 2))
-    console.log('Images metadata saved to file:', IMAGES_FILE)
-  } catch (error) {
-    console.error('Error saving images:', error)
-  }
-}
+import { supabaseAdmin } from '@/lib/supabaseClient'
+import { BUCKET_NAME } from '@/lib/supabaseStorage'
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const imageId = (await params).id
-    console.log('DELETE /api/images/[id] - Deleting image:', imageId)
+    const fileName = (await params).id
+    console.log('DELETE /api/images/[fileName] - Deleting image:', fileName)
     
-    const images = loadImages()
-    const imageIndex = images.findIndex(img => img.id === imageId)
+    const fs = require('fs')
+    const path = require('path')
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
     
-    if (imageIndex === -1) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Image not found' 
-      }, { status: 404 })
+    // Delete from local storage
+    const localPath = path.join(uploadsDir, fileName)
+    if (fs.existsSync(localPath)) {
+      fs.unlinkSync(localPath)
+      console.log('Deleted local file:', fileName)
+    } else {
+      console.log('Local file not found:', fileName)
     }
     
-    const image = images[imageIndex]
+    // Also try to delete from Supabase if configured (optional)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
-    // Delete the physical file
-    const filePath = path.join(UPLOAD_DIR, image.fileName)
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
-      console.log('Physical file deleted:', filePath)
+    if (supabaseUrl && supabaseServiceKey && 
+        supabaseUrl !== 'https://placeholder.supabase.co' && 
+        supabaseServiceKey !== 'placeholder-service-key') {
+      
+      try {
+        const { data: files } = await supabaseAdmin.storage
+          .from(BUCKET_NAME)
+          .list('main/images', { limit: 1000, offset: 0 })
+
+        const fileToDelete = files?.find(file => file.name === fileName || file.id === fileName)
+        
+        if (fileToDelete) {
+          const supabasePath = `main/images/${fileToDelete.name}`
+          await supabaseAdmin.storage
+            .from(BUCKET_NAME)
+            .remove([supabasePath])
+          console.log('Deleted from Supabase:', fileToDelete.name)
+        }
+      } catch (error) {
+        console.log('Error deleting from Supabase (optional):', error)
+      }
     }
-    
-    // Remove from metadata
-    images.splice(imageIndex, 1)
-    saveImages(images)
-    
-    console.log('Image deleted successfully:', imageId)
     
     return NextResponse.json({ 
       success: true, 
-      data: image,
       message: 'Image deleted successfully' 
     })
   } catch (error: unknown) {
@@ -90,46 +63,5 @@ export async function DELETE(
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const imageId = (await params).id
-    const body = await request.json()
-    console.log('PUT /api/images/[id] - Updating image:', imageId, body)
-    
-    const images = loadImages()
-    const imageIndex = images.findIndex(img => img.id === imageId)
-    
-    if (imageIndex === -1) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Image not found' 
-      }, { status: 404 })
-    }
-    
-    // Update image metadata
-    images[imageIndex] = { 
-      ...images[imageIndex], 
-      ...body,
-      updatedAt: new Date().toISOString()
-    }
-    
-    saveImages(images)
-    
-    console.log('Image updated successfully:', imageId)
-    
-    return NextResponse.json({ 
-      success: true, 
-      data: images[imageIndex],
-      message: 'Image updated successfully' 
-    })
-  } catch (error: unknown) {
-    console.error('Update image error:', error)
-    return NextResponse.json({ 
-      success: false, 
-      error: (error as Error).message 
-    }, { status: 500 })
-  }
-}
+// Note: Image metadata updates are not currently supported for Supabase-stored images
+// To update an image, delete and re-upload

@@ -22,6 +22,7 @@ import ImageUploadModal from '@/components/ImageUploadModal'
 interface ImageItem {
   id: string
   name: string
+  fileName?: string
   url: string
   size: string
   dimensions: string
@@ -41,6 +42,7 @@ export default function ImagesManagement() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [imageUsage, setImageUsage] = useState<{ [key: string]: string[] }>({})
+  const [migrating, setMigrating] = useState(false)
 
   // Fetch image usage from API
   const fetchImageUsage = async () => {
@@ -79,18 +81,20 @@ export default function ImagesManagement() {
   }, [])
 
   // Delete image
-  const deleteImage = async (imageId: string) => {
+  const deleteImage = async (image: ImageItem) => {
     try {
-      setDeleting(imageId)
-      const response = await fetch(`/api/images/${imageId}`, {
+      setDeleting(image.id)
+      // Get the filename from the image object
+      const fileName = image.fileName || image.name
+      const response = await fetch(`/api/images/${fileName}`, {
         method: 'DELETE',
       })
       
       const result = await response.json()
       
       if (result.success) {
-        setImages(prev => prev.filter(img => img.id !== imageId))
-        setSelectedImages(prev => prev.filter(id => id !== imageId))
+        setImages(prev => prev.filter(img => img.id !== image.id))
+        setSelectedImages(prev => prev.filter(id => id !== image.id))
       } else {
         setError(result.error || 'Failed to delete image')
       }
@@ -107,6 +111,35 @@ export default function ImagesManagement() {
     setUploadModalOpen(false)
     // Refresh usage data
     fetchImageUsage()
+  }
+
+  // Migrate local images to Supabase
+  const migrateLocalImages = async () => {
+    if (!confirm('This will upload all images from your local uploads folder to Supabase. Continue?')) {
+      return
+    }
+    
+    try {
+      setMigrating(true)
+      setError(null)
+      const response = await fetch('/api/images/migrate-to-supabase', {
+        method: 'POST'
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        alert(`Migration complete! ${result.migratedCount} images migrated successfully.`)
+        // Refresh the images list
+        await fetchImages()
+      } else {
+        setError(result.error || 'Migration failed')
+      }
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to migrate images')
+    } finally {
+      setMigrating(false)
+    }
   }
 
   // Load images on component mount
@@ -142,15 +175,18 @@ export default function ImagesManagement() {
   const handleDeleteSelected = async () => {
     if (confirm(`Are you sure you want to delete ${selectedImages.length} image(s)?`)) {
       for (const imageId of selectedImages) {
-        await deleteImage(imageId)
+        const image = images.find(img => img.id === imageId)
+        if (image) {
+          await deleteImage(image)
+        }
       }
       setSelectedImages([])
     }
   }
 
-  const handleDeleteSingle = async (imageId: string) => {
+  const handleDeleteSingle = async (image: ImageItem) => {
     if (confirm('Are you sure you want to delete this image?')) {
-      await deleteImage(imageId)
+      await deleteImage(image)
     }
   }
 
@@ -182,6 +218,23 @@ export default function ImagesManagement() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </button>
+          <button 
+            onClick={migrateLocalImages}
+            disabled={migrating || loading}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
+          >
+            {migrating ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Migrating...
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 mr-2" />
+                Migrate Local Images
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -328,11 +381,9 @@ export default function ImagesManagement() {
               <div className="relative">
                 {/* Header with Preview Thumbnail */}
                 <div className="bg-gray-50 p-3 flex items-center space-x-3">
-                  <Image
+                  <img
                     src={image.url}
                     alt={image.name}
-                    width={48}
-                    height={32}
                     className="w-12 h-8 object-cover rounded border"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -380,11 +431,9 @@ export default function ImagesManagement() {
                 </div>
                 
                 {/* Main Image */}
-                <Image
+                <img
                   src={image.url}
                   alt={image.name}
-                  width={400}
-                  height={160}
                   className="w-full h-40 object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -473,11 +522,9 @@ export default function ImagesManagement() {
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Image
+                    <img
                       src={image.url}
                       alt={image.name}
-                      width={48}
-                      height={48}
                       className="h-12 w-12 object-cover rounded"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -521,7 +568,7 @@ export default function ImagesManagement() {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteSingle(image.id)}
+                        onClick={() => handleDeleteSingle(image)}
                         disabled={deleting === image.id}
                         className="text-red-600 hover:text-red-900 disabled:opacity-50"
                         title="Delete"

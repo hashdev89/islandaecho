@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseClient'
+import { BUCKET_NAME } from '@/lib/supabaseStorage'
 import fs from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
@@ -104,9 +105,21 @@ export async function POST() {
         const fileStats = fs.statSync(filePath)
         const fileBuffer = fs.readFileSync(filePath)
         
-        // Check if file already exists in Supabase (by checking existing metadata)
-        if (existingFileNames.has(fileName)) {
-          console.log(`Skipping ${fileName} - already in metadata`)
+        // Check if file already exists in Supabase storage
+        const supabasePath = `main/images/${fileName}`
+        
+        // Check if file exists in Supabase by trying to get it
+        const { data: existingFile } = await supabaseAdmin.storage
+          .from(BUCKET_NAME)
+          .list('main/images', {
+            limit: 1000,
+            offset: 0
+          })
+        
+        const fileExists = existingFile?.some(file => file.name === fileName)
+        
+        if (fileExists) {
+          console.log(`Skipping ${fileName} - already exists in Supabase`)
           skippedFiles.push(fileName)
           continue
         }
@@ -118,11 +131,10 @@ export async function POST() {
         else if (ext === '.gif') contentType = 'image/gif'
         else if (ext === '.webp') contentType = 'image/webp'
 
-        // Upload to Supabase storage
-        const supabasePath = `main/images/${fileName}`
+        // Upload to Supabase storage (supabasePath already defined above)
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { data: _uploadData, error: uploadError } = await supabaseAdmin.storage
-          .from('isleandecho')
+          .from(BUCKET_NAME)
           .upload(supabasePath, fileBuffer, {
             contentType: contentType,
             upsert: false // Don't overwrite existing files
@@ -136,7 +148,7 @@ export async function POST() {
 
         // Get public URL
         const { data: urlData } = supabaseAdmin.storage
-          .from('isleandecho')
+          .from(BUCKET_NAME)
           .getPublicUrl(supabasePath)
 
         // Create image metadata
@@ -228,7 +240,7 @@ export async function GET() {
 
     // Check Supabase storage
     const { data: supabaseFiles, error: listError } = await supabaseAdmin.storage
-      .from('isleandecho')
+      .from(BUCKET_NAME)
       .list('main/images', {
         limit: 1000,
         offset: 0
