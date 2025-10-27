@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 
@@ -43,6 +43,7 @@ const saveKeywords = (keywords: any[]) => {
 }
 
 // Load meta tags from file
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const loadMetaTags = (): any[] => {
   try {
     ensureSEODir()
@@ -58,6 +59,7 @@ const loadMetaTags = (): any[] => {
 }
 
 // Save meta tags to file
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const saveMetaTags = (metaTags: any[]) => {
   try {
     ensureSEODir()
@@ -69,6 +71,7 @@ const saveMetaTags = (metaTags: any[]) => {
 }
 
 // Load analytics settings from file
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const loadAnalytics = (): any => {
   try {
     ensureSEODir()
@@ -100,6 +103,7 @@ const loadAnalytics = (): any => {
 }
 
 // Save analytics settings to file
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const saveAnalytics = (analytics: any) => {
   try {
     ensureSEODir()

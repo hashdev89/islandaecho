@@ -16,6 +16,15 @@ interface ImageMetadata {
   usedIn: string[]
 }
 
+interface FileWithMetadata {
+  id?: string
+  name: string
+  created_at?: string
+  metadata?: {
+    size?: number
+  }
+}
+
 // Get file size in human readable format
 const getFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes'
@@ -25,14 +34,14 @@ const getFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-// Get image dimensions from file buffer
-const getImageDimensions = (buffer: Buffer): Promise<{ width: number; height: number }> => {
-  return new Promise((resolve, reject) => {
-    // Simple approach - we'll get dimensions after upload
-    // For now, return unknown dimensions
-    resolve({ width: 0, height: 0 })
-  })
-}
+// Get image dimensions from file buffer (not currently used)
+// const getImageDimensions = (buffer: Buffer): Promise<{ width: number; height: number }> => {
+//   return new Promise((resolve) => {
+//     // Simple approach - we'll get dimensions after upload
+//     // For now, return unknown dimensions
+//     resolve({ width: 0, height: 0 })
+//   })
+// }
 
 export async function GET() {
   try {
@@ -83,19 +92,15 @@ export async function GET() {
             .from('isleandecho')
             .getPublicUrl(`main/images/${file.name}`)
 
-          // Get file metadata from Supabase
-          const { data: metadata } = await supabaseAdmin.storage
-            .from('isleandecho')
-            .getMetadata(`main/images/${file.name}`)
-
+          const fileWithMetadata = file as FileWithMetadata
           const imageData: ImageMetadata = {
             id: file.id || uuidv4(),
             name: file.name,
             originalName: file.name,
             fileName: file.name,
             url: urlData.publicUrl,
-            size: getFileSize(file.metadata?.size || 0),
-            sizeBytes: file.metadata?.size || 0,
+            size: getFileSize(fileWithMetadata.metadata?.size || 0),
+            sizeBytes: fileWithMetadata.metadata?.size || 0,
             dimensions: 'Unknown', // We'll get this from metadata if available
             category: 'General',
             uploadedAt: file.created_at || new Date().toISOString(),
@@ -180,7 +185,7 @@ export async function POST(request: Request) {
     const buffer = await file.arrayBuffer()
 
     // Upload to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { data: _uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('isleandecho')
       .upload(filePath, buffer, {
         contentType: file.type,

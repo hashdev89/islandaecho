@@ -26,7 +26,6 @@ export default function Header() {
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false)
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false)
-  const [isNewUser, setIsNewUser] = useState(false)
   
   const { user, logout } = useAuth()
 
@@ -40,7 +39,6 @@ export default function Header() {
   }
 
   const handleAuthAction = (isNew: boolean) => {
-    setIsNewUser(isNew)
     if (isNew) {
       setIsRegisterModalOpen(true)
     } else {

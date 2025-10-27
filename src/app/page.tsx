@@ -60,7 +60,6 @@ export default function HomePage() {
   const [videoLoaded, setVideoLoaded] = useState(false)
   const [useFallbackImage, setUseFallbackImage] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
-  const [videoCurrentTime, setVideoCurrentTime] = useState(0)
 
   // Update dateRange when selectedStartDate or selectedEndDate changes
   useEffect(() => {
@@ -135,9 +134,6 @@ export default function HomePage() {
           const data = JSON.parse(event.data);
           
           switch (data.event) {
-            case 'video-progress':
-              setVideoCurrentTime(data.info?.currentTime || 0);
-              break;
             case 'video-pause':
               setIsVideoPlaying(false);
               break;

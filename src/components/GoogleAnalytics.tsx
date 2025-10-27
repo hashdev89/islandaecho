@@ -109,14 +109,12 @@ export default function GoogleAnalytics({ googleAnalyticsId, googleTagManagerId 
 export const useAnalytics = () => {
   const trackEvent = (eventName: string, parameters?: Record<string, unknown>) => {
     if (typeof window !== 'undefined' && (window as Window & { gtag?: unknown }).gtag) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag('event', eventName, parameters)
     }
   }
 
   const trackPageView = (pagePath: string, pageTitle?: string) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag('config', 'GA_MEASUREMENT_ID', {
         page_path: pagePath,
         page_title: pageTitle,
@@ -126,7 +124,6 @@ export const useAnalytics = () => {
 
   const trackConversion = (conversionId: string, value?: number, currency?: string) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag('event', 'conversion', {
         send_to: conversionId,
         value: value,
@@ -146,7 +143,6 @@ export const useAnalytics = () => {
 export const trackSEOMetrics = {
   trackTourView: (tourId: string, tourName: string) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag('event', 'view_tour', {
         tour_id: tourId,
         tour_name: tourName,
@@ -158,7 +154,6 @@ export const trackSEOMetrics = {
 
   trackBookingStart: (tourId: string, tourName: string) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag('event', 'begin_checkout', {
         tour_id: tourId,
         tour_name: tourName,
@@ -170,7 +165,6 @@ export const trackSEOMetrics = {
 
   trackBookingComplete: (tourId: string, tourName: string, value: number) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag('event', 'purchase', {
         transaction_id: `booking_${Date.now()}`,
         tour_id: tourId,
@@ -185,7 +179,6 @@ export const trackSEOMetrics = {
 
   trackSearchQuery: (query: string, resultsCount: number) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag('event', 'search', {
         search_term: query,
         results_count: resultsCount,
@@ -197,7 +190,6 @@ export const trackSEOMetrics = {
 
   trackContactForm: (formType: string) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag('event', 'form_submit', {
         form_type: formType,
         event_category: 'Lead Generation',

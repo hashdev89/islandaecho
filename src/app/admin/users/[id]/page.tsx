@@ -57,8 +57,6 @@ export default function UserDetailPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(mockUser)
   const [isEditing, setIsEditing] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [editedUser, setEditedUser] = useState<User | null>(null)
 
   useEffect(() => {

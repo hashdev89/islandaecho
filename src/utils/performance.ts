@@ -155,7 +155,7 @@ export function timed<T extends unknown[], R>(
 export function measureApiResponse<T>(
   operation: string,
   fn: () => Promise<T>,
-  metadata?: Record<string, unknown>
+  _metadata?: Record<string, unknown>
 ): Promise<T> {
   return timed(operation, fn)()
 }

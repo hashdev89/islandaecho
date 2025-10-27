@@ -86,10 +86,6 @@ export default function DestinationsPage() {
     return regionMatch && priceMatch && searchMatch
   })
 
-  function setRegionFilter(arg0: string) {
-    throw new Error('Function not implemented.')
-  }
-
   return (
     <div style={{ background: colors.primary[50] }} className="min-h-screen">
       <Header />
