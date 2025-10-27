@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseClient'
 import { v4 as uuidv4 } from 'uuid'
 import { ensureBucketExists, BUCKET_NAME } from '@/lib/supabaseStorage'
+import fs from 'fs'
+import path from 'path'
 
 interface ImageMetadata {
   id: string
@@ -92,8 +94,6 @@ export async function GET() {
     }
     
     // Also fetch local images from public/uploads (priority for local dev)
-    const fs = require('fs')
-    const path = require('path')
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
     
     // Clear Supabase images and only use local ones for now
@@ -190,8 +190,6 @@ export async function POST(request: Request) {
 
     // Convert file to buffer
     const buffer = await file.arrayBuffer()
-    const fs = require('fs')
-    const path = require('path')
 
     // Save to local public/uploads directory first
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
@@ -223,8 +221,8 @@ export async function POST(request: Request) {
         } else {
           const supabasePath = `main/images/${fileName}`
           
-          // Upload to Supabase as backup
-          const { data: _uploadData, error: uploadError } = await supabaseAdmin.storage
+        // Upload to Supabase as backup
+        const { error: uploadError } = await supabaseAdmin.storage
             .from(BUCKET_NAME)
             .upload(supabasePath, buffer, {
               contentType: file.type,
@@ -293,9 +291,6 @@ export async function DELETE(request: Request) {
       }, { status: 400 })
     }
 
-    const fs = require('fs')
-    const path = require('path')
-    
     // Delete from local storage
     const localPath = path.join(process.cwd(), 'public', 'uploads', fileName)
     if (fs.existsSync(localPath)) {

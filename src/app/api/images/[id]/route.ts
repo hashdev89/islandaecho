@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseClient'
 import { BUCKET_NAME } from '@/lib/supabaseStorage'
+import fs from 'fs'
+import path from 'path'
 
 export async function DELETE(
   request: Request,
@@ -10,8 +12,6 @@ export async function DELETE(
     const fileName = (await params).id
     console.log('DELETE /api/images/[fileName] - Deleting image:', fileName)
     
-    const fs = require('fs')
-    const path = require('path')
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
     
     // Delete from local storage
