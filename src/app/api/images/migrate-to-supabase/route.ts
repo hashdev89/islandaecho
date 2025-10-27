@@ -120,6 +120,7 @@ export async function POST() {
 
         // Upload to Supabase storage
         const supabasePath = `main/images/${fileName}`
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { data: _uploadData, error: uploadError } = await supabaseAdmin.storage
           .from('isleandecho')
           .upload(supabasePath, fileBuffer, {

@@ -155,6 +155,7 @@ export function timed<T extends unknown[], R>(
 export function measureApiResponse<T>(
   operation: string,
   fn: () => Promise<T>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _metadata?: Record<string, unknown>
 ): Promise<T> {
   return timed(operation, fn)()
