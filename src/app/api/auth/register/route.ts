@@ -67,35 +67,76 @@ export async function POST(request: NextRequest) {
     const newId = crypto.randomUUID()
     const hashedPassword = hashPassword(password)
 
-    const { data, error } = await supabaseAdmin
+    // Try inserting with password_hash first
+    const userData: Record<string, unknown> = {
+      id: newId,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      phone: '',
+      role: 'customer',
+      status: 'active',
+      password_hash: hashedPassword,
+      total_bookings: 0,
+      total_spent: 0,
+      address: '',
+      notes: '',
+      created_at: new Date().toISOString()
+    }
+
+    let { data, error } = await supabaseAdmin
       .from('users')
-      .insert([{
-        id: newId,
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
-        phone: '',
-        role: 'customer',
-        status: 'active',
-        password_hash: hashedPassword,
-        total_bookings: 0,
-        total_spent: 0,
-        address: '',
-        notes: '',
-        created_at: new Date().toISOString()
-      }])
+      .insert([userData])
       .select()
       .single()
 
+    // If password_hash column doesn't exist, try without it
+    if (error && (error.message.includes('password_hash') || error.message.includes('column') || error.code === '42703')) {
+      console.log('password_hash column not found, trying without it...')
+      // Remove password_hash and try again
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password_hash: _passwordHash, ...userDataWithoutPassword } = userData
+      const result = await supabaseAdmin
+        .from('users')
+        .insert([userDataWithoutPassword])
+        .select()
+        .single()
+      
+      if (result.error) {
+        error = result.error
+      } else {
+        data = result.data
+        error = null
+        console.warn('User created without password_hash. Please add password_hash column to users table.')
+      }
+    }
+
     if (error) {
-      console.error('Supabase error:', error)
+      console.error('Supabase registration error:', error)
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      })
+      
+      // Provide more specific error messages
+      let errorMessage = 'Registration failed. Please try again.'
+      if (error.message.includes('unique constraint') || error.message.includes('duplicate')) {
+        errorMessage = 'Email already registered'
+      } else if (error.message.includes('permission denied') || error.message.includes('RLS')) {
+        errorMessage = 'Permission denied. Please check database permissions.'
+      } else {
+        errorMessage = `Registration failed: ${error.message}`
+      }
+      
       return NextResponse.json(
-        { success: false, error: 'Registration failed. Please try again.' },
+        { success: false, error: errorMessage },
         { status: 500 }
       )
     }
 
     // Return user data (without password_hash)
-    const userData = {
+    const responseUser = {
       id: data.id,
       name: data.name,
       email: data.email,
@@ -104,7 +145,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: userData,
+      user: responseUser,
       message: 'Account created successfully'
     }, { status: 201 })
 

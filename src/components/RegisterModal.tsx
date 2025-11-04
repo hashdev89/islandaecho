@@ -75,20 +75,38 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToSignIn }: Reg
 
       const data = await response.json()
 
+      if (!response.ok) {
+        // Handle HTTP errors - use the data we already parsed
+        setErrors({ general: data.error || `Registration failed (${response.status})` })
+        return
+      }
+
       if (data.success) {
-        // Registration successful - close modal and switch to sign in
-        onClose()
-        // Optionally switch to sign in modal
+        // Registration successful - clear form and show success
+        setFormData({
+          fullName: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        })
+        setErrors({})
+        
+        // Close modal and switch to sign in after a brief delay
         setTimeout(() => {
-          onSwitchToSignIn()
-        }, 100)
+          onClose()
+          // Switch to sign in modal so user can login
+          setTimeout(() => {
+            onSwitchToSignIn()
+          }, 100)
+        }, 500)
       } else {
         // Show error from API
         setErrors({ general: data.error || 'Registration failed. Please try again.' })
       }
     } catch (error) {
       console.error('Registration error:', error)
-      setErrors({ general: 'Registration failed. Please try again.' })
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.'
+      setErrors({ general: errorMessage })
     } finally {
       setIsLoading(false)
     }
