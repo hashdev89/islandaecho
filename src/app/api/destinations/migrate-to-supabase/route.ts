@@ -153,7 +153,7 @@ export async function POST() {
             }
           }
 
-          const { data, error: insertError } = await supabaseAdmin
+          const { error: insertError } = await supabaseAdmin
             .from('destinations')
             .insert([destToInsert])
             .select()
@@ -164,7 +164,7 @@ export async function POST() {
               console.log(`Retrying ${dest.name} without timestamp columns...`)
               const destWithoutTimestamps = prepareDestination(dest)
               
-              const { data: retryData, error: retryError } = await supabaseAdmin
+              const { error: retryError } = await supabaseAdmin
                 .from('destinations')
                 .insert([destWithoutTimestamps])
                 .select()
@@ -262,7 +262,6 @@ export async function GET() {
       throw fetchError
     }
 
-    const localIds = new Set(localDestinations.map(d => d.id))
     const supabaseIds = new Set(supabaseDestinations?.map(d => d.id) || [])
     const needsMigration = localDestinations.filter(d => !supabaseIds.has(d.id))
 

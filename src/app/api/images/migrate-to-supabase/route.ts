@@ -95,7 +95,6 @@ export async function POST() {
 
     // Load existing metadata
     const existingImages = loadImages()
-    const existingFileNames = new Set(existingImages.map(img => img.fileName))
 
     for (const fileName of imageFiles) {
       try {

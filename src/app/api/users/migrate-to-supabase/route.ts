@@ -161,7 +161,7 @@ export async function POST() {
               notes: user.notes || ''
             }
             
-            const { data: retryData, error: retryError } = await supabaseAdmin
+            const { error: retryError } = await supabaseAdmin
               .from('users')
               .insert([userWithoutTimestamps])
               .select()
@@ -278,7 +278,6 @@ export async function GET() {
       throw fetchError
     }
 
-    const localIds = new Set(localUsers.map(u => u.id))
     const supabaseIds = new Set(supabaseUsers?.map(u => u.id) || [])
     const needsMigration = localUsers.filter(u => !supabaseIds.has(u.id))
 

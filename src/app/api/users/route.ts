@@ -323,7 +323,7 @@ export async function PUT(request: NextRequest) {
     
     if (isSupabaseConfigured) {
       // Update users in Supabase
-      const updates = users.map(user => ({
+      const updates = (users as User[]).map((user: User) => ({
         id: user.id,
         name: user.name,
         email: user.email,
