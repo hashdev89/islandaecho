@@ -57,30 +57,55 @@ const saveFallbackDestinations = (destinations: Destination[]) => {
 export async function GET() {
   try {
     console.log('GET /api/destinations - Fetching destinations...')
+    
+    // Check if Supabase is configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+    
+    if (isSupabaseConfigured) {
+      console.log('Supabase configured, fetching from database...')
+      const { data, error } = await supabaseAdmin
+        .from('destinations')
+        .select('*')
+        .order('name', { ascending: true })
+      
+      console.log('Supabase destinations query result:', { 
+        count: data?.length || 0, 
+        error: error?.message 
+      })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
+      
+      if (data && data.length > 0) {
+        console.log(`Retrieved ${data.length} destinations from Supabase`)
+        return NextResponse.json({ 
+          success: true, 
+          data: data,
+          message: 'Destinations retrieved from Supabase' 
+        })
+      } else {
+        console.log('No destinations found in Supabase, falling back to file storage')
+      }
+    } else {
+      console.log('Supabase not configured, using fallback storage')
+    }
+    
+    // Fallback to file storage
     const fallbackDestinations = loadFallbackDestinations()
     console.log('Current fallback destinations count:', fallbackDestinations.length)
-    
-    // Always use fallback data for now (Supabase not configured)
-    console.log('Using fallback destinations data')
     return NextResponse.json({ 
       success: true, 
       data: fallbackDestinations,
       message: 'Destinations retrieved from fallback storage' 
     })
-    
-    const { data, error } = await supabaseAdmin
-      .from('destinations')
-      .select('*')
-      .order('name', { ascending: true })
-    
-    console.log('Supabase destinations query result:', { data, error })
-    
-    if (error) {
-      console.error('Supabase error:', error)
-      throw error
-    }
-    
-    return NextResponse.json({ success: true, data: data || [] })
   } catch (error: unknown) {
     console.error('Destinations API error:', error)
     console.log('Falling back to persistent storage')
@@ -114,7 +139,15 @@ export async function POST(req: Request) {
     }
     
     // Check if Supabase is configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+    
+    if (!isSupabaseConfigured) {
       console.log('Supabase not configured, saving to fallback storage')
       const fallbackDestinations = loadFallbackDestinations()
       const updatedDestinations = [...fallbackDestinations, newDestination]
@@ -189,7 +222,15 @@ export async function PUT(req: Request) {
     }
     
     // Check if Supabase is configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+    
+    if (!isSupabaseConfigured) {
       console.log('Supabase not configured, updating fallback storage')
       const fallbackDestinations = loadFallbackDestinations()
       const updatedDestinations = fallbackDestinations.map(dest => 
@@ -259,7 +300,15 @@ export async function DELETE(req: Request) {
     console.log('DELETE /api/destinations - Deleting destination:', id)
     
     // Check if Supabase is configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+    
+    if (!isSupabaseConfigured) {
       console.log('Supabase not configured, deleting from fallback storage')
       const fallbackDestinations = loadFallbackDestinations()
       const updatedDestinations = fallbackDestinations.filter(dest => dest.id !== id)
