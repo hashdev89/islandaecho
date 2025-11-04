@@ -58,18 +58,34 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToSignIn }: Reg
     }
 
     setIsLoading(true)
+    setErrors({})
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Here you would typically make an API call to register the user
-      console.log('Registering user:', formData)
-      
-      // Close modal and show success message
-      onClose()
-      // You could show a success toast here
-      
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Registration successful - close modal and switch to sign in
+        onClose()
+        // Optionally switch to sign in modal
+        setTimeout(() => {
+          onSwitchToSignIn()
+        }, 100)
+      } else {
+        // Show error from API
+        setErrors({ general: data.error || 'Registration failed. Please try again.' })
+      }
     } catch (error) {
       console.error('Registration error:', error)
       setErrors({ general: 'Registration failed. Please try again.' })

@@ -30,34 +30,24 @@ export default function SignInModal({ isOpen, onClose, onSwitchToRegister }: Sig
       const success = await login(email, password)
       if (success) {
         onClose()
-        // If admin user, redirect to admin dashboard
-        if (email === 'admin@isleandecho.com') {
-          router.push('/admin')
+        // Check user role from localStorage to determine redirect
+        const savedUser = localStorage.getItem('user')
+        if (savedUser) {
+          try {
+            const user = JSON.parse(savedUser)
+            if (user.role === 'admin' || user.role === 'staff') {
+              router.push('/admin')
+            }
+          } catch {
+            // Continue to home if can't parse user
+          }
         }
       } else {
         setError('Invalid email or password')
       }
-    } catch {
+    } catch (err) {
       setError('An error occurred. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleDemoLogin = async () => {
-    setEmail('admin@isleandecho.com')
-    setPassword('admin123')
-    setError('')
-    setIsLoading(true)
-
-    try {
-      const success = await login('admin@isleandecho.com', 'admin123')
-      if (success) {
-        onClose()
-        router.push('/admin')
-      }
-    } catch {
-      setError('An error occurred. Please try again.')
+      console.error('Login error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -132,40 +122,21 @@ export default function SignInModal({ isOpen, onClose, onSwitchToRegister }: Sig
                 </div>
               )}
 
-              <div className="space-y-3">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
-                      Signing In...
-                    </>
-                  ) : (
-                    'Sign In'
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDemoLogin}
-                  disabled={isLoading}
-                  className="w-full bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
-                >
-                  Demo Admin Login
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
+                    Signing In...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
+              </button>
             </form>
-
-            <div className="mt-6 p-4 bg-blue-50 rounded-md">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</h4>
-              <div className="text-xs text-blue-800 space-y-1">
-                <p><strong>Admin:</strong> admin@isleandecho.com / admin123</p>
-                <p><strong>Demo User:</strong> any@email.com / demo123</p>
-              </div>
-            </div>
 
             {/* Switch to Register */}
             <div className="mt-4 text-center pt-4 border-t border-gray-200">
