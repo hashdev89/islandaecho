@@ -364,21 +364,36 @@ export default function UsersPage() {
           method: 'DELETE',
         })
 
-        if (response.ok) {
+        const data = await response.json()
+
+        if (response.ok && data.success) {
+          // Successfully deleted
           setUsers(users.filter(user => user.id !== userToDelete.id))
           // Also update localStorage
           localStorage.setItem('admin-users', JSON.stringify(users.filter(user => user.id !== userToDelete.id)))
+          // Refresh the users list from API
+          const loadUsers = async () => {
+            try {
+              const response = await fetch('/api/users')
+              if (response.ok) {
+                const usersData = await response.json()
+                setUsers(usersData)
+              }
+            } catch (error) {
+              console.error('Error refreshing users:', error)
+            }
+          }
+          loadUsers()
         } else {
-          console.error('Failed to delete user via API')
-          // Fallback to local state update
-          setUsers(users.filter(user => user.id !== userToDelete.id))
-          localStorage.setItem('admin-users', JSON.stringify(users.filter(user => user.id !== userToDelete.id)))
+          // Show error message
+          const errorMessage = data.error || 'Failed to delete user'
+          console.error('Failed to delete user:', errorMessage)
+          alert(`Failed to delete user: ${errorMessage}`)
+          // Don't update local state if API delete failed
         }
       } catch (error) {
         console.error('Error deleting user:', error)
-        // Fallback to local state update
-        setUsers(users.filter(user => user.id !== userToDelete.id))
-        localStorage.setItem('admin-users', JSON.stringify(users.filter(user => user.id !== userToDelete.id)))
+        alert(`Error deleting user: ${error instanceof Error ? error.message : 'Unknown error'}`)
       } finally {
         setShowDeleteModal(false)
         setUserToDelete(null)

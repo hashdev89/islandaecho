@@ -264,10 +264,23 @@ export async function DELETE(
         .eq('id', resolvedParams.id)
       
       if (error) {
-        console.error('Supabase error:', error)
-        // Fall through to file storage
+        console.error('Supabase delete error:', error)
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
+        // Return error response instead of falling through
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: error.message || 'Failed to delete user from database' 
+          },
+          { status: 500 }
+        )
       } else {
-        return NextResponse.json({ success: true })
+        return NextResponse.json({ success: true, message: 'User deleted successfully' })
       }
     }
     
