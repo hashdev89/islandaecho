@@ -155,25 +155,52 @@ export default function UsersPage() {
         const response = await fetch('/api/users')
         if (response.ok) {
           const usersData = await response.json()
-          setUsers(usersData)
+          // Only set users if we got actual data (array with length > 0)
+          // Don't use mock users - only show real users from API
+          if (Array.isArray(usersData) && usersData.length > 0) {
+            setUsers(usersData)
+          } else {
+            // No users in database, show empty array
+            setUsers([])
+          }
         } else {
           console.error('Failed to load users from API')
-          // Fallback to localStorage
+          // Fallback to localStorage if available
           const savedUsers = localStorage.getItem('admin-users')
           if (savedUsers) {
-            setUsers(JSON.parse(savedUsers))
+            try {
+              const parsed = JSON.parse(savedUsers)
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setUsers(parsed)
+              } else {
+                setUsers([])
+              }
+            } catch {
+              setUsers([])
+            }
           } else {
-            setUsers(mockUsers)
+            // No mock users - show empty list
+            setUsers([])
           }
         }
       } catch (error) {
         console.error('Error loading users:', error)
-        // Fallback to localStorage
+        // Fallback to localStorage if available
         const savedUsers = localStorage.getItem('admin-users')
         if (savedUsers) {
-          setUsers(JSON.parse(savedUsers))
+          try {
+            const parsed = JSON.parse(savedUsers)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setUsers(parsed)
+            } else {
+              setUsers([])
+            }
+          } catch {
+            setUsers([])
+          }
         } else {
-          setUsers(mockUsers)
+          // No mock users - show empty list
+          setUsers([])
         }
       } finally {
         setLoading(false)
