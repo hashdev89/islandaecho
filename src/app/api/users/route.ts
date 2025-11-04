@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabaseClient'
 import fs from 'fs'
 import path from 'path'
 
@@ -143,14 +144,67 @@ const writeUsers = (users: User[]): boolean => {
 // GET /api/users - Get all users
 export async function GET() {
   try {
+    console.log('GET /api/users - Fetching users...')
+    
+    // Check if Supabase is configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+    
+    if (isSupabaseConfigured) {
+      console.log('Supabase configured, fetching from database...')
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      console.log('Supabase users query result:', { 
+        count: data?.length || 0, 
+        error: error?.message 
+      })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        // Fall through to file-based fallback
+      } else if (data && data.length > 0) {
+        // Map Supabase data to expected format
+        const mappedUsers = data.map(user => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone || '',
+          role: user.role || 'customer',
+          status: user.status || 'active',
+          lastLogin: user.last_login ? new Date(user.last_login).toISOString() : new Date().toISOString(),
+          createdAt: user.created_at ? new Date(user.created_at).toISOString() : new Date().toISOString(),
+          totalBookings: user.total_bookings || 0,
+          totalSpent: user.total_spent || 0,
+          address: user.address || '',
+          notes: user.notes || ''
+        }))
+        
+        console.log(`Retrieved ${mappedUsers.length} users from Supabase`)
+        return NextResponse.json(mappedUsers)
+      } else {
+        console.log('No users found in Supabase, falling back to file storage')
+      }
+    } else {
+      console.log('Supabase not configured, using fallback storage')
+    }
+    
+    // Fallback to file storage
     const users = readUsers()
+    console.log(`Loaded ${users.length} users from file`)
     return NextResponse.json(users)
   } catch (error) {
     console.error('Error fetching users:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 }
-    )
+    // Fallback to file storage on error
+    const users = readUsers()
+    return NextResponse.json(users)
   }
 }
 
@@ -158,17 +212,25 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const users = readUsers()
+    
+    // Check if Supabase is configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
     
     // Generate new ID
-    const newId = (Math.max(...users.map((u: User) => parseInt(u.id)), 0) + 1).toString()
+    const newId = crypto.randomUUID()
     
-    // Create new user
+    // Create new user data
     const newUser = {
       id: newId,
       name: body.name,
       email: body.email,
-      phone: body.phone,
+      phone: body.phone || '',
       role: body.role || 'customer',
       status: body.status || 'active',
       lastLogin: new Date().toISOString(),
@@ -179,10 +241,54 @@ export async function POST(request: NextRequest) {
       notes: body.notes || ''
     }
     
-    // Add to users array
+    if (isSupabaseConfigured) {
+      // Try Supabase first
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .insert([{
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          status: newUser.status,
+          last_login: newUser.lastLogin,
+          created_at: newUser.createdAt,
+          total_bookings: newUser.totalBookings,
+          total_spent: newUser.totalSpent,
+          address: newUser.address,
+          notes: newUser.notes
+        }])
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        // Fall through to file storage
+      } else if (data) {
+        // Map back to expected format
+        const mappedUser = {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          phone: data.phone || '',
+          role: data.role || 'customer',
+          status: data.status || 'active',
+          lastLogin: data.last_login ? new Date(data.last_login).toISOString() : new Date().toISOString(),
+          createdAt: data.created_at ? new Date(data.created_at).toISOString() : new Date().toISOString(),
+          totalBookings: data.total_bookings || 0,
+          totalSpent: data.total_spent || 0,
+          address: data.address || '',
+          notes: data.notes || ''
+        }
+        return NextResponse.json(mappedUser, { status: 201 })
+      }
+    }
+    
+    // Fallback to file storage
+    const users = readUsers()
     users.push(newUser)
     
-    // Save to file
     if (writeUsers(users)) {
       return NextResponse.json(newUser, { status: 201 })
     } else {
@@ -206,6 +312,46 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const users = body.users || []
     
+    // Check if Supabase is configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+    
+    if (isSupabaseConfigured) {
+      // Update users in Supabase
+      const updates = users.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role || 'customer',
+        status: user.status || 'active',
+        last_login: user.lastLogin ? new Date(user.lastLogin).toISOString() : null,
+        created_at: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
+        total_bookings: user.totalBookings || 0,
+        total_spent: user.totalSpent || 0,
+        address: user.address || '',
+        notes: user.notes || ''
+      }))
+      
+      // Use upsert to insert or update
+      const { error } = await supabaseAdmin
+        .from('users')
+        .upsert(updates, { onConflict: 'id' })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        // Fall through to file storage
+      } else {
+        return NextResponse.json({ success: true })
+      }
+    }
+    
+    // Fallback to file storage
     if (writeUsers(users)) {
       return NextResponse.json({ success: true })
     } else {
