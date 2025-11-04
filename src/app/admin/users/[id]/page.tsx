@@ -36,33 +36,42 @@ interface User {
   notes?: string
 }
 
-// Mock user data - in a real app, this would come from an API
-const mockUser: User = {
-  id: '1',
-  name: 'Sarah Johnson',
-  email: 'sarah.johnson@email.com',
-  phone: '+1-555-0123',
-  role: 'customer',
-  status: 'active',
-  lastLogin: '2024-12-20T10:30:00Z',
-  createdAt: '2024-01-15T08:00:00Z',
-  totalBookings: 3,
-  totalSpent: 5697,
-  address: '123 Main Street, New York, NY 10001',
-  notes: 'VIP customer, prefers early morning tours'
-}
-
 export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(mockUser)
+  const [user, setUser] = useState<User | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editedUser, setEditedUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // In a real app, fetch user data based on params.id
-    setUser(mockUser)
-    setEditedUser(mockUser)
+    // Fetch user data from API based on params.id
+    const fetchUser = async () => {
+      if (!params.id) {
+        setLoading(false)
+        return
+      }
+      
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/users/${params.id}`)
+        if (response.ok) {
+          const userData = await response.json()
+          setUser(userData)
+          setEditedUser(userData)
+        } else {
+          console.error('Failed to load user')
+          setUser(null)
+        }
+      } catch (error) {
+        console.error('Error loading user:', error)
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUser()
   }, [params.id])
 
   const getRoleColor = (role: string) => {
@@ -124,6 +133,17 @@ export default function UserDetailPage() {
     if (editedUser) {
       setEditedUser({ ...editedUser, role: newRole })
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading user...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!user) {
