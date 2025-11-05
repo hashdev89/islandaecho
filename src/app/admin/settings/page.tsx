@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Settings,
   Save,
@@ -69,8 +69,10 @@ export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState('general')
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [loadingSettings, setLoadingSettings] = useState(true)
   
-  const [settings, setSettings] = useState<SettingsData>({
+  // Default settings
+  const defaultSettings: SettingsData = {
     // General Settings
     siteName: 'Isle & Echo Travel',
     siteDescription: 'Your gateway to Sri Lankan adventures',
@@ -117,7 +119,30 @@ export default function AdminSettingsPage() {
     logoUrl: '/logoisle&echo.png',
     faviconUrl: '/favicon.ico',
     theme: 'light'
-  })
+  }
+  
+  const [settings, setSettings] = useState<SettingsData>(defaultSettings)
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setLoadingSettings(true)
+        const response = await fetch('/api/settings')
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          setSettings(result.data)
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error)
+      } finally {
+        setLoadingSettings(false)
+      }
+    }
+    
+    loadSettings()
+  }, [])
 
   const tabs = [
     { id: 'general', label: 'General', icon: Globe },
@@ -132,16 +157,25 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Here you would typically save to your backend
-      console.log('Saving settings:', settings)
-      
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ settings }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      } else {
+        alert(result.error || 'Failed to save settings')
+      }
     } catch (error) {
       console.error('Error saving settings:', error)
+      alert('Failed to save settings. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -149,42 +183,7 @@ export default function AdminSettingsPage() {
 
   const handleReset = () => {
     if (confirm('Are you sure you want to reset all settings to default values?')) {
-      // Reset to default values
-      setSettings({
-        siteName: 'Isle & Echo Travel',
-        siteDescription: 'Your gateway to Sri Lankan adventures',
-        siteUrl: 'https://isleandecho.com',
-        adminEmail: 'admin@isleandecho.com',
-        timezone: 'Asia/Colombo',
-        language: 'en',
-        contactEmail: 'info@isleandecho.com',
-        contactPhone: '+94 11 234 5678',
-        contactAddress: '123 Galle Road, Colombo 03, Sri Lanka',
-        businessHours: 'Mon-Fri: 9:00 AM - 6:00 PM, Sat: 9:00 AM - 4:00 PM',
-        smtpHost: 'smtp.gmail.com',
-        smtpPort: '587',
-        smtpUsername: '',
-        smtpPassword: '',
-        fromEmail: 'noreply@isleandecho.com',
-        fromName: 'Isle & Echo Travel',
-        emailNotifications: true,
-        bookingNotifications: true,
-        paymentNotifications: true,
-        maintenanceNotifications: false,
-        sessionTimeout: 30,
-        passwordMinLength: 8,
-        requireTwoFactor: false,
-        allowedFileTypes: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx'],
-        currency: 'LKR',
-        paymentMethods: ['credit_card', 'bank_transfer', 'cash'],
-        taxRate: 15,
-        bookingDeposit: 20,
-        primaryColor: '#3B82F6',
-        secondaryColor: '#1E40AF',
-        logoUrl: '/logoisle&echo.png',
-        faviconUrl: '/favicon.ico',
-        theme: 'light'
-      })
+      setSettings(defaultSettings)
     }
   }
 
@@ -775,7 +774,14 @@ export default function AdminSettingsPage() {
 
         {/* Tab Content */}
         <div className="p-6">
-          {renderTabContent()}
+          {loadingSettings ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+              <span className="ml-3 text-gray-600">Loading settings...</span>
+            </div>
+          ) : (
+            renderTabContent()
+          )}
         </div>
       </div>
     </div>

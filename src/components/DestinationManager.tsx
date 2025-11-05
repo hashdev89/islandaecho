@@ -139,147 +139,148 @@ export default function DestinationManager({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-96">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+          <div className="p-6 overflow-y-auto max-h-96 flex-1">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {error}
+              </div>
+            )}
 
-          <div className="space-y-4">
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Destination Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Sigiriya"
-                required
-              />
-            </div>
-
-            {/* Region */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Region *
-              </label>
-              <select
-                name="region"
-                value={formData.region}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select a region</option>
-                <option value="Cultural Triangle">Cultural Triangle</option>
-                <option value="Hill Country">Hill Country</option>
-                <option value="Southern Coast">Southern Coast</option>
-                <option value="Wildlife">Wildlife</option>
-                <option value="Beach">Beach</option>
-                <option value="Adventure">Adventure</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            {/* Coordinates */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+              {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Latitude *
+                  Destination Name *
                 </label>
                 <input
-                  type="number"
-                  name="lat"
-                  value={formData.lat}
+                  type="text"
+                  name="name"
+                  value={formData.name}
                   onChange={handleInputChange}
-                  step="any"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., 7.9570"
+                  placeholder="e.g., Sigiriya"
                   required
                 />
               </div>
+
+              {/* Region */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Longitude *
+                  Region *
                 </label>
-                <input
-                  type="number"
-                  name="lng"
-                  value={formData.lng}
+                <select
+                  name="region"
+                  value={formData.region}
                   onChange={handleInputChange}
-                  step="any"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., 80.7603"
                   required
+                >
+                  <option value="">Select a region</option>
+                  <option value="Cultural Triangle">Cultural Triangle</option>
+                  <option value="Hill Country">Hill Country</option>
+                  <option value="Southern Coast">Southern Coast</option>
+                  <option value="Wildlife">Wildlife</option>
+                  <option value="Beach">Beach</option>
+                  <option value="Adventure">Adventure</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {/* Coordinates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Latitude *
+                  </label>
+                  <input
+                    type="number"
+                    name="lat"
+                    value={formData.lat}
+                    onChange={handleInputChange}
+                    step="any"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 7.9570"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Longitude *
+                  </label>
+                  <input
+                    type="number"
+                    name="lng"
+                    value={formData.lng}
+                    onChange={handleInputChange}
+                    step="any"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 80.7603"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Brief description of the destination..."
                 />
               </div>
-            </div>
 
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Brief description of the destination..."
-              />
-            </div>
-
-            {/* Image URL */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Image URL
-              </label>
-              <input
-                type="url"
-                name="image"
-                value={formData.image}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://example.com/image.jpg"
-              />
+              {/* Image URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Image URL
+                </label>
+                <input
+                  type="url"
+                  name="image"
+                  value={formData.image}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
             </div>
           </div>
-        </form>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Creating...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Create Destination
-              </>
-            )}
-          </button>
-        </div>
+          {/* Footer */}
+          <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Create Destination
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

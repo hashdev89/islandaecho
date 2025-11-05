@@ -54,6 +54,91 @@ const saveFallbackDestinations = (destinations: Destination[]) => {
   }
 }
 
+// Helper function to fetch tours from Supabase or fallback
+async function fetchToursData(): Promise<Array<{ destinations?: string[] }>> {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+    
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabaseAdmin
+        .from('tours')
+        .select('destinations')
+      
+      if (!error && data) {
+        // Handle JSONB destinations - parse if needed
+        return data.map((tour: { destinations?: string[] | unknown }) => {
+          let destinations = tour.destinations
+          
+          // If destinations is a string (JSONB stored as string), parse it
+          if (typeof destinations === 'string') {
+            try {
+              destinations = JSON.parse(destinations)
+            } catch {
+              destinations = []
+            }
+          }
+          
+          // Ensure it's an array
+          if (!Array.isArray(destinations)) {
+            destinations = []
+          }
+          
+          return { destinations: destinations as string[] }
+        })
+      }
+    }
+    
+    // Fallback: load from file
+    const TOURS_FILE = path.join(process.cwd(), 'data', 'tours.json')
+    if (fs.existsSync(TOURS_FILE)) {
+      const data = fs.readFileSync(TOURS_FILE, 'utf8')
+      const tours = JSON.parse(data) as Array<{ destinations?: string[] }>
+      return tours
+    }
+  } catch (error) {
+    console.error('Error fetching tours data:', error)
+  }
+  
+  return []
+}
+
+// Helper function to calculate tours count for destinations
+async function calculateToursCount(destinations: Destination[]): Promise<Map<string, number>> {
+  const toursCountMap = new Map<string, number>()
+  
+  try {
+    // Fetch tours data directly
+    const tours = await fetchToursData()
+    
+    // Initialize count for all destinations
+    destinations.forEach(dest => {
+      toursCountMap.set(dest.name, 0)
+    })
+    
+    // Count tours that reference each destination
+    tours.forEach(tour => {
+      if (tour.destinations && Array.isArray(tour.destinations)) {
+        tour.destinations.forEach((destName: string) => {
+          const currentCount = toursCountMap.get(destName) || 0
+          toursCountMap.set(destName, currentCount + 1)
+        })
+      }
+    })
+    
+    console.log('Tours count calculated:', Object.fromEntries(toursCountMap))
+  } catch (error) {
+    console.error('Error calculating tours count:', error)
+  }
+  
+  return toursCountMap
+}
+
 export async function GET() {
   try {
     console.log('GET /api/destinations - Fetching destinations...')
@@ -66,6 +151,8 @@ export async function GET() {
                                   supabaseKey && 
                                   supabaseUrl.includes('supabase.co') && 
                                   supabaseKey.length > 50
+    
+    let destinations: Destination[] = []
     
     if (isSupabaseConfigured) {
       console.log('Supabase configured, fetching from database...')
@@ -85,34 +172,47 @@ export async function GET() {
       }
       
       if (data && data.length > 0) {
-        console.log(`Retrieved ${data.length} destinations from Supabase`)
-        return NextResponse.json({ 
-          success: true, 
-          data: data,
-          message: 'Destinations retrieved from Supabase' 
-        })
+        destinations = data as Destination[]
+        console.log(`Retrieved ${destinations.length} destinations from Supabase`)
       } else {
         console.log('No destinations found in Supabase, falling back to file storage')
+        destinations = loadFallbackDestinations()
       }
     } else {
       console.log('Supabase not configured, using fallback storage')
+      destinations = loadFallbackDestinations()
     }
     
-    // Fallback to file storage
-    const fallbackDestinations = loadFallbackDestinations()
-    console.log('Current fallback destinations count:', fallbackDestinations.length)
+    // Calculate tours count for each destination
+    const toursCountMap = await calculateToursCount(destinations)
+    
+    // Add toursCount to each destination
+    const destinationsWithCount = destinations.map(dest => ({
+      ...dest,
+      toursCount: toursCountMap.get(dest.name) || 0
+    }))
+    
+    console.log('Current destinations count:', destinationsWithCount.length)
     return NextResponse.json({ 
       success: true, 
-      data: fallbackDestinations,
-      message: 'Destinations retrieved from fallback storage' 
+      data: destinationsWithCount,
+      message: isSupabaseConfigured ? 'Destinations retrieved from Supabase' : 'Destinations retrieved from fallback storage'
     })
   } catch (error: unknown) {
     console.error('Destinations API error:', error)
     console.log('Falling back to persistent storage')
     const fallbackDestinations = loadFallbackDestinations()
+    
+    // Try to calculate tours count even in error case
+    const toursCountMap = await calculateToursCount(fallbackDestinations)
+    const destinationsWithCount = fallbackDestinations.map(dest => ({
+      ...dest,
+      toursCount: toursCountMap.get(dest.name) || 0
+    }))
+    
     return NextResponse.json({ 
       success: true, 
-      data: fallbackDestinations,
+      data: destinationsWithCount,
       message: 'Destinations retrieved from fallback storage due to error' 
     })
   }
@@ -160,6 +260,7 @@ export async function POST(req: Request) {
       })
     }
     
+    console.log('Attempting to insert destination into Supabase:', newDestination)
     const { data, error } = await supabaseAdmin
       .from('destinations')
       .insert([newDestination])
@@ -167,13 +268,50 @@ export async function POST(req: Request) {
       .single()
     
     if (error) {
-      console.error('Supabase error:', error)
+      console.error('Supabase insert error:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      })
+      
+      // Try without created_at/updated_at if columns don't exist
+      if (error.message && (error.message.includes('created_at') || error.message.includes('updated_at') || error.code === '42703')) {
+        console.log('Retrying insert without timestamp columns...')
+        const { created_at, updated_at, ...destinationWithoutTimestamps } = newDestination
+        const retryResult = await supabaseAdmin
+          .from('destinations')
+          .insert([destinationWithoutTimestamps])
+          .select()
+          .single()
+        
+        if (retryResult.error) {
+          console.error('Retry failed:', retryResult.error)
+          throw retryResult.error
+        }
+        
+        console.log('Destination created successfully (without timestamps)')
+        return NextResponse.json({ 
+          success: true, 
+          data: retryResult.data,
+          message: 'Destination created (timestamp columns not available)'
+        })
+      }
+      
       throw error
     }
     
+    console.log('Destination created successfully in Supabase:', data)
     return NextResponse.json({ success: true, data: data })
   } catch (error: unknown) {
     console.error('Destination creation error:', error)
+    
+    // Provide more detailed error information
+    let errorMessage = 'Failed to create destination'
+    if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = (error.message as string) || errorMessage
+    }
+    
     console.log('Falling back to persistent storage')
     
     // Only try to create fallback if we have valid body data
@@ -198,12 +336,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         success: true, 
         data: newDestination,
-        message: 'Destination created in fallback storage due to error' 
+        message: `Destination created in fallback storage. Supabase error: ${errorMessage}` 
       })
     } else {
       return NextResponse.json({ 
         success: false, 
-        message: 'Invalid destination data provided' 
+        message: errorMessage || 'Invalid destination data provided' 
       }, { status: 400 })
     }
   }

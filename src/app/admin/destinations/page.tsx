@@ -58,7 +58,7 @@ export default function DestinationsManagement() {
             description: (d.description as string) || '',
             image: (d.image as string) || 'https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=400&h=300&fit=crop',
             status: (d.status as 'active' | 'inactive') || 'active',
-            toursCount: 0, // This would need to be calculated from tours
+            toursCount: (d.toursCount as number) || 0, // Use toursCount from API
             lastUpdated: d.updated_at ? new Date(d.updated_at as string).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
           }
         })
@@ -95,9 +95,27 @@ export default function DestinationsManagement() {
     )
   }
 
-  const handleDeleteDestination = (destId: string) => {
-    if (confirm('Are you sure you want to delete this destination?')) {
-      setDestinations(destinations.filter(dest => dest.id !== destId))
+  const handleDeleteDestination = async (destId: string) => {
+    if (!confirm('Are you sure you want to delete this destination?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/destinations?id=${destId}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Refresh the destinations list
+        await fetchDestinations()
+      } else {
+        alert(result.message || 'Failed to delete destination')
+      }
+    } catch (error) {
+      console.error('Error deleting destination:', error)
+      alert('Failed to delete destination. Please try again.')
     }
   }
 

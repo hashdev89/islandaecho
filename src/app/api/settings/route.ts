@@ -1,0 +1,230 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabaseClient'
+import fs from 'fs'
+import path from 'path'
+
+const SETTINGS_FILE = path.join(process.cwd(), 'data', 'settings.json')
+
+// Load settings from file (fallback)
+function loadSettings() {
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const data = fs.readFileSync(SETTINGS_FILE, 'utf8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('Error loading settings:', error)
+  }
+  return null
+}
+
+// Save settings to file (fallback)
+function saveSettings(settings: unknown) {
+  try {
+    const dir = path.dirname(SETTINGS_FILE)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
+    return true
+  } catch (error) {
+    console.error('Error saving settings:', error)
+    return false
+  }
+}
+
+// Map Supabase settings to frontend format
+function mapSupabaseToFrontend(data: Record<string, unknown>) {
+  return {
+    siteName: data.site_name || '',
+    siteDescription: data.site_description || '',
+    siteUrl: data.site_url || '',
+    adminEmail: data.admin_email || '',
+    timezone: data.timezone || '',
+    language: data.language || '',
+    contactEmail: data.contact_email || '',
+    contactPhone: data.contact_phone || '',
+    contactAddress: data.contact_address || '',
+    businessHours: data.business_hours || '',
+    smtpHost: data.smtp_host || '',
+    smtpPort: data.smtp_port || '',
+    smtpUsername: data.smtp_username || '',
+    smtpPassword: data.smtp_password || '',
+    fromEmail: data.from_email || '',
+    fromName: data.from_name || '',
+    emailNotifications: data.email_notifications ?? true,
+    bookingNotifications: data.booking_notifications ?? true,
+    paymentNotifications: data.payment_notifications ?? true,
+    maintenanceNotifications: data.maintenance_notifications ?? false,
+    sessionTimeout: data.session_timeout || 30,
+    passwordMinLength: data.password_min_length || 8,
+    requireTwoFactor: data.require_two_factor ?? false,
+    allowedFileTypes: (data.allowed_file_types as string[]) || [],
+    currency: data.currency || 'LKR',
+    paymentMethods: (data.payment_methods as string[]) || [],
+    taxRate: data.tax_rate || 15,
+    bookingDeposit: data.booking_deposit || 20,
+    primaryColor: data.primary_color || '#3B82F6',
+    secondaryColor: data.secondary_color || '#1E40AF',
+    logoUrl: data.logo_url || '',
+    faviconUrl: data.favicon_url || '',
+    theme: data.theme || 'light'
+  }
+}
+
+// Map frontend format to Supabase format
+function mapFrontendToSupabase(data: Record<string, unknown>) {
+  return {
+    site_name: data.siteName,
+    site_description: data.siteDescription,
+    site_url: data.siteUrl,
+    admin_email: data.adminEmail,
+    timezone: data.timezone,
+    language: data.language,
+    contact_email: data.contactEmail,
+    contact_phone: data.contactPhone,
+    contact_address: data.contactAddress,
+    business_hours: data.businessHours,
+    smtp_host: data.smtpHost,
+    smtp_port: data.smtpPort,
+    smtp_username: data.smtpUsername,
+    smtp_password: data.smtpPassword,
+    from_email: data.fromEmail,
+    from_name: data.fromName,
+    email_notifications: data.emailNotifications ?? true,
+    booking_notifications: data.bookingNotifications ?? true,
+    payment_notifications: data.paymentNotifications ?? true,
+    maintenance_notifications: data.maintenanceNotifications ?? false,
+    session_timeout: data.sessionTimeout || 30,
+    password_min_length: data.passwordMinLength || 8,
+    require_two_factor: data.requireTwoFactor ?? false,
+    allowed_file_types: data.allowedFileTypes || [],
+    currency: data.currency || 'LKR',
+    payment_methods: data.paymentMethods || [],
+    tax_rate: data.taxRate || 15,
+    booking_deposit: data.bookingDeposit || 20,
+    primary_color: data.primaryColor || '#3B82F6',
+    secondary_color: data.secondaryColor || '#1E40AF',
+    logo_url: data.logoUrl || '',
+    favicon_url: data.faviconUrl || '',
+    theme: data.theme || 'light'
+  }
+}
+
+// GET /api/settings - Get settings
+export async function GET() {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabaseAdmin
+        .from('settings')
+        .select('*')
+        .eq('id', 'main')
+        .single()
+
+      if (error) {
+        console.error('Supabase settings error:', error)
+        // Fall through to file storage
+      } else if (data) {
+        const mappedSettings = mapSupabaseToFrontend(data)
+        return NextResponse.json({ success: true, data: mappedSettings })
+      }
+    }
+
+    // Fallback to file storage
+    const fileSettings = loadSettings()
+    if (fileSettings) {
+      return NextResponse.json({ success: true, data: fileSettings })
+    }
+
+    // Return default settings
+    const defaultSettings = mapSupabaseToFrontend({
+      site_name: 'Isle & Echo Travel',
+      site_description: 'Your gateway to Sri Lankan adventures',
+      site_url: 'https://isleandecho.com',
+      admin_email: 'admin@isleandecho.com',
+      timezone: 'Asia/Colombo',
+      language: 'en'
+    })
+
+    return NextResponse.json({ success: true, data: defaultSettings })
+  } catch (error) {
+    console.error('Settings API error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to load settings' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT /api/settings - Update settings
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const settings = body.settings || body
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseKey.length > 50
+
+    if (isSupabaseConfigured) {
+      const supabaseData = mapFrontendToSupabase(settings)
+      
+      const { data, error } = await supabaseAdmin
+        .from('settings')
+        .upsert({
+          id: 'main',
+          ...supabaseData,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        // Fall through to file storage
+      } else if (data) {
+        const mappedSettings = mapSupabaseToFrontend(data)
+        return NextResponse.json({ 
+          success: true, 
+          data: mappedSettings,
+          message: 'Settings saved successfully' 
+        })
+      }
+    }
+
+    // Fallback to file storage
+    if (saveSettings(settings)) {
+      return NextResponse.json({ 
+        success: true, 
+        data: settings,
+        message: 'Settings saved successfully' 
+      })
+    }
+
+    return NextResponse.json(
+      { success: false, error: 'Failed to save settings' },
+      { status: 500 }
+    )
+  } catch (error) {
+    console.error('Settings update error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to save settings' },
+      { status: 500 }
+    )
+  }
+}
+
