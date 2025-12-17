@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import {
   Upload,
   Search,
@@ -380,16 +381,20 @@ export default function ImagesManagement() {
               <div className="relative">
                 {/* Header with Preview Thumbnail */}
                 <div className="bg-gray-50 p-3 flex items-center space-x-3">
-                  <img
-                    src={image.url}
-                    alt={image.name}
-                    className="w-12 h-8 object-cover rounded border"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/placeholder-image.svg';
-                      target.alt = 'Image not found';
-                    }}
-                  />
+                  <div className="relative w-12 h-8 rounded border overflow-hidden flex-shrink-0">
+                    <Image
+                      src={image.url}
+                      alt={image.name}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/placeholder-image.svg';
+                        target.alt = 'Image not found';
+                      }}
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{image.name}</p>
                     <span className="text-xs text-gray-500">{image.category}</span>
@@ -521,16 +526,21 @@ export default function ImagesManagement() {
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <img
-                      src={image.url}
-                      alt={image.name}
-                      className="h-12 w-12 object-cover rounded"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/placeholder-image.png'; // Fallback image
-                        target.alt = 'Image not found';
-                      }}
-                    />
+                    <div className="relative h-12 w-12 rounded overflow-hidden">
+                      <Image
+                        src={image.url}
+                        alt={image.name}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/placeholder-image.png'; // Fallback image
+                          target.alt = 'Image not found';
+                        }}
+                      />
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{image.name}</div>

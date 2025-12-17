@@ -303,6 +303,10 @@ export async function GET() {
         })), 
         message: 'Tours retrieved from fallback storage',
         responseTime: `${responseTime}ms`
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        }
       })
     }
     
@@ -336,6 +340,10 @@ export async function GET() {
         })), 
         message: 'Tours retrieved from fallback storage due to timeout',
         responseTime: `${responseTime}ms`
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        }
       })
     }
     
@@ -416,11 +424,19 @@ export async function GET() {
     const responseTime = Date.now() - startTime
     console.log(`Retrieved ${transformedData.length} tours from Supabase in ${responseTime}ms`)
     
+    // Update cache
+    toursCache = transformedData
+    cacheTimestamp = Date.now()
+    
     return NextResponse.json({ 
       success: true, 
       data: transformedData, 
       message: 'Tours retrieved successfully',
       responseTime: `${responseTime}ms`
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      }
     })
   } catch (error) {
     const responseTime = Date.now() - startTime
@@ -440,6 +456,10 @@ export async function GET() {
       })), 
       message: 'Tours retrieved from fallback storage due to error',
       responseTime: `${responseTime}ms`
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      }
     })
   }
 }
@@ -489,39 +509,190 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, data: newTour, message: 'Tour created successfully (fallback storage)' }, { status: 201 })
     }
 
-    // Try Supabase first
-    const dbTour = {
-      ...newTour,
-      key_experiences: newTour.keyExperiences,
-      created_at: newTour.createdAt,
-      updated_at: newTour.updatedAt
+    // Try Supabase first - transform data to match database schema
+    // Only include fields that exist in the database
+    // Note: created_at, updated_at, best_time, group_size may not exist - skip them
+    const dbTour: Record<string, unknown> = {
+      id: id,
+      name: newTour.name,
+      duration: newTour.duration,
+      price: newTour.price,
+      status: newTour.status || 'draft',
+      featured: newTour.featured || false
     }
-    delete dbTour.keyExperiences
-    delete dbTour.createdAt
-    delete dbTour.updatedAt
 
-    console.log('Prepared tour data for database:', dbTour)
+    // Add optional fields only if they have values
+    if (newTour.style) dbTour.style = newTour.style
+    if (newTour.description) dbTour.description = newTour.description
+    if (newTour.transportation) dbTour.transportation = newTour.transportation
+    if (newTour.difficulty) dbTour.difficulty = newTour.difficulty
+    
+    // Skip timestamp columns (created_at, updated_at) - database likely has defaults or triggers
+    // Skip best_time and group_size - they don't exist in this schema
 
+    // Handle array fields - ensure they're arrays
+    if (newTour.destinations) {
+      dbTour.destinations = Array.isArray(newTour.destinations) 
+        ? newTour.destinations 
+        : []
+    } else {
+      dbTour.destinations = []
+    }
+    
+    if (newTour.highlights) {
+      dbTour.highlights = Array.isArray(newTour.highlights) 
+        ? newTour.highlights 
+        : []
+    } else {
+      dbTour.highlights = []
+    }
+    
+    if (newTour.keyExperiences) {
+      dbTour.key_experiences = Array.isArray(newTour.keyExperiences) 
+        ? newTour.keyExperiences 
+        : []
+    } else {
+      dbTour.key_experiences = []
+    }
+    
+    if (newTour.inclusions) {
+      dbTour.inclusions = Array.isArray(newTour.inclusions) 
+        ? newTour.inclusions 
+        : []
+    } else {
+      dbTour.inclusions = []
+    }
+    
+    if (newTour.exclusions) {
+      dbTour.exclusions = Array.isArray(newTour.exclusions) 
+        ? newTour.exclusions 
+        : []
+    } else {
+      dbTour.exclusions = []
+    }
+    
+    if (newTour.accommodation) {
+      dbTour.accommodation = Array.isArray(newTour.accommodation) 
+        ? newTour.accommodation 
+        : []
+    } else {
+      dbTour.accommodation = []
+    }
+    
+    if (newTour.images) {
+      dbTour.images = Array.isArray(newTour.images) 
+        ? newTour.images 
+        : []
+    } else {
+      dbTour.images = []
+    }
+
+    // Handle JSONB fields
+    if (newTour.itinerary) {
+      dbTour.itinerary = Array.isArray(newTour.itinerary) 
+        ? newTour.itinerary 
+        : []
+    } else {
+      dbTour.itinerary = []
+    }
+    
+    // Skip important_info - column doesn't exist in this schema
+    // if (newTour.importantInfo) {
+    //   dbTour.important_info = newTour.importantInfo
+    // }
+
+    console.log('Prepared tour data for database:', JSON.stringify(dbTour, null, 2))
+
+    // Check for duplicate ID first
+    const { data: existingTour, error: checkError } = await supabaseAdmin
+      .from('tours')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle()
+    
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.warn('Error checking for existing tour:', checkError)
+    }
+    
+    if (existingTour) {
+      console.error('Tour with ID already exists:', id)
+      // Generate new ID with timestamp
+      const newId = `${id}-${Date.now()}`
+      dbTour.id = newId
+      console.log('Using new ID:', newId)
+    }
+
+    console.log('Attempting to insert tour with ID:', dbTour.id)
     const { data, error } = await supabaseAdmin.from('tours').insert(dbTour).select().single()
-    console.log('Supabase insert result:', { data, error })
+    
+    console.log('Supabase insert result:', { 
+      success: !error, 
+      data: data ? 'Tour created' : null,
+      error: error ? {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      } : null
+    })
     
     if (error) {
-      console.error('Supabase error:', error)
-      console.log('Falling back to persistent storage')
-      const fallbackTours = loadFallbackTours()
-      fallbackTours.push(newTour)
-      saveFallbackTours(fallbackTours)
-      console.log('Tour added to fallback storage (error case):', newTour)
-      console.log('Total tours in fallback storage (error case):', fallbackTours.length)
-      return NextResponse.json({ success: true, data: newTour, message: 'Tour created successfully (fallback storage)' }, { status: 201 })
+      console.error('Supabase insert error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        fullError: JSON.stringify(error, null, 2)
+      })
+      
+      // Return error instead of falling back silently
+      return NextResponse.json({ 
+        success: false, 
+        message: `Failed to create tour in database: ${error.message}. Details: ${error.details || 'No details'}. Hint: ${error.hint || 'No hint'}`,
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        }
+      }, { status: 500 })
     }
     
-    console.log('Tour created successfully in Supabase:', data)
-    return NextResponse.json({ success: true, data: newTour, message: 'Tour created successfully' }, { status: 201 })
+    if (!data) {
+      console.error('No data returned from Supabase insert')
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Tour was inserted but no data was returned from database' 
+      }, { status: 500 })
+    }
+    
+    // Transform back to frontend format
+    const transformedData = {
+      ...data,
+      keyExperiences: (data as any).key_experiences || [],
+      createdAt: (data as any).created_at || (data as any).createdat || newTour.createdAt || new Date().toISOString(),
+      updatedAt: (data as any).updated_at || (data as any).updatedat || newTour.updatedAt || new Date().toISOString(),
+      groupSize: (data as any).group_size || (data as any).groupsize || newTour.groupSize || '',
+      bestTime: (data as any).best_time || (data as any).besttime || newTour.bestTime || '',
+      importantInfo: (data as any).important_info || (data as any).importantInfo || {}
+    }
+    
+    console.log('Tour created successfully in Supabase:', transformedData)
+    return NextResponse.json({ 
+      success: true, 
+      data: transformedData, 
+      message: 'Tour created successfully' 
+    }, { status: 201 })
   } catch (error) {
     console.error('Create tour error:', error)
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Unknown error occurred'
     return NextResponse.json(
-      { success: false, message: 'Failed to create tour' },
+      { 
+        success: false, 
+        message: `Failed to create tour: ${errorMessage}` 
+      },
       { status: 500 }
     )
   }
@@ -578,15 +749,95 @@ export async function PUT(request: NextRequest) {
       })
     }
 
-    // Try Supabase first
-    const dbUpdateData = {
-      ...updateData,
-      key_experiences: updateData.keyExperiences,
-      updated_at: new Date().toISOString()
+    // Try Supabase first - transform data to match database schema
+    // Only include columns that exist in the database
+    const dbUpdateData: Record<string, unknown> = {
+      name: updateData.name,
+      duration: updateData.duration,
+      price: updateData.price
     }
+
+    // Always include status and featured (they're important for updates)
+    if (updateData.status !== undefined) {
+      dbUpdateData.status = updateData.status
+    } else {
+      dbUpdateData.status = 'draft'
+    }
+    
+    if (updateData.featured !== undefined) {
+      dbUpdateData.featured = updateData.featured
+    } else {
+      dbUpdateData.featured = false
+    }
+
+    // Add optional fields only if they have values
+    if (updateData.style !== undefined) dbUpdateData.style = updateData.style
+    if (updateData.description !== undefined) dbUpdateData.description = updateData.description
+    if (updateData.transportation !== undefined) dbUpdateData.transportation = updateData.transportation
+    if (updateData.difficulty !== undefined) dbUpdateData.difficulty = updateData.difficulty
+    
+    // Skip timestamp columns (updated_at) - database likely has triggers
+    // Skip best_time and group_size - they don't exist in this schema
+
+    // Handle array fields - always include them if they exist in updateData
+    if (updateData.destinations !== undefined) {
+      dbUpdateData.destinations = Array.isArray(updateData.destinations) 
+        ? updateData.destinations 
+        : []
+    }
+    if (updateData.highlights !== undefined) {
+      dbUpdateData.highlights = Array.isArray(updateData.highlights) 
+        ? updateData.highlights 
+        : []
+    }
+    if (updateData.keyExperiences !== undefined || updateData.key_experiences !== undefined) {
+      dbUpdateData.key_experiences = Array.isArray(updateData.keyExperiences || updateData.key_experiences) 
+        ? (updateData.keyExperiences || updateData.key_experiences) 
+        : []
+    }
+    if (updateData.inclusions !== undefined) {
+      dbUpdateData.inclusions = Array.isArray(updateData.inclusions) 
+        ? updateData.inclusions 
+        : []
+    }
+    if (updateData.exclusions !== undefined) {
+      dbUpdateData.exclusions = Array.isArray(updateData.exclusions) 
+        ? updateData.exclusions 
+        : []
+    }
+    if (updateData.accommodation !== undefined) {
+      dbUpdateData.accommodation = Array.isArray(updateData.accommodation) 
+        ? updateData.accommodation 
+        : []
+    }
+    if (updateData.images !== undefined) {
+      dbUpdateData.images = Array.isArray(updateData.images) 
+        ? updateData.images 
+        : []
+    }
+
+    // Handle JSONB fields
+    if (updateData.itinerary !== undefined) {
+      dbUpdateData.itinerary = Array.isArray(updateData.itinerary) 
+        ? updateData.itinerary 
+        : []
+    }
+    
+    // Skip important_info - column doesn't exist in this schema
+    // if (updateData.importantInfo || updateData.important_info) {
+    //   dbUpdateData.important_info = updateData.importantInfo || updateData.important_info || {}
+    // }
+
+    // Remove frontend-only fields
     delete dbUpdateData.keyExperiences
     delete dbUpdateData.createdAt
     delete dbUpdateData.updatedAt
+    delete dbUpdateData.id
+    delete dbUpdateData.groupSize
+    delete dbUpdateData.groupsize
+    delete dbUpdateData.bestTime
+    delete dbUpdateData.besttime
+    delete dbUpdateData.importantInfo
 
     console.log('Prepared tour data for database update:', dbUpdateData)
 
@@ -600,14 +851,22 @@ export async function PUT(request: NextRequest) {
     console.log('Supabase update result:', { data, error })
 
     if (error) {
-      console.error('Supabase error:', error)
+      console.error('Supabase update error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      })
       console.log('Falling back to persistent storage for update')
       
       const fallbackTours = loadFallbackTours()
       const tourIndex = fallbackTours.findIndex(tour => tour.id === id)
     if (tourIndex === -1) {
       return NextResponse.json(
-        { success: false, message: 'Tour not found' },
+          { 
+            success: false, 
+            message: `Tour not found. Supabase error: ${error.message}` 
+          },
         { status: 404 }
       )
     }
@@ -619,16 +878,19 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         data: fallbackTours[tourIndex], 
-        message: 'Tour updated successfully (fallback storage)' 
+        message: `Tour updated successfully (fallback storage). Supabase error: ${error.message}` 
       })
     }
 
     // Transform back to frontend format
     const transformedData = {
       ...data,
-      keyExperiences: data.key_experiences || [],
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      keyExperiences: (data as any).key_experiences || [],
+      createdAt: (data as any).created_at || (data as any).createdat || new Date().toISOString(),
+      updatedAt: (data as any).updated_at || (data as any).updatedat || new Date().toISOString(),
+      groupSize: (data as any).group_size || (data as any).groupsize || updateData.groupSize || '',
+      bestTime: (data as any).best_time || (data as any).besttime || updateData.bestTime || '',
+      importantInfo: (data as any).important_info || (data as any).importantInfo || updateData.importantInfo || {}
     }
 
     console.log('Tour updated successfully in Supabase:', transformedData)
@@ -639,8 +901,14 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('Update tour error:', error)
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Unknown error occurred'
     return NextResponse.json(
-      { success: false, message: 'Failed to update tour' },
+      { 
+        success: false, 
+        message: `Failed to update tour: ${errorMessage}` 
+      },
       { status: 500 }
     )
   }

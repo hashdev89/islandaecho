@@ -1,7 +1,13 @@
 import { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { ArrowLeft, MapPin, Clock, Star } from 'lucide-react'
+
+// Dynamically import Header since it's a client component
+const Header = dynamic(() => import('../../../components/Header'), {
+  ssr: true
+})
 
 interface Destination {
   id: string
@@ -121,17 +127,38 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
 
   const activities = destinationActivities[id] || []
 
+  // Get destination-specific images
+  const destinationImages: Record<string, string> = {
+    colombo: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600&h=900&fit=crop',
+    kandy: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600&h=900&fit=crop',
+    sigiriya: 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=1600&h=900&fit=crop',
+    ella: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1600&h=900&fit=crop',
+    mirissa: 'https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=1600&h=900&fit=crop',
+    yala: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1600&h=900&fit=crop'
+  }
+
+  const heroImage = destination.image || destinationImages[id] || 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=1600&h=900&fit=crop'
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="relative h-96 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="absolute inset-0 bg-black/40"></div>
+      <Header />
+      
+      {/* Hero Section with Image */}
+      <div className="relative h-[500px] md:h-[600px] overflow-hidden">
+        <Image
+          src={heroImage}
+          alt={destination.name}
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/40"></div>
         <div className="relative h-full flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">{destination.name}</h1>
-            <p className="text-xl md:text-2xl mb-2">{destination.region}</p>
+          <div className="text-center text-white px-4">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-2xl">{destination.name}</h1>
+            <p className="text-xl md:text-2xl mb-4 drop-shadow-lg">{destination.region}</p>
             <div className="flex items-center justify-center gap-4 text-lg">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
                 <MapPin className="w-5 h-5" />
                 <span>{destination.lat.toFixed(4)}, {destination.lng.toFixed(4)}</span>
               </div>
@@ -140,7 +167,7 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
         </div>
         <Link 
           href="/destinations" 
-          className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2"
+          className="absolute top-20 left-4 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2 z-10"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Destinations
@@ -192,6 +219,7 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
                   alt={destination.name}
                   fill
                   className="object-cover"
+                  priority
                 />
               </div>
             </div>

@@ -10,11 +10,13 @@ import {
   MapPin,
   Plus,
   Trash2,
-  Map
+  Map,
+  X
 } from 'lucide-react'
 import MapboxMap from '../../../../components/MapboxMap'
 import DestinationSelector from '../../../../components/DestinationSelector'
 import DestinationManager from '../../../../components/DestinationManager'
+import ImageSelector from '../../../../components/ImageSelector'
 import { dataSync, TourData } from '../../../../lib/dataSync'
 
 interface Day {
@@ -97,34 +99,35 @@ export default function TourEditor() {
   const [availableDestinations, setAvailableDestinations] = useState<Destination[]>([])
 
   // Fetch destinations from API
-  useEffect(() => {
-    const fetchDestinations = async () => {
-      try {
-        const response = await fetch('/api/destinations')
-        const result = await response.json()
-        
-        if (result.success && Array.isArray(result.data)) {
-          // Map API data to Destination format
-          const mappedDestinations = result.data.map((dest: unknown) => {
-            const d = dest as Record<string, unknown>
-            return {
-              name: (d.name as string) || 'Unknown',
-              lat: (d.lat as number) || 0,
-              lng: (d.lng as number) || 0,
-              region: (d.region as string) || 'Unknown'
-            }
-          })
-          setAvailableDestinations(mappedDestinations)
-        } else {
-          console.error('Invalid destinations data received:', result)
-          setAvailableDestinations([])
-        }
-      } catch (error) {
-        console.error('Error fetching destinations:', error)
+  const fetchDestinations = async () => {
+    try {
+      const response = await fetch('/api/destinations')
+      const result = await response.json()
+      
+      if (result.success && Array.isArray(result.data)) {
+        // Map API data to Destination format
+        const mappedDestinations = result.data.map((dest: unknown) => {
+          const d = dest as Record<string, unknown>
+          return {
+            name: (d.name as string) || 'Unknown',
+            lat: (d.lat as number) || 0,
+            lng: (d.lng as number) || 0,
+            region: (d.region as string) || 'Unknown'
+          }
+        })
+        setAvailableDestinations(mappedDestinations)
+        console.log('Destinations fetched:', mappedDestinations.length)
+      } else {
+        console.error('Invalid destinations data received:', result)
         setAvailableDestinations([])
       }
+    } catch (error) {
+      console.error('Error fetching destinations:', error)
+      setAvailableDestinations([])
     }
-    
+  }
+
+  useEffect(() => {
     fetchDestinations()
   }, [])
 
@@ -137,17 +140,34 @@ export default function TourEditor() {
   const [newWhatToBring, setNewWhatToBring] = useState('')
   const [showDestinationSelector, setShowDestinationSelector] = useState(false)
   const [showDestinationManager, setShowDestinationManager] = useState(false)
+  const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null)
+
+  // Handler to open selector and refresh destinations
+  const handleOpenDestinationSelector = () => {
+    fetchDestinations()
+    setShowDestinationSelector(true)
+  }
 
   // Get map coordinates for selected destinations
   const tourDestinations = (tour.destinations || []).map(destName => {
     const dest = availableDestinations.find(d => d.name === destName)
+    if (!dest) {
+      console.warn('Destination not found in availableDestinations:', destName)
+    }
     return dest || null
   }).filter(Boolean) as Destination[]
 
   // Debug logging
-  console.log('Tour destinations:', tour.destinations)
-  console.log('Available destinations:', availableDestinations)
-  console.log('Mapped tour destinations:', tourDestinations)
+  useEffect(() => {
+    console.log('Tour destinations updated:', tour.destinations)
+    console.log('Available destinations count:', availableDestinations.length)
+    const mapped = (tour.destinations || []).map(destName => {
+      const dest = availableDestinations.find(d => d.name === destName)
+      return dest || null
+    }).filter(Boolean) as Destination[]
+    console.log('Mapped tour destinations count:', mapped.length)
+  }, [tour.destinations, availableDestinations])
 
   useEffect(() => {
     const load = async () => {
@@ -276,25 +296,45 @@ export default function TourEditor() {
           price: createData.price
         })
         
-        const created = await dataSync.createTour(createData as Omit<TourPackage, 'id'>)
-        if (created) {
-          console.log('Tour created successfully:', created)
-          alert('Tour created successfully!')
-        } else {
-          console.error('Failed to create tour - dataSync returned null')
-          alert('Failed to create tour. Please check the console for errors.')
+        try {
+          const created = await dataSync.createTour(createData as Omit<TourPackage, 'id'>)
+          if (created) {
+            console.log('Tour created successfully:', created)
+            alert('Tour created successfully!')
+            router.push('/admin/tours')
+          } else {
+            console.error('Failed to create tour - dataSync returned null')
+            alert('Failed to create tour. Please check the console for errors.')
+            return // Don't navigate away on error
+          }
+        } catch (error) {
+          console.error('Error creating tour:', error)
+          const errorMessage = error instanceof Error 
+            ? error.message 
+            : 'Unknown error occurred'
+          alert(`Failed to create tour: ${errorMessage}`)
+          return // Don't navigate away on error
         }
       } else {
-        const updated = await dataSync.updateTour(payload as TourData)
-        if (updated) {
-          console.log('Tour updated successfully:', updated)
-          alert('Tour updated successfully!')
-        } else {
-          console.error('Failed to update tour')
-          alert('Failed to update tour. Please check the console for errors.')
+        try {
+          const updated = await dataSync.updateTour(payload as TourData)
+          if (updated) {
+            console.log('Tour updated successfully:', updated)
+            alert('Tour updated successfully!')
+            router.push('/admin/tours')
+          } else {
+            console.error('Failed to update tour - returned null')
+            alert('Failed to update tour. Please check the console for errors.')
+          }
+        } catch (error) {
+          console.error('Error updating tour:', error)
+          const errorMessage = error instanceof Error 
+            ? error.message 
+            : 'Unknown error occurred'
+          alert(`Failed to update tour: ${errorMessage}`)
+          return // Don't navigate away on error
         }
       }
-      router.push('/admin/tours')
     } catch (error) {
       console.error('Error saving tour:', error)
       alert('Error saving tour. Please check the console for details.')
@@ -359,44 +399,26 @@ export default function TourEditor() {
   const handleDestinationSelect = (destinationName: string) => {
     const currentDestinations = tour.destinations || []
     if (!currentDestinations.includes(destinationName)) {
-      setTour({ ...tour, destinations: [...currentDestinations, destinationName] })
+      const newDestinations = [...currentDestinations, destinationName]
+      setTour({ ...tour, destinations: newDestinations })
+      console.log('Destination selected:', destinationName, 'New destinations:', newDestinations)
     }
   }
 
   const handleDestinationDeselect = (destinationName: string) => {
     const currentDestinations = tour.destinations || []
-    setTour({ ...tour, destinations: currentDestinations.filter(d => d !== destinationName) })
+    const newDestinations = currentDestinations.filter(d => d !== destinationName)
+    setTour({ ...tour, destinations: newDestinations })
+    console.log('Destination deselected:', destinationName, 'New destinations:', newDestinations)
   }
 
-  const handleDestinationAdded = () => {
+  const handleDestinationAdded = async () => {
     // Refresh the destination selector when a new destination is added
     setShowDestinationSelector(false)
     setShowDestinationManager(false)
     
     // Refetch destinations from API
-    const fetchDestinations = async () => {
-      try {
-        const response = await fetch('/api/destinations')
-        const result = await response.json()
-        
-        if (result.success) {
-          const mappedDestinations = result.data.map((dest: unknown) => {
-            const d = dest as Record<string, unknown>
-            return {
-              name: d.name as string,
-              lat: d.lat as number,
-              lng: d.lng as number,
-              region: d.region as string
-            }
-          })
-          setAvailableDestinations(mappedDestinations)
-        }
-      } catch (error) {
-        console.error('Error fetching destinations:', error)
-      }
-    }
-    
-    fetchDestinations()
+    await fetchDestinations()
   }
 
   // Itinerary management functions
@@ -757,7 +779,7 @@ export default function TourEditor() {
               <div className="flex space-x-2">
                 <button
                   type="button"
-                  onClick={() => setShowDestinationSelector(true)}
+                  onClick={handleOpenDestinationSelector}
                   className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <MapPin className="h-4 w-4 mr-1" />
@@ -777,11 +799,14 @@ export default function TourEditor() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Selected Destinations</label>
                 {(tour.destinations && tour.destinations.length > 0) ? (
-                  <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
-                    {tour.destinations.map((destName) => {
+                  <div 
+                    key={`destinations-${tour.destinations.join(',')}`}
+                    className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3"
+                  >
+                    {tour.destinations.map((destName, index) => {
                       const dest = availableDestinations.find(d => d.name === destName)
                       return (
-                        <div key={destName} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg mb-2">
+                        <div key={`${destName}-${index}`} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg mb-2">
                           <div className="flex items-center space-x-2">
                             <MapPin className="h-4 w-4 text-gray-500" />
                             <span className="text-sm font-medium text-gray-700">{destName}</span>
@@ -812,7 +837,11 @@ export default function TourEditor() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tour Route Map</label>
                 {tourDestinations.length > 0 ? (
                   <div className="h-60 border border-gray-300 rounded-lg overflow-hidden">
-                    <MapboxMap destinations={tourDestinations} tourName={tour.name} />
+                    <MapboxMap 
+                      key={`${tour.destinations?.join(',') || 'empty'}-${tourDestinations.length}`}
+                      destinations={tourDestinations} 
+                      tourName={tour.name} 
+                    />
                   </div>
                 ) : (
                   <div className="h-60 border border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
@@ -1005,14 +1034,45 @@ export default function TourEditor() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Day Image URL</label>
-                    <input
-                      type="text"
-                      value={day.image || ''}
-                      onChange={(e) => updateDay(dayIndex, 'image', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="Image URL for this day"
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Day Image</label>
+                    <div className="space-y-3">
+                      {day.image && (
+                        <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
+                          <img
+                            src={day.image}
+                            alt={`Day ${day.day} preview`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                              const errorDiv = target.nextElementSibling as HTMLElement
+                              if (errorDiv) errorDiv.style.display = 'flex'
+                            }}
+                          />
+                          <div className="hidden absolute inset-0 items-center justify-center bg-gray-100 text-gray-400 text-sm">
+                            Image not available
+                          </div>
+                          <button
+                            onClick={() => updateDay(dayIndex, 'image', '')}
+                            className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                            title="Remove image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedDayIndex(dayIndex)
+                          setImageSelectorOpen(true)
+                        }}
+                        className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-gray-700"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span>{day.image ? 'Change Image' : 'Select Image'}</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mb-4">
@@ -1342,6 +1402,22 @@ export default function TourEditor() {
         isOpen={showDestinationManager}
         onClose={() => setShowDestinationManager(false)}
         onDestinationAdded={handleDestinationAdded}
+      />
+
+      <ImageSelector
+        isOpen={imageSelectorOpen}
+        onClose={() => {
+          setImageSelectorOpen(false)
+          setSelectedDayIndex(null)
+        }}
+        onSelect={(imageUrl) => {
+          if (selectedDayIndex !== null) {
+            updateDay(selectedDayIndex, 'image', imageUrl)
+          }
+          setImageSelectorOpen(false)
+          setSelectedDayIndex(null)
+        }}
+        currentImageUrl={selectedDayIndex !== null ? tour.itinerary[selectedDayIndex]?.image : undefined}
       />
     </div>
   )

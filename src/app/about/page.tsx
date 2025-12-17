@@ -71,10 +71,10 @@ export default function AboutPage() {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 sm:py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">About ISLE & ECHO</h1>
-          <p className="text-xl max-w-3xl mx-auto opacity-90">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 px-2">About ISLE & ECHO</h1>
+          <p className="text-base sm:text-lg md:text-xl max-w-3xl mx-auto opacity-90 px-2">
             We&apos;re passionate about connecting travelers with the authentic beauty and rich culture of Sri Lanka
           </p>
         </div>
@@ -83,15 +83,15 @@ export default function AboutPage() {
       {/* Tab Navigation */}
       <section className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+          <div className="flex flex-wrap sm:flex-nowrap space-x-2 sm:space-x-8 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-6 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-4 sm:py-6 px-2 sm:px-1 border-b-2 font-medium text-sm transition-colors min-h-[44px] touch-manipulation whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 active:text-gray-900'
                 }`}
               >
                 {tab.label}
@@ -102,12 +102,12 @@ export default function AboutPage() {
       </section>
 
       {/* Content Sections */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
         {activeTab === 'about' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-              <h2 className="text-3xl font-bold mb-6 text-gray-900">Our Story</h2>
-              <p className="text-lg text-gray-600 mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-gray-900">Our Story</h2>
+              <p className="text-base sm:text-lg text-gray-600 mb-4 sm:mb-6">
                 Founded in 2020, ISLE & ECHO was born from a deep love for Sri Lanka and a desire to share its incredible beauty with the world. What started as a small local tour operation has grown into a trusted travel partner for thousands of visitors.
               </p>
               <p className="text-lg text-gray-600 mb-6">

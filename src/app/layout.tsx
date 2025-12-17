@@ -1,9 +1,19 @@
 
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Footer from "../components/Footer";
 import ClientProviders from "../components/ClientProviders";
 import GoogleAnalytics from "../components/GoogleAnalytics";
+import MobileBottomNav from "../components/MobileBottomNav";
+import WhatsAppChat from "../components/WhatsAppChat";
+
+// Optimize font loading with next/font
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -81,14 +91,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+        <meta name="theme-color" content="#1E3A8A" />
+      </head>
       <body
-        className="antialiased"
+        className={`antialiased ${inter.className}`}
         suppressHydrationWarning={true}
       >
         <ClientProviders>
           {children}
           <Footer />
+          <MobileBottomNav />
+          <WhatsAppChat />
         </ClientProviders>
         
         {/* Analytics */}

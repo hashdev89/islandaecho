@@ -56,11 +56,11 @@ export default function BlogPage() {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 sm:py-16">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Travel Blog</h1>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 px-2">Travel Blog</h1>
+            <p className="text-base sm:text-lg md:text-xl text-blue-100 max-w-2xl mx-auto px-2">
               Discover amazing stories, travel tips, and insights about Sri Lanka&apos;s most beautiful destinations
             </p>
           </div>
@@ -68,7 +68,7 @@ export default function BlogPage() {
       </section>
 
       {/* Search and Filter Section */}
-      <section className="py-8 bg-white border-b">
+      <section className="py-6 sm:py-8 bg-white border-b">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             {/* Search */}
@@ -78,20 +78,20 @@ export default function BlogPage() {
                 placeholder="Search blog posts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[44px] touch-manipulation"
               />
             </div>
             
             {/* Category Filter */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 w-full md:w-auto justify-center md:justify-start">
               {categories.map(category => (
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-4 py-2.5 rounded-full text-sm font-medium transition-colors min-h-[36px] touch-manipulation ${
                     selectedCategory === category
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-blue-600 text-white active:bg-blue-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                   }`}
                 >
                   {category}
@@ -119,7 +119,7 @@ export default function BlogPage() {
               <div className="text-red-600 mb-4">{error}</div>
               <button 
                 onClick={() => window.location.reload()} 
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 active:bg-blue-800 min-h-[44px] touch-manipulation"
               >
                 Retry
               </button>
@@ -154,6 +154,7 @@ export default function BlogPage() {
                       width={400}
                       height={250}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   )}
                   <div className="absolute top-4 left-4">

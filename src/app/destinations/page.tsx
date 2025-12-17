@@ -234,7 +234,7 @@ export default function DestinationsPage() {
                       <div style={{ background: `linear-gradient(90deg, ${colors.secondary[400]}, ${colors.secondary[500]})` }} className="absolute top-3 left-3 text-white px-3 py-1 rounded-full text-xs font-bold">
                         {badge}
                       </div>
-                      <button style={{ background: colors.primary[50] }} className="absolute top-3 right-3 p-2 rounded-full shadow-md hover:bg-[#DBEAFE] transition-colors">
+                      <button style={{ background: colors.primary[50] }} className="absolute top-3 right-3 p-2.5 rounded-full shadow-md hover:bg-[#DBEAFE] active:bg-[#DBEAFE]/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation">
                         <Heart className="w-5 h-5" style={{ color: colors.primary[500] }} />
                       </button>
                     </div>
@@ -271,7 +271,7 @@ export default function DestinationsPage() {
                         ))}
                       </div>
                       
-                      <button style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="w-full text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all flex items-center justify-center space-x-2">
+                      <button style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="w-full text-white py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation">
                         <span>Explore</span>
                         <ArrowRight className="w-4 h-4" />
                       </button>

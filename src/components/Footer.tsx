@@ -26,9 +26,9 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Your Email"
-                className="px-4 py-3 rounded-lg border-0 focus:ring-2 focus:ring-white focus:ring-opacity-50 text-gray-900"
+                className="px-4 py-3 rounded-lg border-0 focus:ring-2 focus:ring-white focus:ring-opacity-50 text-gray-900 text-base min-h-[44px] touch-manipulation w-full sm:w-auto"
               />
-              <button style={{ background: '#A0FF07' }} className="text-gray-900 px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-all">
+              <button style={{ background: '#A0FF07' }} className="text-gray-900 px-6 py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all min-h-[44px] touch-manipulation w-full sm:w-auto">
                 Subscribe
               </button>
             </div>
@@ -44,10 +44,10 @@ export default function Footer() {
             <div>
               <h3 className="text-lg font-semibold mb-6 text-white">Contact Us</h3>
               <div className="space-y-3">
-                <p className="text-gray-400 text-sm">Toll Free Customer Care</p>
-                <p className="font-semibold text-white">+1 (555) 123-4567</p>
-                <p className="text-gray-400 text-sm mt-4">Need live support?</p>
-                <p className="font-semibold text-white">support@gotrip.com</p>
+                <p className="text-gray-400 text-sm">Phone Number</p>
+                <p className="font-semibold text-white">+94 741 415 812</p>
+                <p className="text-gray-400 text-sm mt-4">Email</p>
+                <p className="font-semibold text-white">info@isleandecho.com</p>
               </div>
             </div>
 
@@ -91,14 +91,14 @@ export default function Footer() {
             <div>
               <h3 className="text-lg font-semibold mb-6 text-white">Mobile</h3>
               <div className="space-y-4">
-                <button className="flex items-center space-x-3 bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors w-full">
+                <button className="flex items-center space-x-3 bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-900 transition-colors w-full min-h-[44px] touch-manipulation">
                   <Apple className="w-6 h-6" />
                   <div className="text-left">
                     <div className="text-xs text-gray-400">Download on the</div>
                     <div className="text-sm font-semibold">Apple Store</div>
                   </div>
                 </button>
-                <button className="flex items-center space-x-3 bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors w-full">
+                <button className="flex items-center space-x-3 bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-900 transition-colors w-full min-h-[44px] touch-manipulation">
                   <PlayIcon className="w-6 h-6" />
                   <div className="text-left">
                     <div className="text-xs text-gray-400">Get it on</div>

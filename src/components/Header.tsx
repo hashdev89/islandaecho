@@ -15,12 +15,13 @@ import {
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '../contexts/AuthContext'
+import { useMobileMenu } from '../contexts/MobileMenuContext'
 import SignInModal from './SignInModal'
 import RegisterModal from './RegisterModal'
 
 
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { isMenuOpen, setIsMenuOpen } = useMobileMenu()
   const [activeDropdown, setActiveDropdown] = useState('')
   const [selectedLanguage, setSelectedLanguage] = useState('EN')
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
@@ -257,7 +258,7 @@ export default function Header() {
                   {/* Register Button */}
                   <button 
                     onClick={() => handleAuthAction(true)}
-                    className="bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white px-6 py-2 rounded-full font-medium transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm"
+                    className="bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white px-6 py-2 rounded-full font-medium transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm min-h-[44px] touch-manipulation"
                   >
                     Register
                   </button>
@@ -269,7 +270,8 @@ export default function Header() {
             <div className="lg:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 rounded-full p-2 hover:bg-blue-50 dark:hover:bg-gray-700 backdrop-blur-sm font-medium"
+                className="text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 active:text-[#1E3A8A] transition-all duration-300 rounded-full p-2.5 hover:bg-blue-50 dark:hover:bg-gray-700 backdrop-blur-sm font-medium min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
+                aria-label="Toggle menu"
               >
                 {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -284,7 +286,7 @@ export default function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="block px-3 py-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium"
+                    className="block px-3 py-3 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 active:text-[#1E3A8A] transition-all duration-300 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium min-h-[44px] flex items-center touch-manipulation"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {item.name}
@@ -301,7 +303,7 @@ export default function Header() {
                       <select
                         value={selectedLanguage}
                         onChange={(e) => setSelectedLanguage(e.target.value)}
-                        className="bg-white/80 dark:bg-gray-800/80 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-medium"
+                        className="bg-white/80 dark:bg-gray-800/80 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 font-medium text-base min-h-[44px] touch-manipulation"
                       >
                         {languages.map((language) => (
                           <option key={language.code} value={language.code}>
@@ -318,7 +320,7 @@ export default function Header() {
                       <select
                         value={selectedCurrency}
                         onChange={(e) => setSelectedCurrency(e.target.value)}
-                        className="bg-white/80 dark:bg-gray-800/80 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-medium"
+                        className="bg-white/80 dark:bg-gray-800/80 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 font-medium text-base min-h-[44px] touch-manipulation"
                       >
                         {currencies.map((currency) => (
                           <option key={currency.code} value={currency.code}>
@@ -335,21 +337,21 @@ export default function Header() {
                   {user ? (
                     <>
                       {user.role === 'admin' && (
-                        <Link
-                          href="/admin"
-                          className="w-full flex items-center justify-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          <Settings className="w-4 h-4" />
-                          <span>Admin Dashboard</span>
-                        </Link>
+                      <Link
+                        href="/admin"
+                        className="w-full flex items-center justify-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium min-h-[44px] touch-manipulation"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Admin Dashboard</span>
+                      </Link>
                       )}
                       <button 
                         onClick={() => {
                           handleLogout()
                           setIsMenuOpen(false)
                         }}
-                        className="w-full flex items-center justify-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium"
+                        className="w-full flex items-center justify-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium min-h-[44px] touch-manipulation"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>
@@ -362,7 +364,7 @@ export default function Header() {
                           handleAuthAction(true)
                           setIsMenuOpen(false)
                         }}
-                        className="w-full bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white px-4 py-3 rounded-full font-medium transition-all duration-300 shadow-lg"
+                        className="w-full bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white px-4 py-3 rounded-full font-medium transition-all duration-300 shadow-lg min-h-[44px] touch-manipulation"
                       >
                         Register
                       </button>

@@ -75,8 +75,8 @@ export default function AnalyticsDashboard() {
   const loadAnalyticsData = async () => {
     setLoading(true)
     try {
-      // Simulate API call - replace with actual analytics API
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // TODO: Replace with actual analytics API call
+      // Removed artificial delay for better performance
       
       // Mock data - replace with real analytics data
       const mockData: AnalyticsData = {

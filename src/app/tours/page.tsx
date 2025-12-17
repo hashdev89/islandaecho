@@ -81,17 +81,17 @@ export default function ToursPage() {
       <Header />
       
       {/* Header */}
-      <div style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="text-white py-16">
+      <div style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Explore Amazing Tours</h1>
-            <p className="text-xl max-w-2xl mx-auto">Discover incredible destinations with our curated tour packages</p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-3 sm:mb-4 px-2">Explore Amazing Tours</h1>
+            <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto px-2">Discover incredible destinations with our curated tour packages</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Filters Sidebar */}
           <div className="lg:col-span-1">
             <div style={{ background: 'white', borderColor: colors.primary[100] }} className="rounded-xl shadow-lg p-6 border">
@@ -112,7 +112,7 @@ export default function ToursPage() {
                         value={category.id}
                         checked={selectedCategory === category.id}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="mr-2"
+                        className="mr-2 w-4 h-4 touch-manipulation"
                       />
                       <span style={{ color: colors.text.muted }} className="text-sm">{category.name}</span>
                     </label>
@@ -130,7 +130,7 @@ export default function ToursPage() {
                     max="3000"
                     value={priceRange[1]}
                     onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                    className="w-full"
+                    className="w-full h-2 touch-manipulation"
                   />
                   <div className="flex justify-between text-sm" style={{ color: colors.text.muted }}>
                     <span>${priceRange[0]}</span>
@@ -146,7 +146,7 @@ export default function ToursPage() {
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
                   style={{ background: colors.primary[50], color: colors.text.base, borderColor: colors.primary[100] }}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2.5 border rounded-lg text-base min-h-[44px] touch-manipulation"
                 >
                   <option value="all">All Durations</option>
                   <option value="1-3">1-3 days</option>
@@ -182,7 +182,7 @@ export default function ToursPage() {
                         {tour.style}
                       </div>
                     )}
-                    <button style={{ background: colors.primary[50] }} className="absolute top-3 right-3 p-2 rounded-full shadow-md hover:bg-[#DBEAFE] transition-colors">
+                    <button style={{ background: colors.primary[50] }} className="absolute top-3 right-3 p-2.5 rounded-full shadow-md hover:bg-[#DBEAFE] active:bg-[#DBEAFE]/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation">
                       <Heart className="w-5 h-5" style={{ color: colors.primary[500] }} />
                     </button>
                   </div>
@@ -216,7 +216,7 @@ export default function ToursPage() {
                       <button 
                         onClick={() => router.push(`/tours/${tour.id}?startDate=&endDate=&guests=1`)}
                         style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} 
-                        className="text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all flex items-center space-x-1"
+                        className="text-white px-4 py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center space-x-1 w-full min-h-[44px] touch-manipulation"
                       >
                         <span>Book Now</span>
                         <ArrowRight className="w-4 h-4" />

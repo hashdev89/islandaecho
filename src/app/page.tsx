@@ -91,14 +91,23 @@ export default function HomePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/tours')
+        // Use cached API response if available
+        const res = await fetch('/api/tours', {
+          cache: 'force-cache', // Use browser cache
+          next: { revalidate: 60 } // Revalidate every 60 seconds
+        })
         const json = await res.json()
         if (json.success) {
           const tours = json.data || []
           console.log('All tours:', tours)
           
+          // Remove duplicates based on id
+          const uniqueTours = tours.filter((tour: Tour, index: number, self: Tour[]) => 
+            index === self.findIndex((t: Tour) => t.id === tour.id)
+          )
+          
           // Filter and validate featured tours
-          const featured = tours.filter((t: Tour) => {
+          const featured = uniqueTours.filter((t: Tour) => {
             const isValid = t && t.featured && t.id && t.name
             if (!isValid) {
               console.log('Invalid tour data:', t)
@@ -107,7 +116,7 @@ export default function HomePage() {
           })
           
           console.log('Found tour data:', featured)
-          setAllTours(tours)
+          setAllTours(uniqueTours)
           setFeaturedTours(featured)
         }
       } catch (error) {
@@ -404,18 +413,34 @@ export default function HomePage() {
       <Header />
 
       {/* Hero Section - Inspired by Swimlane's hero */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white overflow-hidden h-screen w-full flex items-center">
+      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white overflow-visible sm:overflow-hidden min-h-auto sm:min-h-screen w-full flex items-start sm:items-center pt-20 pb-11 sm:pt-0 sm:pb-0">
         {/* Background Video/Image */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 overflow-hidden">
           {/* Sigiriya Background - shown when video is not playing or failed */}
-          <div className={`w-full h-full sigiriya-bg bg-cover bg-center transition-opacity duration-500 ${isVideoPlaying && !useFallbackImage ? 'opacity-0' : 'opacity-100'}`}></div>
+          {/* Always visible on mobile, conditionally hidden on desktop when video plays */}
+          <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isVideoPlaying && !useFallbackImage ? 'sm:opacity-0 opacity-100' : 'opacity-100'}`}>
+            <Image
+              src="/sigiriya.jpeg"
+              alt="Sigiriya Rock Fortress - Sri Lanka"
+              fill
+              priority
+              className="object-cover"
+              quality={75}
+              sizes="100vw"
+              fetchPriority="high"
+              unoptimized={false}
+              style={{ objectFit: 'cover' }}
+            />
+            {/* Dark overlay */}
+            <div className="absolute inset-0 bg-black/70"></div>
+          </div>
           
-          {/* YouTube Video Background - shown when video is playing and not using fallback */}
-          <div className={`absolute inset-0 transition-opacity duration-500 ${isVideoPlaying && !useFallbackImage ? 'opacity-100' : 'opacity-0'}`}>
+          {/* YouTube Video Background - shown only on desktop when video is playing and not using fallback */}
+          <div className={`absolute inset-0 z-20 transition-opacity duration-500 hidden sm:block ${isVideoPlaying && !useFallbackImage ? 'opacity-100' : 'opacity-0'}`}>
             <div className="youtube-container">
               <iframe
                 id="hero-video"
-                src="https://www.youtube.com/embed/y5bHGWAE50c?autoplay=1&mute=1&loop=1&playlist=y5bHGWAE50c&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&start=0&cc_load_policy=0&playsinline=1&enablejsapi=1&origin=*&widget_referrer=*&widgetid=1"
+                src="https://www.youtube.com/embed/y5bHGWAE50c?autoplay=1&mute=1&loop=1&playlist=y5bHGWAE50c&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&start=0&cc_load_policy=0&playsinline=1&enablejsapi=1&origin=*&widget_referrer=*&widgetid=1&autohide=1&wmode=transparent"
                 title="Sri Lanka Travel Video"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -435,46 +460,46 @@ export default function HomePage() {
               {/* CSS Overlay to hide YouTube controls */}
               <div className="youtube-overlay"></div>
             </div>
-            {/* Video Overlay */}
-            <div className="absolute inset-0 bg-black/80"></div>
+            {/* Dark overlay on top of video */}
+            <div className="absolute inset-0 bg-black/70 z-30"></div>
           </div>
         </div>
 
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 z-10">
-          <div className="text-center max-w-4xl mx-auto">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-16 sm:py-12 md:py-16 lg:py-20 xl:py-32 z-10 w-full">
+          <div className="text-center max-w-4xl mx-auto w-full">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600/20 backdrop-blur-sm border border-blue-400/30 mb-8 ">
-              <Award className="w-4 h-4 mr-2 text-blue-100" />
-              <span className="text-blue-100 font-medium">Top Rated Travel Agency</span>
+            <div className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-blue-600/20 backdrop-blur-sm border border-blue-400/30 mb-4 sm:mb-4 md:mb-6">
+              <Award className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-blue-100" />
+              <span className="text-blue-100 font-medium text-xs sm:text-sm">Top Rated Travel Agency</span>
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              Discover the Magic of{' '}<br/>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-4 md:mb-6 leading-tight px-2">
+              Discover the Magic of{' '}<br className="hidden sm:block"/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 animated-gradient-text">
                 Sri Lanka
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-xl sm:text-2xl text-white mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white mb-6 sm:mb-6 md:mb-8 max-w-3xl mx-auto leading-relaxed px-2">
               Experience breathtaking landscapes, rich culture, and unforgettable adventures with our expertly crafted tour packages.
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-6 sm:mb-8 md:mb-12 px-2">
               <button 
                 onClick={() => window.location.href = '/tours'}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center"
+                className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors flex items-center justify-center min-h-[44px] touch-manipulation"
               >
-                <Search className="w-5 h-5 mr-2" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Explore Tours
               </button>
               <button 
                 onClick={handleVideoPlay}
                 disabled={videoError}
-                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="hidden sm:flex bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-sm border border-white/30 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
               >
                 {videoError || useFallbackImage ? (
                   <>
@@ -500,9 +525,9 @@ export default function HomePage() {
           </div>
           
           {/* Search Section */}
-          <div className="w-full max-w-7xl mx-auto animate-fade-in-up delay-100 pb-12 sm:pb-20 px-4">
+          <div className="w-full max-w-7xl mx-auto animate-fade-in-up delay-100 pt-7 sm:pt-0 pb-8 sm:pb-8 md:pb-12 lg:pb-20 px-2 sm:px-4">
               {/* Search Tabs */}
-              <div className="flex flex-wrap gap-2 sm:gap-1 mb-4 sm:mb-6 justify-center">
+              <div className="flex flex-wrap gap-2 sm:gap-1 mb-3 sm:mb-6 justify-center">
                 {[
                 { id: 'tours', label: 'Tours' },
                 { id: 'plan-trip', label: 'Plan Your Trip' },
@@ -512,7 +537,7 @@ export default function HomePage() {
                     key={tab.id}
                     onClick={() => setSearchTab(tab.id)}
                   style={searchTab === tab.id ? { color: '#fff', borderBottom: '2px solid #fff' } : { color: 'rgba(255,255,255,0.7)' }}
-                  className={`px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-medium transition-all duration-200 ${searchTab === tab.id ? 'border-b-2' : 'hover:text-white'}`}
+                  className={`px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-medium transition-all duration-200 min-h-[44px] touch-manipulation ${searchTab === tab.id ? 'border-b-2' : 'hover:text-white'}`}
                   >
                   {tab.label}
                   </button>
@@ -520,10 +545,10 @@ export default function HomePage() {
               </div>
             
                              {/* Search Form */}
-             <div className="rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 backdrop-blur-lg border bg-white/60 dark:bg-gray-800">
+             <div className="rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-6 md:p-8 backdrop-blur-lg border bg-white/60 dark:bg-gray-800">
                {searchTab === 'tours' && (
                  <>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                      {/* Tour Package */}
                      <div className="relative">
                        <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Tour Package</label>
@@ -531,14 +556,14 @@ export default function HomePage() {
                          <select
                            value={searchData.tourPackage}
                            onChange={(e) => setSearchData({...searchData, tourPackage: e.target.value})}
-                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-sm sm:text-base border rounded-lg bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white transition-colors"
+                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white transition-colors min-h-[44px] touch-manipulation"
                          >
                            <option value="">Select Your Package</option>
-                           {allTours.map((tourPackage: Tour) => (
-                             <option key={tourPackage.id} value={tourPackage.id}>
-                               {tourPackage.name}
-                             </option>
-                           ))}
+                          {allTours.map((tourPackage: Tour, index: number) => (
+                            <option key={`${tourPackage.id}-${index}`} value={tourPackage.id}>
+                              {tourPackage.name}
+                            </option>
+                          ))}
                          </select>
                        </div>
                      </div>
@@ -551,7 +576,7 @@ export default function HomePage() {
                            type="date"
                            value={searchData.startDate}
                            onChange={(e) => setSearchData({...searchData, startDate: e.target.value})}
-                           className="w-full px-3 sm:px-4 py-3 sm:py-4 pr-10 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800"
+                           className="w-full px-3 sm:px-4 py-3 sm:py-4 pr-10 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800 min-h-[44px] touch-manipulation"
                            min={new Date().toISOString().split('T')[0]}
                            placeholder="Select start date"
                          />
@@ -566,7 +591,7 @@ export default function HomePage() {
                          <select
                            value={searchData.guests}
                            onChange={(e) => setSearchData({...searchData, guests: parseInt(e.target.value)})}
-                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800"
+                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800 min-h-[44px] touch-manipulation"
                          >
                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                              <option key={num} value={num}>{num} {num === 1 ? 'Guest' : 'Guests'}</option>
@@ -625,7 +650,7 @@ export default function HomePage() {
                    <div className="flex justify-center mt-4 sm:mt-6">
                      <button 
                        onClick={handleSearch}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all flex items-center space-x-2 shadow-lg w-full sm:w-auto"
+                        className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all flex items-center justify-center space-x-2 shadow-lg w-full sm:w-auto min-h-[44px] touch-manipulation"
                      >
                      <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                      <span>Search</span>
@@ -647,7 +672,7 @@ export default function HomePage() {
                                 handleDestinationToggle(e.target.value)
                               }
                             }}
-                            className="w-full pl-3 pr-8 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-sm text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800"
+                            className="w-full pl-3 pr-8 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-base text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800 min-h-[44px] touch-manipulation"
                             value=""
                           >
                             <option value="">Select destinations</option>
@@ -674,7 +699,8 @@ export default function HomePage() {
                                     {destination.name}
                                     <button
                                       onClick={() => handleDestinationToggle(destId)}
-                                      className="text-blue-600 hover:text-blue-800"
+                                      className="text-blue-600 hover:text-blue-800 active:text-blue-900 min-w-[24px] min-h-[24px] flex items-center justify-center touch-manipulation"
+                                      aria-label="Remove destination"
                                     >
                                       ×
                                     </button>
@@ -694,7 +720,7 @@ export default function HomePage() {
                           <button
                             type="button"
                             onClick={() => setShowDatePicker(!showDatePicker)}
-                            className="w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors text-sm text-left bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white"
+                            className="w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] active:border-[#187BFF] transition-colors text-base text-left bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
                           >
                             {(() => {
                               console.log('Displaying date range:', customTripData.dateRange);
@@ -789,7 +815,7 @@ export default function HomePage() {
                             <select
                               value={customTripData.guests}
                               onChange={(e) => setCustomTripData({...customTripData, guests: parseInt(e.target.value)})}
-                              className="w-full pl-3 pr-8 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-sm bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white"
+                              className="w-full pl-3 pr-8 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-base bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
                             >
                               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                                 <option key={num} value={num}>{num}</option>
@@ -809,10 +835,10 @@ export default function HomePage() {
                           <button
                             key={interest.id}
                             onClick={() => handleInterestToggle(interest.id)}
-                            className={`px-3 py-1 rounded-full border text-xs transition-colors ${
+                            className={`px-4 py-2 rounded-full border text-sm transition-colors min-h-[36px] touch-manipulation ${
                               customTripData.interests.includes(interest.id)
-                                ? 'bg-blue-100 border-blue-300 text-blue-800'
-                                : 'bg-gray-50 border-gray-200 text-gray-800 hover:bg-gray-100'
+                                ? 'bg-blue-100 border-blue-300 text-blue-800 active:bg-blue-200'
+                                : 'bg-gray-50 border-gray-200 text-gray-800 hover:bg-gray-100 active:bg-gray-200'
                             }`}
                           >
                             {interest.name}
@@ -825,9 +851,9 @@ export default function HomePage() {
                     <div className="flex justify-center mt-6">
                       <button 
                         onClick={handleCustomTripBooking}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-all flex items-center space-x-2 shadow-lg"
+                        className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 sm:px-8 py-3 rounded-lg font-semibold text-base sm:text-lg transition-all flex items-center justify-center space-x-2 shadow-lg w-full sm:w-auto min-h-[44px] touch-manipulation"
                       >
-                      <Search className="w-5 h-5" />
+                      <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                       <span>Plan My Trip</span>
                       </button>
                     </div>
@@ -836,8 +862,8 @@ export default function HomePage() {
 
                {searchTab === 'rent-car' && (
                  <div className="text-center py-8">
-                   <p className="text-gray-800 mb-4">Car rental service coming soon!</p>
-                   <button className="bg-gray-300 text-gray-600 px-6 py-3 rounded-lg font-medium cursor-not-allowed">
+                   <p className="text-gray-800 mb-4 text-sm sm:text-base">Car rental service coming soon!</p>
+                   <button className="bg-gray-300 text-gray-600 px-6 py-3 rounded-lg font-medium cursor-not-allowed min-h-[44px] touch-manipulation w-full sm:w-auto">
                      Coming Soon
                    </button>
                  </div>
@@ -856,11 +882,11 @@ export default function HomePage() {
             {/* Slider Container */}
             <div 
               id="tour-slider"
-              className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide scroll-smooth px-2 sm:px-0"
-              style={{ scrollBehavior: 'smooth' }}
+              className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide scroll-smooth px-2 sm:px-0 snap-x snap-mandatory"
+              style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
             >
               {featuredTours && featuredTours.length > 0 ? featuredTours.map((tour, index) => (
-                <div key={index} className="flex-shrink-0 w-72 sm:w-80">
+                <div key={tour.id || `tour-${index}`} className="flex-shrink-0 w-[280px] sm:w-72 md:w-80 snap-start">
                   <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
                     <div className="relative">
                       <Image
@@ -869,12 +895,15 @@ export default function HomePage() {
                         width={320}
                         height={192}
                         className="w-full h-40 sm:h-48 object-cover"
+                        loading={index < 3 ? "eager" : "lazy"}
+                        priority={index < 3}
+                        sizes="(max-width: 640px) 280px, (max-width: 768px) 288px, 320px"
                       />
                       <div style={{ background: '#A0FF07' }} className="absolute top-2 sm:top-3 left-2 sm:left-3 text-gray-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold">
                       {tour.style}
                       </div>
-                      <button className="absolute top-2 sm:top-3 right-2 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors">
-                        <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                      <button className="absolute top-2 sm:top-3 right-2 sm:right-3 w-9 h-9 sm:w-10 sm:h-10 bg-white/90 rounded-full flex items-center justify-center hover:bg-white active:bg-white/80 transition-colors touch-manipulation min-w-[36px] min-h-[36px]">
+                        <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                       </button>
               </div>
                     <div className="p-4 sm:p-5">
@@ -904,7 +933,7 @@ export default function HomePage() {
                         <button 
                           onClick={() => handleViewTourDetails(tour.id)}
                           style={{ background: '#CAFA7C' }}
-                          className="text-gray-900 px-6 sm:px-8 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-colors w-full"
+                          className="text-gray-900 px-6 sm:px-8 py-3 rounded-lg text-sm sm:text-base font-medium hover:opacity-90 active:opacity-80 transition-colors w-full min-h-[44px] touch-manipulation"
                         >
                           Book Now
                         </button>
@@ -929,13 +958,19 @@ export default function HomePage() {
                 <button
                   key={index}
                   onClick={() => goToSlide(index)}
-                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-110 ${
+                  className={`w-3 h-3 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation ${
                     index === currentSlide 
                       ? 'bg-blue-600 shadow-lg' 
                       : 'bg-gray-300 hover:bg-blue-400'
                   }`}
                   aria-label={`Go to slide ${index + 1}`}
-                />
+                >
+                  <span className={`w-3 h-3 rounded-full ${
+                    index === currentSlide 
+                      ? 'bg-white' 
+                      : 'bg-gray-500'
+                  }`}></span>
+                </button>
               ))}
             </div>
             )}
@@ -944,16 +979,16 @@ export default function HomePage() {
       </section>
 
       {/* Statistics Section - Inspired by Swimlane's stats */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-                  <stat.icon className="w-8 h-8 text-white" />
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-blue-600 rounded-full mb-3 sm:mb-4">
+                  <stat.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
           </div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">{stat.number}</div>
-                <div className="text-gray-800">{stat.label}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">{stat.number}</div>
+                <div className="text-sm sm:text-base text-gray-800">{stat.label}</div>
                        </div>
             ))}
                      </div>
@@ -961,36 +996,36 @@ export default function HomePage() {
       </section>
 
 
-      <section className='py-20 bg-image-bg'>
+      <section className='py-12 sm:py-16 md:py-20 bg-image-bg'>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className='text-8xl font-bold text-center text-white text-shadow-sri-lanka'>
+          <h1 className='text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-center text-white text-shadow-sri-lanka'>
             Sri Lanka
           </h1>
-          <p className='text-2xl text-center text-black text-shadow-subtitle'>Mystic Isle of Echoes</p>
+          <p className='text-base sm:text-lg md:text-xl lg:text-2xl text-center text-black text-shadow-subtitle mt-2 sm:mt-4'>Mystic Isle of Echoes</p>
         </div>  
       </section>
       {/* Features Section - Inspired by Swimlane's features */}
-      <section className="py-20 bg-white">
+      <section className="py-12 sm:py-16 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
               Why Choose ISLE & ECHO?
             </h2>
-            <p className="text-xl text-gray-800 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-800 max-w-3xl mx-auto px-2">
               We provide exceptional travel experiences with unmatched service and attention to detail.
             </p>
                 </div>
                       
  
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="text-center p-6 rounded-xl hover:shadow-lg transition-shadow">
-                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4 ${feature.color}`}>
-                  <feature.icon className="w-8 h-8" />
+              <div key={index} className="text-center p-4 sm:p-6 rounded-xl hover:shadow-lg transition-shadow">
+                <div className={`inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-100 mb-3 sm:mb-4 ${feature.color}`}>
+                  <feature.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
                   </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-800">{feature.description}</p>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-3">{feature.title}</h3>
+                <p className="text-sm sm:text-base text-gray-800">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -998,26 +1033,26 @@ export default function HomePage() {
       </section>
       
       {/* Destinations & Activities Section */}
-      <section className="py-20 destinations-gradient-bg">
+      <section className="py-12 sm:py-16 md:py-20 destinations-gradient-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
               Discover Sri Lanka&apos;s Destinations
             </h2>
-            <p className="text-xl text-gray-800 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-800 max-w-3xl mx-auto px-2">
               Explore the diverse beauty of Sri Lanka with our curated list of destinations and activities.
             </p>
           </div>
 
           {/* Top Filter Bar */}
-          <div className="mb-8">
-            <div className="flex flex-wrap justify-center gap-4 mb-6">
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-4 sm:mb-6">
               <input
                 type="text"
                 placeholder="Search destinations..."
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[44px] touch-manipulation w-full sm:w-auto"
               />
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[44px] touch-manipulation w-full sm:w-auto">
                 <option value="">All Regions</option>
                 <option value="Western Province">Western Province</option>
                 <option value="Hill Country">Hill Country</option>
@@ -1031,11 +1066,11 @@ export default function HomePage() {
             </div>
 
             {/* Category Chips */}
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
               {['All', 'Beaches', 'Mountains', 'Wildlife', 'Culture', 'Adventure', 'Relaxation', 'Food'].map((category) => (
                 <button
                   key={category}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                  className="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-full hover:bg-blue-50 active:bg-blue-100 hover:border-blue-300 transition-colors text-sm sm:text-base min-h-[36px] touch-manipulation"
                 >
                   {category}
                 </button>
@@ -1044,12 +1079,19 @@ export default function HomePage() {
           </div>
 
           {/* Live-refine Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Colombo */}
             <Link href="/destinations/colombo" className="block">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                  <h3 className="text-2xl font-bold text-white">Colombo</h3>
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src="https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800&h=600&fit=crop"
+                    alt="Colombo - Capital City of Sri Lanka with modern architecture and colonial heritage"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Colombo</h3>
                 </div>
                 <div className="p-6">
                   <h4 className="text-xl font-semibold text-gray-900 mb-3">Capital City</h4>
@@ -1083,8 +1125,15 @@ export default function HomePage() {
             {/* Kandy */}
             <Link href="/destinations/kandy" className="block">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                  <h3 className="text-2xl font-bold text-white">Kandy</h3>
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop"
+                    alt="Kandy - Temple of the Sacred Tooth Relic and cultural capital"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Kandy</h3>
                 </div>
                 <div className="p-6">
                   <h4 className="text-xl font-semibold text-gray-900 mb-3">Cultural Capital</h4>
@@ -1118,8 +1167,15 @@ export default function HomePage() {
             {/* Sigiriya */}
             <Link href="/destinations/sigiriya" className="block">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                  <h3 className="text-2xl font-bold text-white">Sigiriya</h3>
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src="https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=800&h=600&fit=crop"
+                    alt="Sigiriya Rock Fortress - Ancient UNESCO World Heritage Site and palace complex"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Sigiriya</h3>
                 </div>
                 <div className="p-6">
                   <h4 className="text-xl font-semibold text-gray-900 mb-3">Ancient Rock Fortress</h4>
@@ -1153,8 +1209,15 @@ export default function HomePage() {
             {/* Ella */}
             <Link href="/destinations/ella" className="block">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
-                  <h3 className="text-2xl font-bold text-white">Ella</h3>
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src="https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop"
+                    alt="Ella - Scenic Hill Country Town with tea plantations and mountain views"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Ella</h3>
                 </div>
                 <div className="p-6">
                   <h4 className="text-xl font-semibold text-gray-900 mb-3">Hill Country Gem</h4>
@@ -1188,8 +1251,15 @@ export default function HomePage() {
             {/* Mirissa */}
             <Link href="/destinations/mirissa" className="block">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center">
-                  <h3 className="text-2xl font-bold text-white">Mirissa</h3>
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src="https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=800&h=600&fit=crop"
+                    alt="Mirissa Beach - Beautiful beach paradise known for whale watching and surfing"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Mirissa</h3>
                 </div>
                 <div className="p-6">
                   <h4 className="text-xl font-semibold text-gray-900 mb-3">Beach Paradise</h4>
@@ -1223,8 +1293,15 @@ export default function HomePage() {
             {/* Yala */}
             <Link href="/destinations/yala" className="block">
               <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="h-48 bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                  <h3 className="text-2xl font-bold text-white">Yala National Park</h3>
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src="https://images.unsplash.com/photo-1516426122078-c23e76319801?w=800&h=600&fit=crop"
+                    alt="Yala National Park - Wildlife safari destination with leopards and elephants"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Yala National Park</h3>
                 </div>
                 <div className="p-6">
                   <h4 className="text-xl font-semibold text-gray-900 mb-3">Wildlife Safari</h4>
@@ -1323,36 +1400,28 @@ export default function HomePage() {
       <StructuredData data={websiteSchema} />
 
       <style jsx>{`
-        .sigiriya-bg {
-          background-image: linear-gradient(rgba(17, 24, 39, 0.6), rgba(17, 24, 39, 0.6)), url('/sigiriya.jpeg');
-          background-attachment: fixed;
-          background-position: center;
-          background-repeat: no-repeat;
-          background-size: cover;
-        }
-        
         .youtube-container {
           position: absolute;
           top: 0;
           left: 0;
-          width: 100vw;
-          height: 100vh;
+          width: 100%;
+          height: 100%;
           overflow: hidden;
-          z-index: -1;
+          z-index: 0;
         }
         
         .youtube-container iframe {
           position: absolute;
           top: 50%;
           left: 50%;
-          width: 100vw;
-          height: 56.25vw; /* 16:9 aspect ratio */
-          min-height: 100vh;
-          min-width: 177.77vh; /* 16:9 aspect ratio */
+          width: 100%;
+          height: 100%;
+          min-height: 100%;
           transform: translate(-50%, -50%);
           border: none;
           outline: none;
           pointer-events: none;
+          object-fit: cover;
         }
         
         .youtube-overlay {

@@ -179,6 +179,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
                       width={800}
                       height={400}
                       className="w-full h-full object-cover"
+                      priority
                     />
                   )}
                 </div>

@@ -131,22 +131,25 @@ class DataSyncService {
         body: JSON.stringify(tourData),
       })
       
-      console.log('DataSync: Response status:', response.status)
-      console.log('DataSync: Response ok:', response.ok)
-      
       const result = await response.json()
       console.log('DataSync: Create tour response:', result)
       
-      if (result.success) {
-        this.notify('tours', await this.fetchTours())
-        return result.data
-      } else {
-        console.error('DataSync: Tour creation failed:', result.message)
-        return null
+      if (!response.ok || !result.success) {
+        const errorMessage = result.message || result.error?.message || `HTTP ${response.status}: Failed to create tour`
+        console.error('DataSync: Tour creation failed:', {
+          status: response.status,
+          message: errorMessage,
+          error: result.error,
+          fullResponse: result
+        })
+        throw new Error(errorMessage)
       }
+      
+      this.notify('tours', await this.fetchTours())
+      return result.data
     } catch (error) {
       console.error('DataSync: Failed to create tour:', error)
-      return null
+      throw error // Re-throw to let the caller handle it
     }
   }
 
@@ -160,6 +163,13 @@ class DataSyncService {
         },
         body: JSON.stringify(tourData),
       })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Update tour HTTP error:', response.status, errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+      
       const result = await response.json()
       console.log('Update tour response:', result)
       if (result.success) {
@@ -167,11 +177,11 @@ class DataSyncService {
         return result.data
       } else {
         console.error('Tour update failed:', result.message)
-        return null
+        throw new Error(result.message || 'Failed to update tour')
       }
     } catch (error) {
       console.error('Failed to update tour:', error)
-      return null
+      throw error // Re-throw to let the caller handle it
     }
   }
 

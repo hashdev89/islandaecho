@@ -197,6 +197,10 @@ export async function GET() {
       success: true, 
       data: destinationsWithCount,
       message: isSupabaseConfigured ? 'Destinations retrieved from Supabase' : 'Destinations retrieved from fallback storage'
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      }
     })
   } catch (error: unknown) {
     console.error('Destinations API error:', error)
@@ -214,6 +218,10 @@ export async function GET() {
       success: true, 
       data: destinationsWithCount,
       message: 'Destinations retrieved from fallback storage due to error' 
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      }
     })
   }
 }

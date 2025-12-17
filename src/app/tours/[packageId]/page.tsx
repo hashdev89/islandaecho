@@ -15,7 +15,17 @@ import {
   Calendar
 } from 'lucide-react'
 import Header from '../../../components/Header'
-import MapboxMap from '../../../components/MapboxMap'
+import dynamic from 'next/dynamic'
+
+// Dynamically import MapboxMap to reduce initial bundle size
+const MapboxMap = dynamic(() => import('../../../components/MapboxMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+      <p className="text-gray-500">Loading map...</p>
+    </div>
+  ),
+})
 
 interface TourPackage {
   id: string
@@ -735,6 +745,7 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
   const [tourPackage, setTourPackage] = useState<TourPackage | null>(null)
   const [loading, setLoading] = useState(true)
   const [packageId, setPackageId] = useState<string>('')
+  const [availableDestinations, setAvailableDestinations] = useState<Array<{name: string, lat: number, lng: number, region: string}>>([])
   const [bookingData, setBookingData] = useState({
     startDate: searchParams.get('startDate') || '',
     endDate: searchParams.get('endDate') || '',
@@ -756,27 +767,67 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
 
   // Function to normalize tour data from API
   const normalizeTourData = (tour: any): TourPackage => {
+    // Handle destinations - could be array, JSONB string, or undefined
+    let destinations: string[] = []
+    if (tour.destinations) {
+      if (Array.isArray(tour.destinations)) {
+        destinations = tour.destinations
+      } else if (typeof tour.destinations === 'string') {
+        try {
+          destinations = JSON.parse(tour.destinations)
+        } catch {
+          // If parsing fails, treat as single destination name
+          destinations = [tour.destinations]
+        }
+      }
+    }
+
     return {
       id: tour.id,
       name: tour.name,
       duration: tour.duration,
       price: tour.price,
       style: tour.style || '',
-      destinations: tour.destinations || [],
-      highlights: tour.highlights || [],
-      keyExperiences: tour.keyExperiences || [],
+      destinations: destinations,
+      highlights: Array.isArray(tour.highlights) ? tour.highlights : (tour.highlights ? JSON.parse(tour.highlights) : []),
+      keyExperiences: Array.isArray(tour.keyExperiences || tour.key_experiences) 
+        ? (tour.keyExperiences || tour.key_experiences) 
+        : [],
       description: tour.description || '',
-      itinerary: tour.itinerary || [],
-      inclusions: tour.inclusions || [],
-      exclusions: tour.exclusions || [],
-      importantInfo: tour.importantInfo || undefined,
-      accommodation: tour.accommodation || [],
+      itinerary: Array.isArray(tour.itinerary) ? tour.itinerary : [],
+      inclusions: Array.isArray(tour.inclusions) ? tour.inclusions : [],
+      exclusions: Array.isArray(tour.exclusions) ? tour.exclusions : [],
+      importantInfo: tour.importantInfo || tour.important_info || undefined,
+      accommodation: Array.isArray(tour.accommodation) ? tour.accommodation : [],
       transportation: tour.transportation || '',
-      groupSize: tour.groupSize || '',
-      bestTime: tour.bestTime || '',
-      images: tour.images || []
+      groupSize: tour.groupSize || tour.group_size || '',
+      bestTime: tour.bestTime || tour.best_time || '',
+      images: Array.isArray(tour.images) ? tour.images : []
     }
   }
+
+  // Fetch destinations from API
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        const response = await fetch('/api/destinations')
+        const result = await response.json()
+        if (result.success && Array.isArray(result.data)) {
+          const mappedDestinations = result.data.map((dest: any) => ({
+            name: dest.name,
+            lat: dest.lat,
+            lng: dest.lng,
+            region: dest.region
+          }))
+          setAvailableDestinations(mappedDestinations)
+          console.log('Destinations fetched for map:', mappedDestinations.length)
+        }
+      } catch (error) {
+        console.error('Error fetching destinations:', error)
+      }
+    }
+    fetchDestinations()
+  }, [])
 
   useEffect(() => {
     const fetchTour = async () => {
@@ -806,11 +857,35 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
     }
   }, [packageId])
       
-        // Get map coordinates for this tour's destinations
-        const tourDestinations = tourPackage?.destinations?.map((dest: string) => ({
-          name: dest,
-    ...sriLankaDestinations[dest as keyof typeof sriLankaDestinations]
-  })).filter(dest => dest.lat) || []
+  // Get map coordinates for this tour's destinations - use API data first, fallback to hardcoded
+  const tourDestinations = tourPackage?.destinations?.map((dest: string) => {
+    // Try to find in API destinations first
+    const apiDest = availableDestinations.find(d => d.name === dest)
+    if (apiDest) {
+      return apiDest
+    }
+    // Fallback to hardcoded destinations
+    const hardcodedDest = sriLankaDestinations[dest as keyof typeof sriLankaDestinations]
+    if (hardcodedDest) {
+      return {
+        name: dest,
+        ...hardcodedDest
+      }
+    }
+    console.warn('Destination not found in API or hardcoded list:', dest)
+    return null
+  }).filter((dest): dest is {name: string, lat: number, lng: number, region: string} => dest !== null && dest.lat !== undefined) || []
+
+  // Debug logging
+  useEffect(() => {
+    if (tourPackage) {
+      console.log('Tour destinations for map:', {
+        tourDestinations: tourPackage.destinations,
+        mappedDestinations: tourDestinations,
+        availableDestinationsCount: availableDestinations.length
+      })
+    }
+  }, [tourPackage?.destinations, tourDestinations.length, availableDestinations.length])
 
   // Build gallery images from top-level images + day images
   const galleryImages: string[] = [
@@ -959,6 +1034,7 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                 <div className="bg-white rounded-lg shadow-lg p-6">
                   {/* Mapbox 3D Interactive Map */}
                   <MapboxMap 
+                    key={`tour-map-${tourPackage.id}-${tourDestinations.map(d => d.name).join(',')}`}
                     destinations={tourDestinations}
                     tourName={tourPackage.name}
                   />

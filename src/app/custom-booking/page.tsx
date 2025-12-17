@@ -17,7 +17,17 @@ import {
   Calendar
 } from 'lucide-react'
 import Header from '../../components/Header'
-import MapboxMap from '../../components/MapboxMap'
+import dynamic from 'next/dynamic'
+
+// Dynamically import MapboxMap to reduce initial bundle size
+const MapboxMap = dynamic(() => import('../../components/MapboxMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+      <p className="text-gray-500">Loading map...</p>
+    </div>
+  ),
+})
 
 interface CustomTripData {
   destinations: string[]
@@ -520,6 +530,7 @@ export default function CustomBookingPage() {
                         selectedImage === index ? 'ring-4 ring-blue-500' : 'hover:opacity-80'
                       }`}
                       onClick={() => setSelectedImage(index)}
+                      loading={index < 3 ? "eager" : "lazy"}
                     />
                   ))}
                 </div>

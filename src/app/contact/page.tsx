@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import {
   MapPin,
   Phone,
@@ -10,6 +11,19 @@ import {
   Globe
 } from 'lucide-react'
 import Header from '../../components/Header'
+
+// Dynamically import ContactMap to reduce initial bundle size
+const ContactMap = dynamic(() => import('../../components/ContactMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-gray-200 rounded-lg h-96 flex items-center justify-center">
+      <div className="text-center">
+        <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-pulse" />
+        <p className="text-gray-600">Loading map...</p>
+      </div>
+    </div>
+  )
+})
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -37,20 +51,20 @@ export default function ContactPage() {
     {
       icon: <MapPin className="w-6 h-6" />,
       title: 'Visit Us',
-      details: '123 Travel Street, Colombo 01, Sri Lanka',
-      description: 'Our main office in the heart of Colombo'
+      details: '55/A, Kulupana, Pokunuwita, Sri Lanka',
+     
     },
     {
       icon: <Phone className="w-6 h-6" />,
       title: 'Call Us',
-      details: '+94 11 234 5678',
-      description: 'Available Monday to Friday, 9 AM - 6 PM'
+      details: '+94 741 415 812',
+ 
     },
     {
       icon: <Mail className="w-6 h-6" />,
       title: 'Email Us',
-      details: 'hello@isleandecho.com',
-      description: 'We&apos;ll respond within 24 hours'
+      details: 'info@isleandecho.com',
+
     },
     {
       icon: <Clock className="w-6 h-6" />,
@@ -224,33 +238,17 @@ export default function ContactPage() {
 
             {/* Map and Office Locations */}
             <div className="space-y-8">
-              {/* Map Placeholder */}
+              {/* Mapbox Map */}
               <div className="bg-white rounded-xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold mb-6 text-gray-900">Our Location</h2>
-                <div className="bg-gray-200 rounded-lg h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Interactive Map Coming Soon</p>
-                    <p className="text-sm text-gray-500">123 Travel Street, Colombo 01, Sri Lanka</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Office Locations */}
-              <div className="bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold mb-6 text-gray-900">Office Locations</h2>
-                <div className="space-y-6">
-                  {officeLocations.map((office, index) => (
-                    <div key={index} className="border-b border-gray-200 pb-4 last:border-b-0">
-                      <h3 className="font-semibold text-lg text-gray-900 mb-2">{office.city}</h3>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <p>{office.address}</p>
-                        <p>Phone: {office.phone}</p>
-                        <p>Email: {office.email}</p>
-                        <p>Hours: {office.hours}</p>
-                      </div>
-                    </div>
-                  ))}
+                <ContactMap
+                  lat={6.72603}
+                  lng={80.03396}
+                  address="55/A, Kulupana, Pokunuwita, Sri Lanka"
+                />
+                <div className="mt-4 text-center">
+                  <p className="text-gray-600 font-medium">55/A, Kulupana, Pokunuwita, Sri Lanka</p>
+              
                 </div>
               </div>
             </div>
