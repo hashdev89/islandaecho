@@ -56,6 +56,11 @@ interface SettingsData {
   paymentMethods: string[]
   taxRate: number
   bookingDeposit: number
+  // PayHere Settings
+  payhereMerchantId: string
+  payhereMerchantSecret: string
+  payhereSandbox: boolean
+  payhereBaseUrl: string
   
   // Appearance Settings
   primaryColor: string
@@ -109,9 +114,14 @@ export default function AdminSettingsPage() {
     
     // Payment Settings
     currency: 'LKR',
-    paymentMethods: ['credit_card', 'bank_transfer', 'cash'],
+    paymentMethods: ['payhere', 'credit_card', 'bank_transfer', 'cash'],
     taxRate: 15,
     bookingDeposit: 20,
+    // PayHere Settings
+    payhereMerchantId: '',
+    payhereMerchantSecret: '',
+    payhereSandbox: true,
+    payhereBaseUrl: 'http://localhost:3000',
     
     // Appearance Settings
     primaryColor: '#3B82F6',
@@ -542,63 +552,152 @@ export default function AdminSettingsPage() {
   )
 
   const renderPaymentSettings = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-          <select
-            value={settings.currency}
-            onChange={(e) => updateSetting('currency', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="LKR">LKR (Sri Lankan Rupee)</option>
-            <option value="USD">USD (US Dollar)</option>
-            <option value="EUR">EUR (Euro)</option>
-            <option value="GBP">GBP (British Pound)</option>
-          </select>
+    <div className="space-y-8">
+      {/* PayHere Configuration */}
+      <div className="border-b border-gray-200 pb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">PayHere Payment Gateway</h3>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+            <div className="text-sm text-blue-800">
+              <p className="font-medium mb-1">PayHere Integration</p>
+              <p>Configure your PayHere merchant credentials. Get your Merchant ID and Merchant Secret from your PayHere account dashboard.</p>
+            </div>
+          </div>
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Merchant ID
+              </label>
+              <input
+                type="text"
+                value={settings.payhereMerchantId}
+                onChange={(e) => updateSetting('payhereMerchantId', e.target.value)}
+                placeholder="e.g., 121XXXX"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">Found in PayHere Dashboard &gt; Integrations</p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Merchant Secret
+              </label>
+              <input
+                type="password"
+                value={settings.payhereMerchantSecret}
+                onChange={(e) => updateSetting('payhereMerchantSecret', e.target.value)}
+                placeholder="Enter your merchant secret"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">Generated for your domain in PayHere Dashboard</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Base URL for Callbacks
+              </label>
+              <input
+                type="url"
+                value={settings.payhereBaseUrl}
+                onChange={(e) => updateSetting('payhereBaseUrl', e.target.value)}
+                placeholder="https://yourdomain.com"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">Must be publicly accessible (not localhost for production)</p>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div>
+                <h4 className="font-medium text-gray-900">Sandbox Mode</h4>
+                <p className="text-sm text-gray-600">Use PayHere sandbox for testing</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.payhereSandbox}
+                  onChange={(e) => updateSetting('payhereSandbox', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* General Payment Settings */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">General Payment Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+            <select
+              value={settings.currency}
+              onChange={(e) => updateSetting('currency', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="LKR">LKR (Sri Lankan Rupee)</option>
+              <option value="USD">USD (US Dollar)</option>
+              <option value="EUR">EUR (Euro)</option>
+              <option value="GBP">GBP (British Pound)</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
+            <input
+              type="number"
+              value={settings.taxRate}
+              onChange={(e) => updateSetting('taxRate', parseFloat(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+        
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Booking Deposit (%)</label>
           <input
             type="number"
-            value={settings.taxRate}
-            onChange={(e) => updateSetting('taxRate', parseFloat(e.target.value))}
+            value={settings.bookingDeposit}
+            onChange={(e) => updateSetting('bookingDeposit', parseFloat(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Booking Deposit (%)</label>
-        <input
-          type="number"
-          value={settings.bookingDeposit}
-          onChange={(e) => updateSetting('bookingDeposit', parseFloat(e.target.value))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Payment Methods</label>
-        <div className="space-y-2">
-          {['credit_card', 'bank_transfer', 'cash', 'paypal', 'stripe'].map((method) => (
-            <label key={method} className="flex items-center">
-              <input
-                type="checkbox"
-                checked={settings.paymentMethods.includes(method)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    updateSetting('paymentMethods', [...settings.paymentMethods, method])
-                  } else {
-                    updateSetting('paymentMethods', settings.paymentMethods.filter(m => m !== method))
-                  }
-                }}
-                className="mr-3"
-              />
-              <span className="capitalize">{method.replace('_', ' ')}</span>
-            </label>
-          ))}
+        
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Enabled Payment Methods</label>
+          <div className="space-y-2 mt-2">
+            {['payhere', 'credit_card', 'bank_transfer', 'cash', 'paypal', 'stripe'].map((method) => (
+              <label key={method} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.paymentMethods.includes(method)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      updateSetting('paymentMethods', [...settings.paymentMethods, method])
+                    } else {
+                      updateSetting('paymentMethods', settings.paymentMethods.filter(m => m !== method))
+                    }
+                  }}
+                  className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="capitalize text-sm text-gray-700">
+                  {method === 'payhere' ? 'PayHere' : method.replace('_', ' ')}
+                </span>
+                {method === 'payhere' && (
+                  <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                    Recommended
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
         </div>
       </div>
     </div>

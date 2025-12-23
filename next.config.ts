@@ -104,6 +104,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'wsrv.nl',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'wp.resplendentceylon.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   experimental: {

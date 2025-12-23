@@ -56,7 +56,7 @@ export default function BlogPage() {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 sm:py-16">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 sm:py-16 md:py-20">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 px-2">Travel Blog</h1>

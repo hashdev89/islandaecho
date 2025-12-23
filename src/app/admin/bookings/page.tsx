@@ -31,7 +31,9 @@ interface Booking {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
   specialRequests: string
   bookingDate: string
-  paymentStatus: 'pending' | 'paid' | 'refunded'
+  paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed'
+  paymentId?: string
+  paymentMethod?: string
 }
 
 async function fetchBookings(): Promise<Booking[]> {
@@ -70,7 +72,9 @@ async function fetchBookings(): Promise<Booking[]> {
         status: (booking.status as 'pending' | 'confirmed' | 'cancelled' | 'completed') || 'pending',
         specialRequests: (booking.special_requests as string) || (booking.specialRequests as string) || '',
         bookingDate: (booking.created_at as string) || (booking.createdAt as string) || new Date().toISOString(),
-        paymentStatus: (booking.payment_status as 'pending' | 'paid' | 'refunded') || (booking.paymentStatus as 'pending' | 'paid' | 'refunded') || 'pending',
+        paymentStatus: (booking.payment_status as 'pending' | 'paid' | 'refunded' | 'failed') || (booking.paymentStatus as 'pending' | 'paid' | 'refunded' | 'failed') || 'pending',
+        paymentId: (booking.payment_id as string) || (booking.paymentId as string) || undefined,
+        paymentMethod: (booking.payment_method as string) || (booking.paymentMethod as string) || undefined,
       }
     })
     

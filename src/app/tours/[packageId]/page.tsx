@@ -27,6 +27,20 @@ const MapboxMap = dynamic(() => import('../../../components/MapboxMap'), {
   ),
 })
 
+// Helper function to check if an image is uploaded (not external)
+function isUploadedImage(url: string): boolean {
+  if (!url || typeof url !== 'string') return false
+  
+  // Check if it's a local upload path
+  if (url.startsWith('/uploads/')) return true
+  
+  // Check if it's from Supabase storage
+  if (url.includes('supabase.co') && url.includes('storage')) return true
+  
+  // Everything else is considered external
+  return false
+}
+
 interface TourPackage {
   id: string
   name: string
@@ -756,6 +770,26 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
     specialRequests: ''
   })
 
+  // Function to extract number of days from duration string (e.g., "7 Days / 6 Nights" -> 7)
+  const getDaysFromDuration = (duration: string): number => {
+    if (!duration) return 0
+    const match = duration.match(/(\d+)\s*Days?/i)
+    return match ? parseInt(match[1], 10) : 0
+  }
+
+  // Function to calculate end date based on start date and duration
+  const calculateEndDate = (startDate: string, duration: string): string => {
+    if (!startDate || !duration) return ''
+    const days = getDaysFromDuration(duration)
+    if (days === 0) return ''
+    
+    const start = new Date(startDate)
+    const end = new Date(start)
+    end.setDate(start.getDate() + days - 1) // Subtract 1 because start date is day 1
+    
+    return end.toISOString().split('T')[0]
+  }
+
   // Resolve params
   useEffect(() => {
     const resolveParams = async () => {
@@ -856,6 +890,19 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
       fetchTour()
     }
   }, [packageId])
+
+  // Auto-calculate end date when tour package is loaded and start date is set
+  useEffect(() => {
+    if (tourPackage && bookingData.startDate) {
+      const calculatedEndDate = calculateEndDate(bookingData.startDate, tourPackage.duration)
+      if (calculatedEndDate && calculatedEndDate !== bookingData.endDate) {
+        setBookingData(prev => ({
+          ...prev,
+          endDate: calculatedEndDate
+        }))
+      }
+    }
+  }, [tourPackage?.duration, bookingData.startDate])
       
   // Get map coordinates for this tour's destinations - use API data first, fallback to hardcoded
   const tourDestinations = tourPackage?.destinations?.map((dest: string) => {
@@ -887,12 +934,12 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
     }
   }, [tourPackage?.destinations, tourDestinations.length, availableDestinations.length])
 
-  // Build gallery images from top-level images + day images
+  // Build gallery images from top-level images + day images (only uploaded images)
   const galleryImages: string[] = [
-    ...((tourPackage?.images || []) as string[]),
+    ...((tourPackage?.images || []) as string[]).filter(img => isUploadedImage(img)),
     ...(((tourPackage?.itinerary || [])
       .map((d) => d.image)
-      .filter((src): src is string => typeof src === 'string' && src.length > 0)) as string[]),
+      .filter((src): src is string => typeof src === 'string' && src.length > 0 && isUploadedImage(src)) as string[])),
   ].filter((v, i, arr) => arr.indexOf(v) === i)
 
   const [showLightbox, setShowLightbox] = useState(false)
@@ -945,6 +992,14 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
 
   const handleBooking = async () => {
     try {
+      // Validate required fields
+      if (!bookingData.name || !bookingData.email || !bookingData.phone || !bookingData.startDate || !bookingData.endDate) {
+        alert('Please fill in all required fields')
+        return
+      }
+
+      const totalPrice = parseFloat(tourPackage?.price?.replace(/[^0-9.]/g, '') || '0')
+      
       const payload = {
         tour_package_id: tourPackage.id,
         tour_package_name: tourPackage.name,
@@ -954,21 +1009,26 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
         start_date: bookingData.startDate,
         end_date: bookingData.endDate,
         guests: bookingData.guests,
-        total_price: null,
+        total_price: totalPrice,
         status: 'pending',
         special_requests: bookingData.specialRequests,
         payment_status: 'pending',
       }
+      
+      // Create booking first
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
       const json = await res.json()
+      
       if (!json.success) throw new Error(json.error || 'Failed to create booking')
-      alert('Booking submitted!')
-      // Optional: redirect to admin booking detail
-      // window.location.href = `/admin/bookings/${json.data.id}`
+      
+      const bookingId = json.data.id
+      
+      // Redirect to payment checkout page
+      window.location.href = `/payments/checkout?booking_id=${bookingId}`
     } catch (e: any) {
       console.error('Booking failed:', e)
       alert(`Booking failed: ${e.message || 'Unknown error'}`)
@@ -980,37 +1040,37 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
       <Header />
       
       {/* Hero Section */}
-      <section className="relative py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <section className="relative py-12 sm:py-16 md:py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">{tourPackage.name}</h1>
-              <p className="text-xl mb-8 opacity-90">{tourPackage.description}</p>
-              <div className="flex items-center space-x-6 mb-8">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 px-2">{tourPackage.name}</h1>
+              <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 opacity-90 px-2">{tourPackage.description}</p>
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-6 sm:mb-8 px-2">
                 <div className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5" />
-                  <span>{tourPackage.duration}</span>
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">{tourPackage.duration}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
-                  <span>{tourPackage.groupSize}</span>
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">{tourPackage.groupSize}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Star className="w-5 h-5" />
-                  <span>4.8/5 (127 reviews)</span>
+                  <Star className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">4.8/5 (127 reviews)</span>
                 </div>
               </div>
-              <div className="text-3xl font-bold text-yellow-400 mb-6">{tourPackage.price}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-yellow-400 mb-4 sm:mb-6 px-2">{tourPackage.price}</div>
               <button 
                 onClick={handleBooking}
-                className="bg-yellow-400 text-gray-900 px-8 py-4 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
+                className="bg-yellow-400 text-gray-900 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold hover:bg-yellow-300 transition-colors text-base sm:text-lg min-h-[44px] touch-manipulation mx-2 sm:mx-0"
               >
                 Book This Tour
               </button>
             </div>
             <div className="relative">
               <Image
-                src={tourPackage.images?.[0] || '/next.svg'}
+                src={tourPackage.images?.find(img => isUploadedImage(img)) || '/next.svg'}
                 alt={tourPackage.name}
                 width={800}
                 height={384}
@@ -1103,10 +1163,10 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                         <h3 className="text-xl font-semibold text-gray-900">{day.title}</h3>
                       </div>
                       <p className="text-gray-600 mb-4">{day.description}</p>
-                      {day.image && (
+                      {day.image && isUploadedImage(day.image) && (
                         <div className="mb-4">
                           <Image
-                            src={day.image || '/placeholder-image.svg'}
+                            src={day.image}
                             alt={`Day ${day.day} - ${day.title}`}
                             width={800}
                             height={400}
@@ -1275,21 +1335,42 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tour Start Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tour Start Date
+                      {tourPackage.duration && (
+                        <span className="text-xs text-gray-500 ml-2">({tourPackage.duration})</span>
+                      )}
+                    </label>
                     <div className="relative">
                       <input
                         type="date"
                         value={bookingData.startDate}
-                        onChange={(e) => setBookingData({...bookingData, startDate: e.target.value})}
+                        onChange={(e) => {
+                          const newStartDate = e.target.value
+                          const calculatedEndDate = calculateEndDate(newStartDate, tourPackage?.duration || '')
+                          setBookingData({
+                            ...bookingData,
+                            startDate: newStartDate,
+                            endDate: calculatedEndDate || bookingData.endDate
+                          })
+                        }}
                         className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         min={new Date().toISOString().split('T')[0]}
                         placeholder="Select start date"
                       />
                       <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                     </div>
+                    {bookingData.startDate && tourPackage?.duration && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        End date will be automatically set to {calculateEndDate(bookingData.startDate, tourPackage.duration) || 'N/A'}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tour End Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tour End Date
+                      <span className="text-xs text-gray-500 ml-2">(Auto-calculated)</span>
+                    </label>
                     <div className="relative">
                       <input
                         type="date"
@@ -1298,9 +1379,23 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                         className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 cursor-pointer"
                         min={bookingData.startDate || new Date().toISOString().split('T')[0]}
                         placeholder="Select end date"
+                        title="End date is automatically calculated based on package duration. You can manually adjust if needed."
                       />
                       <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                     </div>
+                    {bookingData.startDate && bookingData.endDate && (
+                      <p className="text-xs text-blue-600 mt-1 font-medium">
+                        Date Range: {new Date(bookingData.startDate).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })} - {new Date(bookingData.endDate).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Number of Guests</label>

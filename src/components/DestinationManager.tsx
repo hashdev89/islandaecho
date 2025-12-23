@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Save } from 'lucide-react'
+import { X, Save, Plus } from 'lucide-react'
+import ImageSelector from './ImageSelector'
 
 interface DestinationManagerProps {
   isOpen: boolean
@@ -24,6 +25,7 @@ export default function DestinationManager({
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -236,19 +238,43 @@ export default function DestinationManager({
                 />
               </div>
 
-              {/* Image URL */}
+              {/* Image Selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image URL
+                  Image
                 </label>
-                <input
-                  type="url"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <div className="space-y-3">
+                  {formData.image && (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
+                      <img
+                        src={formData.image}
+                        alt="Destination preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, image: '' })}
+                        className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                        title="Remove image"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setImageSelectorOpen(true)}
+                    className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-gray-700"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>{formData.image ? 'Change Image' : 'Select Image from Uploaded Images'}</span>
+                  </button>
+                  <p className="text-xs text-gray-500">Only images uploaded through the Images tab can be used</p>
+                </div>
               </div>
             </div>
           </div>
@@ -282,6 +308,17 @@ export default function DestinationManager({
           </div>
         </form>
       </div>
+
+      {/* Image Selector */}
+      <ImageSelector
+        isOpen={imageSelectorOpen}
+        onClose={() => setImageSelectorOpen(false)}
+        onSelect={(imageUrl) => {
+          setFormData({ ...formData, image: imageUrl })
+          setImageSelectorOpen(false)
+        }}
+        currentImageUrl={formData.image}
+      />
     </div>
   )
 }

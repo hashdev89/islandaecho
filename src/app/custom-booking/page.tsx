@@ -322,30 +322,30 @@ export default function CustomBookingPage() {
       <Header />
       
       {/* Hero Section */}
-      <section className="relative py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <section className="relative py-12 sm:py-16 md:py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">Your Custom Trip</h1>
-              <p className="text-xl mb-8 opacity-90">Personalized itinerary based on your preferences and selected destinations</p>
-              <div className="flex items-center space-x-6 mb-8">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 px-2">Your Custom Trip</h1>
+              <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 opacity-90 px-2">Personalized itinerary based on your preferences and selected destinations</p>
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-6 sm:mb-8 px-2">
                 <div className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5" />
-                  <span>{selectedDestinations.length} Days</span>
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">{selectedDestinations.length} Days</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
-                  <span>{tripData.guests} {tripData.guests === 1 ? 'Person' : 'People'}</span>
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">{tripData.guests} {tripData.guests === 1 ? 'Person' : 'People'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <MapPin className="w-5 h-5" />
-                  <span>{selectedDestinations.length} Destinations</span>
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">{selectedDestinations.length} Destinations</span>
                 </div>
               </div>
-              <div className="text-3xl font-bold text-yellow-400 mb-6">From ${estimatedPrice}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-yellow-400 mb-4 sm:mb-6 px-2">From ${estimatedPrice}</div>
               <button 
                 onClick={() => document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-yellow-400 text-gray-900 px-8 py-4 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
+                className="bg-yellow-400 text-gray-900 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold hover:bg-yellow-300 transition-colors text-base sm:text-lg min-h-[44px] touch-manipulation mx-2 sm:mx-0"
               >
                 Book This Custom Trip
               </button>

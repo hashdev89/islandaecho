@@ -43,6 +43,7 @@ export default function ImagesManagement() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [imageUsage, setImageUsage] = useState<{ [key: string]: string[] }>({})
   const [migrating, setMigrating] = useState(false)
+  const [cleaning, setCleaning] = useState(false)
 
   // Fetch image usage from API
   const fetchImageUsage = async () => {
@@ -142,6 +143,43 @@ export default function ImagesManagement() {
     }
   }
 
+  // Clean up external image URLs
+  const cleanupExternalImages = async () => {
+    if (!confirm('This will remove all external image URLs from tours and destinations, keeping only uploaded images. This action cannot be undone. Continue?')) {
+      return
+    }
+    
+    try {
+      setCleaning(true)
+      setError(null)
+      const response = await fetch('/api/images/cleanup', {
+        method: 'POST'
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        const { results } = result
+        alert(
+          `Cleanup complete!\n\n` +
+          `Tours: ${results.tours.updated} updated, ${results.tours.imagesRemoved} images removed\n` +
+          `Destinations: ${results.destinations.updated} updated, ${results.destinations.imagesRemoved} images removed\n` +
+          `Itinerary: ${results.itinerary.updated} updated, ${results.itinerary.imagesRemoved} images removed\n\n` +
+          `Total: ${results.totalImagesRemoved} external images removed`
+        )
+        // Refresh the images list and usage
+        await fetchImages()
+        await fetchImageUsage()
+      } else {
+        setError(result.error || 'Cleanup failed')
+      }
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to clean up images')
+    } finally {
+      setCleaning(false)
+    }
+  }
+
   // Load images on component mount
   useEffect(() => {
     fetchImages()
@@ -233,6 +271,24 @@ export default function ImagesManagement() {
               <>
                 <Upload className="h-4 w-4 mr-2" />
                 Migrate Local Images
+              </>
+            )}
+          </button>
+          <button 
+            onClick={cleanupExternalImages}
+            disabled={cleaning || loading}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center disabled:opacity-50"
+            title="Remove all external image URLs from tours and destinations"
+          >
+            {cleaning ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Cleaning...
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-4 w-4 mr-2" />
+                Remove External Images
               </>
             )}
           </button>

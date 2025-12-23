@@ -136,12 +136,13 @@ export default function TourEditor() {
   const [newAccommodation, setNewAccommodation] = useState('')
   const [newHighlight, setNewHighlight] = useState('')
   const [newKeyExperience, setNewKeyExperience] = useState('')
-  const [newImage, setNewImage] = useState('')
   const [newWhatToBring, setNewWhatToBring] = useState('')
   const [showDestinationSelector, setShowDestinationSelector] = useState(false)
   const [showDestinationManager, setShowDestinationManager] = useState(false)
   const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null)
+  const [tourImageSelectorOpen, setTourImageSelectorOpen] = useState(false)
+  const [selectedTourImageIndex, setSelectedTourImageIndex] = useState<number | null>(null)
 
   // Handler to open selector and refresh destinations
   const handleOpenDestinationSelector = () => {
@@ -376,11 +377,18 @@ export default function TourEditor() {
     }
   }
 
-  const addImage = () => {
-    if (newImage.trim()) {
-      setTour({ ...tour, images: [...tour.images, newImage.trim()] })
-      setNewImage('')
+  const handleTourImageSelect = (imageUrl: string) => {
+    if (selectedTourImageIndex !== null) {
+      // Replace existing image
+      const newImages = [...tour.images]
+      newImages[selectedTourImageIndex] = imageUrl
+      setTour({ ...tour, images: newImages })
+    } else {
+      // Add new image
+      setTour({ ...tour, images: [...tour.images, imageUrl] })
     }
+    setTourImageSelectorOpen(false)
+    setSelectedTourImageIndex(null)
   }
 
   const removeItem = (list: string[], index: number, field: keyof TourPackage) => {
@@ -924,30 +932,31 @@ export default function TourEditor() {
           {/* Images */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Tour Images</h2>
-            <div className="flex space-x-2 mb-4">
-              <input
-                type="text"
-                value={newImage}
-                onChange={(e) => setNewImage(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Image URL"
-              />
+            <div className="mb-4">
               <button
-                onClick={addImage}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                type="button"
+                onClick={() => {
+                  setSelectedTourImageIndex(null)
+                  setTourImageSelectorOpen(true)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
+                <span>Select Image from Uploaded Images</span>
               </button>
+              <p className="text-xs text-gray-500 mt-2">Only images uploaded through the Images tab can be used</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {(tour.images || []).map((image, index) => (
                 <div key={index} className="relative group">
-                  <Image
+                  <img
                     src={image || '/placeholder-image.svg'}
                     alt={`Tour image ${index + 1}`}
-                    width={200}
-                    height={128}
                     className="w-full h-32 object-cover rounded-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.src = '/placeholder-image.svg'
+                    }}
                   />
                   <button
                     onClick={() => removeItem(tour.images, index, 'images')}
@@ -1404,6 +1413,7 @@ export default function TourEditor() {
         onDestinationAdded={handleDestinationAdded}
       />
 
+      {/* Day Image Selector */}
       <ImageSelector
         isOpen={imageSelectorOpen}
         onClose={() => {
@@ -1418,6 +1428,17 @@ export default function TourEditor() {
           setSelectedDayIndex(null)
         }}
         currentImageUrl={selectedDayIndex !== null ? tour.itinerary[selectedDayIndex]?.image : undefined}
+      />
+
+      {/* Tour Images Selector */}
+      <ImageSelector
+        isOpen={tourImageSelectorOpen}
+        onClose={() => {
+          setTourImageSelectorOpen(false)
+          setSelectedTourImageIndex(null)
+        }}
+        onSelect={handleTourImageSelect}
+        currentImageUrl={selectedTourImageIndex !== null ? tour.images[selectedTourImageIndex] : undefined}
       />
     </div>
   )

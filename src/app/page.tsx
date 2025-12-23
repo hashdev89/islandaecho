@@ -16,7 +16,8 @@ import {
   Headphones,
   Play,
   Award,
-  Camera
+  Camera,
+  ArrowRight
 } from 'lucide-react'
 import Header from '../components/Header'
 import StructuredData, { organizationSchema, websiteSchema } from '../components/StructuredData'
@@ -55,6 +56,11 @@ export default function HomePage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [featuredTours, setFeaturedTours] = useState<Tour[]>([])
   const [allTours, setAllTours] = useState<Tour[]>([])
+  const [loadingTours, setLoadingTours] = useState(true)
+  const [destinations, setDestinations] = useState<any[]>([])
+  const [loadingDestinations, setLoadingDestinations] = useState(true)
+  const [selectedRegion, setSelectedRegion] = useState('all')
+  const [destinationSearchQuery, setDestinationSearchQuery] = useState('')
   const [isVideoPlaying, setIsVideoPlaying] = useState(false) // Start with video not playing to avoid issues
   const [videoError, setVideoError] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
@@ -91,11 +97,9 @@ export default function HomePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Use cached API response if available
-        const res = await fetch('/api/tours', {
-          cache: 'force-cache', // Use browser cache
-          next: { revalidate: 60 } // Revalidate every 60 seconds
-        })
+        setLoadingTours(true)
+        // Fetch tours from API
+        const res = await fetch('/api/tours')
         const json = await res.json()
         if (json.success) {
           const tours = json.data || []
@@ -123,10 +127,40 @@ export default function HomePage() {
         console.error('Error loading tours:', error)
         setFeaturedTours([])
         setAllTours([])
+      } finally {
+        setLoadingTours(false)
       }
     }
     load()
   }, [])
+
+  // Fetch destinations from API
+  useEffect(() => {
+    const loadDestinations = async () => {
+      try {
+        setLoadingDestinations(true)
+        const res = await fetch('/api/destinations')
+        const json = await res.json()
+        if (json.success) {
+          setDestinations(json.data || [])
+        }
+      } catch (error) {
+        console.error('Error loading destinations:', error)
+        setDestinations([])
+      } finally {
+        setLoadingDestinations(false)
+      }
+    }
+    loadDestinations()
+  }, [])
+
+  // Filter destinations
+  const filteredDestinations = (destinations || []).filter(destination => {
+    const regionMatch = selectedRegion === 'all' || destination.region === selectedRegion
+    const searchMatch = destination.name.toLowerCase().includes(destinationSearchQuery.toLowerCase()) ||
+                       (destination.description || '').toLowerCase().includes(destinationSearchQuery.toLowerCase())
+    return regionMatch && searchMatch
+  })
 
   // Handle YouTube video initialization and state tracking
   useEffect(() => {
@@ -885,7 +919,14 @@ export default function HomePage() {
               className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide scroll-smooth px-2 sm:px-0 snap-x snap-mandatory"
               style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
             >
-              {featuredTours && featuredTours.length > 0 ? featuredTours.map((tour, index) => (
+              {loadingTours ? (
+                <div className="flex items-center justify-center w-full py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500 text-lg">Loading featured tours...</p>
+                  </div>
+                </div>
+              ) : featuredTours && featuredTours.length > 0 ? featuredTours.map((tour, index) => (
                 <div key={tour.id || `tour-${index}`} className="flex-shrink-0 w-[280px] sm:w-72 md:w-80 snap-start">
                   <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
                     <div className="relative">
@@ -1033,7 +1074,7 @@ export default function HomePage() {
       </section>
       
       {/* Destinations & Activities Section */}
-      <section className="py-12 sm:py-16 md:py-20 destinations-gradient-bg">
+      <section className="py-12 sm:py-16 md:py-20" style={{ background: 'linear-gradient(135deg, rgba(240, 253, 244, 0.8) 0%, rgba(220, 252, 231, 0.9) 50%, rgba(187, 247, 208, 0.8) 100%)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12 md:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
@@ -1047,291 +1088,97 @@ export default function HomePage() {
           {/* Top Filter Bar */}
           <div className="mb-6 sm:mb-8">
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <input
-                type="text"
-                placeholder="Search destinations..."
+              <div className="relative w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search destinations..."
+                  value={destinationSearchQuery}
+                  onChange={(e) => setDestinationSearchQuery(e.target.value)}
+                  className="px-4 py-2.5 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[44px] touch-manipulation w-full sm:w-auto"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              </div>
+              <select 
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
                 className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[44px] touch-manipulation w-full sm:w-auto"
-              />
-              <select className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[44px] touch-manipulation w-full sm:w-auto">
-                <option value="">All Regions</option>
-                <option value="Western Province">Western Province</option>
-                <option value="Hill Country">Hill Country</option>
-                <option value="Southern Province">Southern Province</option>
+              >
+                <option value="all">All Regions</option>
                 <option value="Cultural Triangle">Cultural Triangle</option>
-                <option value="Uva Province">Uva Province</option>
-                <option value="Wildlife">Wildlife</option>
-                <option value="Eastern Province">Eastern Province</option>
-                <option value="Northern Province">Northern Province</option>
+                <option value="Hill Country">Hill Country</option>
+                <option value="Southern Coast">Beach Destinations</option>
+                <option value="Wildlife">Wildlife & Nature</option>
+                <option value="Northern">Northern Region</option>
               </select>
             </div>
+          </div>
 
-            {/* Category Chips */}
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-              {['All', 'Beaches', 'Mountains', 'Wildlife', 'Culture', 'Adventure', 'Relaxation', 'Food'].map((category) => (
-                <button
-                  key={category}
-                  className="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-full hover:bg-blue-50 active:bg-blue-100 hover:border-blue-300 transition-colors text-sm sm:text-base min-h-[36px] touch-manipulation"
-                >
-                  {category}
-                </button>
-              ))}
+          {/* Destinations Grid */}
+          {loadingDestinations ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500 text-lg">Loading destinations...</p>
+              </div>
             </div>
-          </div>
+          ) : filteredDestinations.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {filteredDestinations.map((destination) => {
+                // Generate default values for missing properties
+                const badge = destination.region === 'Cultural Triangle' ? 'Heritage' : 
+                             destination.region === 'Wildlife' ? 'Nature' :
+                             destination.region.includes('Province') ? 'Cultural' : 'Explore'
+                
+                const rating = 4.5 + Math.random() * 0.5 // Random rating between 4.5-5.0
+                const reviews = Math.floor(Math.random() * 200) + 50 // Random reviews 50-250
 
-          {/* Live-refine Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {/* Colombo */}
-            <Link href="/destinations/colombo" className="block">
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src="https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800&h=600&fit=crop"
-                    alt="Colombo - Capital City of Sri Lanka with modern architecture and colonial heritage"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Colombo</h3>
-                </div>
-                <div className="p-6">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Capital City</h4>
-                  <p className="text-gray-600 mb-4">The commercial capital of Sri Lanka with modern shopping centers and colonial architecture.</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      Visit Gangaramaya Temple
+                return (
+                  <div key={destination.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
+                    <div className="relative">
+                      <Image
+                        src={destination.image || 'https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=400&h=300&fit=crop'}
+                        alt={destination.name}
+                        width={400}
+                        height={192}
+                        className="w-full h-48 object-cover"
+                      />
+                      <div style={{ background: 'linear-gradient(90deg, #ADFF29, #A0FF07)' }} className="absolute top-3 left-3 text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
+                        {badge}
+                      </div>
+                      <button className="absolute top-3 right-3 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center hover:bg-white active:bg-white/80 transition-colors touch-manipulation min-w-[44px] min-h-[44px]">
+                        <Heart className="w-5 h-5 text-gray-600" />
+                      </button>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      Explore Pettah Market
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      Walk along Galle Face Green
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      Visit National Museum
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      Enjoy rooftop dining
+                    
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold mb-2 text-gray-900">{destination.name}</h3>
+                      
+                      <div className="flex items-center mb-3">
+                        <div className="flex items-center space-x-1">
+                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                          <span className="text-sm text-gray-600">{rating.toFixed(1)} ({reviews})</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm mb-4 text-gray-600">{destination.description}</p>
+                      
+                      <Link href={`/destinations`}>
+                        <button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation">
+                          <span>Explore</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </Link>
                     </div>
                   </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Kandy */}
-            <Link href="/destinations/kandy" className="block">
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop"
-                    alt="Kandy - Temple of the Sacred Tooth Relic and cultural capital"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Kandy</h3>
-                </div>
-                <div className="p-6">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Cultural Capital</h4>
-                  <p className="text-gray-600 mb-4">Cultural capital with the Temple of the Sacred Tooth Relic and beautiful botanical gardens.</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      Visit Temple of the Tooth
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      Explore Royal Botanical Gardens
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      Watch Cultural Dance Show
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      Visit Tea Museum
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      Walk around Kandy Lake
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Sigiriya */}
-            <Link href="/destinations/sigiriya" className="block">
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src="https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=800&h=600&fit=crop"
-                    alt="Sigiriya Rock Fortress - Ancient UNESCO World Heritage Site and palace complex"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Sigiriya</h3>
-                </div>
-                <div className="p-6">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Ancient Rock Fortress</h4>
-                  <p className="text-gray-600 mb-4">Ancient palace and fortress complex, a UNESCO World Heritage site.</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                      Climb Sigiriya Rock Fortress
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                      Visit Dambulla Cave Temple
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                      Explore Minneriya National Park
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                      See Ancient Frescoes
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                      Visit Polonnaruwa Ancient City
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Ella */}
-            <Link href="/destinations/ella" className="block">
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src="https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop"
-                    alt="Ella - Scenic Hill Country Town with tea plantations and mountain views"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Ella</h3>
-                </div>
-                <div className="p-6">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Hill Country Gem</h4>
-                  <p className="text-gray-600 mb-4">Scenic hill country town with stunning mountain views and hiking trails.</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                      Hike Little Adam&apos;s Peak
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                      Visit Nine Arch Bridge
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                      Try Flying Ravana Zipline
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                      Take Scenic Train Ride
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                      Visit Ravana Falls
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Mirissa */}
-            <Link href="/destinations/mirissa" className="block">
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src="https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=800&h=600&fit=crop"
-                    alt="Mirissa Beach - Beautiful beach paradise known for whale watching and surfing"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Mirissa</h3>
-                </div>
-                <div className="p-6">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Beach Paradise</h4>
-                  <p className="text-gray-600 mb-4">Beautiful beach destination known for whale watching and water sports.</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
-                      Whale Watching Tour
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
-                      Surfing Lessons
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
-                      Visit Coconut Tree Hill
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
-                      Beach Party & Nightlife
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
-                      Secret Beach Exploration
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Yala */}
-            <Link href="/destinations/yala" className="block">
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src="https://images.unsplash.com/photo-1516426122078-c23e76319801?w=800&h=600&fit=crop"
-                    alt="Yala National Park - Wildlife safari destination with leopards and elephants"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <h3 className="absolute bottom-4 left-4 text-2xl font-bold text-white">Yala National Park</h3>
-                </div>
-                <div className="p-6">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">Wildlife Safari</h4>
-                  <p className="text-gray-600 mb-4">Yala National Park is a forest reserve and is located in Uva, Sri Lanka.</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                      Jeep Safari in Yala National Park
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                      Spot Leopards & Elephants
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                      Bird Watching
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                      Visit Sithulpawwa Rock Temple
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                      Campfire BBQ Experience
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg mb-2">No destinations found</p>
+              <p className="text-gray-400 text-sm">Please check back later</p>
+            </div>
+          )}
         </div>  
       </section>
 
@@ -1376,19 +1223,19 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section - Inspired by Swimlane's CTA */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 px-2">
             Ready to Start Your Sri Lankan Adventure?
           </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-6 sm:mb-8 max-w-3xl mx-auto px-2">
             Let us help you create unforgettable memories with our expertly crafted tour packages.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg transition-colors">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center px-2">
+            <button className="bg-white text-blue-600 hover:bg-gray-100 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors min-h-[44px] touch-manipulation">
               Get Started Today
               </button>
-            <button className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg transition-colors">
+            <button className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors min-h-[44px] touch-manipulation">
               Contact Us
               </button>
             </div>

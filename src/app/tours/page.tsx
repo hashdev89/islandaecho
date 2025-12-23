@@ -81,14 +81,14 @@ export default function ToursPage() {
       <Header />
       
       {/* Header */}
-      <div style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="text-white py-12 sm:py-16">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 sm:py-16 md:py-20 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-3 sm:mb-4 px-2">Explore Amazing Tours</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4 px-2">Explore Amazing Tours</h1>
             <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto px-2">Discover incredible destinations with our curated tour packages</p>
           </div>
         </div>
-      </div>
+      </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">

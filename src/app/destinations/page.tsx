@@ -16,7 +16,6 @@ import Header from '../../components/Header'
 
 export default function DestinationsPage() {
   const [selectedRegion, setSelectedRegion] = useState('all')
-  const [priceRange, setPriceRange] = useState([0, 2000])
   const [searchQuery, setSearchQuery] = useState('')
 
   const colors = {
@@ -80,10 +79,9 @@ export default function DestinationsPage() {
 
   const filteredDestinations = (destinations || []).filter(destination => {
     const regionMatch = selectedRegion === 'all' || destination.region === selectedRegion
-    const priceMatch = (destination.price ?? 0) >= priceRange[0] && (destination.price ?? 0) <= priceRange[1]
     const searchMatch = destination.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                        (destination.description || '').toLowerCase().includes(searchQuery.toLowerCase())
-    return regionMatch && priceMatch && searchMatch
+    return regionMatch && searchMatch
   })
 
   return (
@@ -144,25 +142,6 @@ export default function DestinationsPage() {
                   ))}
                 </div>
               </div>
-
-              {/* Price Range */}
-              <div className="mb-6">
-                <h4 style={{ color: colors.text.base }} className="font-medium mb-3">Price Range</h4>
-                <div className="space-y-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="3000"
-                    value={priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm" style={{ color: colors.text.muted }}>
-                    <span>${priceRange[0]}</span>
-                    <span>${priceRange[1]}</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -208,18 +187,6 @@ export default function DestinationsPage() {
                 
                 const rating = 4.5 + Math.random() * 0.5 // Random rating between 4.5-5.0
                 const reviews = Math.floor(Math.random() * 200) + 50 // Random reviews 50-250
-                const price = Math.floor(Math.random() * 500) + 200 // Random price 200-700
-                
-                const bestTime = destination.region === 'Wildlife' ? 'Year Round' :
-                               destination.region.includes('Province') ? 'Dec - Mar' : 'All Year'
-                
-                const duration = destination.region === 'Wildlife' ? '1-2 Days' :
-                               destination.region.includes('Province') ? '2-3 Days' : '1 Day'
-                
-                const highlights = destination.region === 'Wildlife' ? ['Safari', 'Wildlife', 'Nature'] :
-                                 destination.region === 'Cultural Triangle' ? ['History', 'Archaeology', 'Culture'] :
-                                 destination.region.includes('Province') ? ['Culture', 'Temples', 'History'] :
-                                 ['Beach', 'Relaxation', 'Activities']
 
                 return (
                   <div key={destination.id} style={{ border: `1px solid ${colors.primary[100]}` }} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
@@ -242,34 +209,14 @@ export default function DestinationsPage() {
                     <div className="p-6">
                       <h3 style={{ color: colors.text.base }} className="text-xl font-semibold mb-2">{destination.name}</h3>
                       
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center mb-3">
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4" style={{ color: colors.secondary[400] }} />
                           <span style={{ color: colors.text.muted }} className="text-sm">{rating.toFixed(1)} ({reviews})</span>
                         </div>
-                        <div style={{ color: colors.primary[500] }} className="text-2xl font-bold">${price}</div>
                       </div>
                       
                       <p style={{ color: colors.text.muted }} className="text-sm mb-4">{destination.description}</p>
-                      
-                      <div className="grid grid-cols-2 gap-2 mb-4">
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-4 h-4" style={{ color: colors.primary[500] }} />
-                          <span style={{ color: colors.text.muted }} className="text-sm">{bestTime}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Users className="w-4 h-4" style={{ color: colors.primary[500] }} />
-                          <span style={{ color: colors.text.muted }} className="text-sm">{duration}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {highlights.map((highlight: string, index: number) => (
-                          <span key={index} style={{ background: colors.primary[100], color: colors.primary[500] }} className="px-2 py-1 rounded-full text-xs">
-                            {highlight}
-                          </span>
-                        ))}
-                      </div>
                       
                       <button style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="w-full text-white py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation">
                         <span>Explore</span>
@@ -290,7 +237,6 @@ export default function DestinationsPage() {
                   onClick={() => {
                     setSearchQuery('')
                     setSelectedRegion('all')
-                    setPriceRange([0, 2000])
                   }} 
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                 >

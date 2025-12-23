@@ -103,10 +103,10 @@ export default function ContactPage() {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 sm:py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">Get in Touch</h1>
-          <p className="text-xl max-w-3xl mx-auto opacity-90">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 px-2">Get in Touch</h1>
+          <p className="text-base sm:text-lg md:text-xl max-w-3xl mx-auto opacity-90 px-2">
             Have questions about your Sri Lanka adventure? We&apos;re here to help you plan the perfect trip.
           </p>
         </div>
