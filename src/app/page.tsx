@@ -15,6 +15,7 @@ import {
   Clock,
   Headphones,
   Play,
+  Pause,
   Award,
   Camera,
   ArrowRight
@@ -54,6 +55,9 @@ export default function HomePage() {
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null)
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [showToursDatePicker, setShowToursDatePicker] = useState(false)
+  const [selectedTourStartDate, setSelectedTourStartDate] = useState<Date | null>(null)
+  const [currentToursMonth, setCurrentToursMonth] = useState(new Date())
   const [featuredTours, setFeaturedTours] = useState<Tour[]>([])
   const [allTours, setAllTours] = useState<Tour[]>([])
   const [loadingTours, setLoadingTours] = useState(true)
@@ -94,64 +98,107 @@ export default function HomePage() {
     }
   }, [selectedStartDate, selectedEndDate])
 
+  // Sync selectedTourStartDate with searchData.startDate
   useEffect(() => {
-    const load = async () => {
+    if (searchData.startDate) {
+      const date = new Date(searchData.startDate)
+      if (!isNaN(date.getTime())) {
+        setSelectedTourStartDate(date)
+      }
+    } else {
+      setSelectedTourStartDate(null)
+    }
+  }, [searchData.startDate])
+
+  // Fetch featured tours and destinations in parallel for better performance
+  useEffect(() => {
+    const loadData = async () => {
       try {
         setLoadingTours(true)
-        // Fetch tours from API
-        const res = await fetch('/api/tours')
-        const json = await res.json()
-        if (json.success) {
-          const tours = json.data || []
-          console.log('All tours:', tours)
-          
-          // Remove duplicates based on id
-          const uniqueTours = tours.filter((tour: Tour, index: number, self: Tour[]) => 
-            index === self.findIndex((t: Tour) => t.id === tour.id)
-          )
-          
-          // Filter and validate featured tours
-          const featured = uniqueTours.filter((t: Tour) => {
-            const isValid = t && t.featured && t.id && t.name
-            if (!isValid) {
-              console.log('Invalid tour data:', t)
-            }
-            return isValid
-          })
-          
-          console.log('Found tour data:', featured)
-          setAllTours(uniqueTours)
-          setFeaturedTours(featured)
-        }
-      } catch (error) {
-        console.error('Error loading tours:', error)
-        setFeaturedTours([])
-        setAllTours([])
-      } finally {
-        setLoadingTours(false)
-      }
-    }
-    load()
-  }, [])
-
-  // Fetch destinations from API
-  useEffect(() => {
-    const loadDestinations = async () => {
-      try {
         setLoadingDestinations(true)
-        const res = await fetch('/api/destinations')
-        const json = await res.json()
-        if (json.success) {
-          setDestinations(json.data || [])
+        
+        // Fetch featured tours and destinations in parallel (priority)
+        const [toursRes, destinationsRes] = await Promise.all([
+          fetch('/api/tours/featured'),
+          fetch('/api/destinations?includeTourCount=false') // Skip tour count for faster loading
+        ])
+        
+        // Handle featured tours
+        try {
+          if (toursRes.ok) {
+            const contentType = toursRes.headers.get('content-type')
+            if (contentType && contentType.includes('application/json')) {
+              const json = await toursRes.json()
+              if (json.success) {
+                const featured = (json.data || []).filter((t: Tour) => {
+                  const isValid = t && t.featured && t.id && t.name
+                  if (!isValid) {
+                    console.log('Invalid tour data:', t)
+                  }
+                  return isValid
+                })
+                console.log('Found featured tours:', featured.length)
+                setFeaturedTours(featured)
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading featured tours:', error)
+          setFeaturedTours([])
+        } finally {
+          setLoadingTours(false)
         }
+        
+        // Handle destinations
+        try {
+          if (destinationsRes.ok) {
+            const contentType = destinationsRes.headers.get('content-type')
+            if (contentType && contentType.includes('application/json')) {
+              const json = await destinationsRes.json()
+              if (json.success) {
+                setDestinations(json.data || [])
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading destinations:', error)
+          setDestinations([])
+        } finally {
+          setLoadingDestinations(false)
+        }
+        
+        // Fetch all tours in the background (for search functionality) - lower priority
+        // This doesn't block the initial render
+        fetch('/api/tours')
+          .then(async (res) => {
+            if (res.ok) {
+              const contentType = res.headers.get('content-type')
+              if (contentType && contentType.includes('application/json')) {
+                const json = await res.json()
+                if (json.success) {
+                  const tours = json.data || []
+                  // Remove duplicates based on id
+                  const uniqueTours = tours.filter((tour: Tour, index: number, self: Tour[]) => 
+                    index === self.findIndex((t: Tour) => t.id === tour.id)
+                  )
+                  setAllTours(uniqueTours)
+                }
+              }
+            }
+          })
+          .catch((error) => {
+            console.error('Error loading all tours (background):', error)
+            // Don't set loading state for background fetch
+          })
       } catch (error) {
-        console.error('Error loading destinations:', error)
+        console.error('Error loading data:', error)
+        setFeaturedTours([])
         setDestinations([])
-      } finally {
+        setLoadingTours(false)
         setLoadingDestinations(false)
       }
     }
-    loadDestinations()
+    loadData()
   }, [])
 
   // Filter destinations
@@ -386,6 +433,18 @@ export default function HomePage() {
     }
   }
 
+  const handleTourDateSelect = (date: Date) => {
+    setSelectedTourStartDate(date)
+    const dateStr = formatDate(date)
+    setSearchData({...searchData, startDate: dateStr})
+    setShowToursDatePicker(false)
+  }
+
+  const isTourDateSelected = (date: Date) => {
+    if (!selectedTourStartDate) return false
+    return formatDate(date) === formatDate(selectedTourStartDate)
+  }
+
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate()
   }
@@ -544,15 +603,13 @@ export default function HomePage() {
                   </>
                 ) : isVideoPlaying ? (
                   <>
-                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                    </svg>
-                    Stop Video
+                    <Pause className="w-5 h-5 mr-2" />
+                    Pause
                   </>
                 ) : (
                   <>
                     <Play className="w-5 h-5 mr-2" />
-                    {videoLoaded ? 'Play Video' : 'Loading Video...'}
+                    Play
                   </>
                 )}
               </button>
@@ -579,10 +636,10 @@ export default function HomePage() {
               </div>
             
                              {/* Search Form */}
-             <div className="rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-6 md:p-8 backdrop-blur-lg border bg-white/60 dark:bg-gray-800">
+             <div className="rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-6 md:p-8 backdrop-blur-lg border bg-white/60 dark:bg-gray-800 relative z-10">
                {searchTab === 'tours' && (
                  <>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 relative z-10">
                      {/* Tour Package */}
                      <div className="relative">
                        <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Tour Package</label>
@@ -590,7 +647,7 @@ export default function HomePage() {
                          <select
                            value={searchData.tourPackage}
                            onChange={(e) => setSearchData({...searchData, tourPackage: e.target.value})}
-                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white transition-colors min-h-[44px] touch-manipulation"
+                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
                          >
                            <option value="">Select Your Package</option>
                           {allTours.map((tourPackage: Tour, index: number) => (
@@ -599,6 +656,7 @@ export default function HomePage() {
                             </option>
                           ))}
                          </select>
+                         <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-600 dark:text-gray-400" />
                        </div>
                      </div>
                      
@@ -606,16 +664,96 @@ export default function HomePage() {
                      <div className="relative">
                        <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Start Date</label>
                        <div className="relative">
-                         <input
-                           type="date"
-                           value={searchData.startDate}
-                           onChange={(e) => setSearchData({...searchData, startDate: e.target.value})}
-                           className="w-full px-3 sm:px-4 py-3 sm:py-4 pr-10 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] transition-colors text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800 min-h-[44px] touch-manipulation"
-                           min={new Date().toISOString().split('T')[0]}
-                           placeholder="Select start date"
-                         />
+                         <button
+                           type="button"
+                           onClick={() => setShowToursDatePicker(!showToursDatePicker)}
+                           className="w-full px-3 sm:px-4 py-3 sm:py-4 pr-10 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] active:border-[#187BFF] transition-colors text-left bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
+                         >
+                           {searchData.startDate 
+                             ? new Date(searchData.startDate).toLocaleDateString('en-US', { 
+                                 year: 'numeric', 
+                                 month: 'short', 
+                                 day: 'numeric' 
+                               })
+                             : 'Select start date'}
+                         </button>
                          <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
                        </div>
+                       
+                       {/* Date Picker Popup */}
+                       {showToursDatePicker && (
+                         <div className="absolute top-full left-0 mt-1 text-black bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-3 sm:p-4 min-w-[280px] max-w-[90vw] sm:max-w-none">
+                           {/* Calendar Header */}
+                           <div className="flex items-center justify-between mb-4">
+                             <button
+                               onClick={() => setCurrentToursMonth(new Date(currentToursMonth.getFullYear(), currentToursMonth.getMonth() - 1))}
+                               className="p-1 hover:bg-gray-100 rounded"
+                             >
+                               ←
+                             </button>
+                             <h3 className="font-semibold">
+                               {currentToursMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                             </h3>
+                             <button
+                               onClick={() => setCurrentToursMonth(new Date(currentToursMonth.getFullYear(), currentToursMonth.getMonth() + 1))}
+                               className="p-1 hover:bg-gray-100 rounded"
+                             >
+                               →
+                             </button>
+                           </div>
+                           
+                           {/* Calendar Grid */}
+                           <div className="grid grid-cols-7 gap-1 mb-2">
+                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                               <div key={day} className="text-center text-xs font-medium text-gray-700 p-1">
+                                 {day}
+                               </div>
+                             ))}
+                           </div>
+                           
+                           <div className="grid grid-cols-7 gap-1">
+                             {/* Empty cells for days before first day of month */}
+                             {Array.from({ length: getFirstDayOfMonth(currentToursMonth.getFullYear(), currentToursMonth.getMonth()) }).map((_, i) => (
+                               <div key={`empty-${i}`} className="p-2"></div>
+                             ))}
+                             
+                             {/* Days of the month */}
+                             {Array.from({ length: getDaysInMonth(currentToursMonth.getFullYear(), currentToursMonth.getMonth()) }).map((_, i) => {
+                               const day = i + 1
+                               const date = new Date(currentToursMonth.getFullYear(), currentToursMonth.getMonth(), day)
+                               const isToday = formatDate(date) === formatDate(new Date())
+                               const isPast = date < new Date(new Date().setHours(0, 0, 0, 0))
+                               
+                               return (
+                                 <button
+                                   key={day}
+                                   onClick={() => !isPast && handleTourDateSelect(date)}
+                                   disabled={isPast}
+                                   className={`p-2 text-sm rounded transition-colors ${
+                                     isPast
+                                       ? 'text-gray-500 cursor-not-allowed'
+                                       : isTourDateSelected(date)
+                                       ? 'bg-blue-600 text-white'
+                                       : isToday
+                                       ? 'bg-gray-100 text-gray-900'
+                                       : 'hover:bg-gray-100 text-gray-900'
+                                   }`}
+                                 >
+                                   {day}
+                                 </button>
+                               )
+                             })}
+                           </div>
+                           
+                           {/* Instructions */}
+                           <div className="mt-3 text-xs text-gray-700 text-center">
+                             {!selectedTourStartDate 
+                               ? 'Click to select start date'
+                               : 'Date selected'
+                             }
+                           </div>
+                         </div>
+                       )}
                      </div>
                      
                      {/* Number of Guests */}
@@ -695,7 +833,7 @@ export default function HomePage() {
 
                                {searchTab === 'plan-trip' && (
                   <>
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 relative z-10">
                       {/* Destinations Selection */}
                       <div className="lg:col-span-2">
                         <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Destinations</label>
@@ -716,7 +854,7 @@ export default function HomePage() {
                               </option>
                             ))}
                           </select>
-                          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none text-blue-600" />
+                          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-600 dark:text-gray-400" />
                         </div>
                         
                         {/* Selected Destinations Display */}
@@ -844,18 +982,18 @@ export default function HomePage() {
                         
                         {/* Number of Guests */}
                         <div className="relative">
-                          <label className="block text-sm font-medium mb-2 text-blue-950 dark:text-white">Guests</label>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Guests</label>
                           <div className="relative">
                             <select
                               value={customTripData.guests}
                               onChange={(e) => setCustomTripData({...customTripData, guests: parseInt(e.target.value)})}
-                              className="w-full pl-3 pr-8 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-base bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
+                              className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
                             >
                               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                                 <option key={num} value={num}>{num}</option>
                               ))}
                           </select>
-                            <Users className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none text-blue-600" />
+                            <Users className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 pointer-events-none text-blue-600" />
                           </div>
                         </div>
                       </div>

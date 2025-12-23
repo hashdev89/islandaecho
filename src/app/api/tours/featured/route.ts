@@ -1,0 +1,169 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import fs from 'fs'
+import path from 'path'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key'
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey)
+
+interface Tour {
+  id: string
+  name: string
+  duration: string
+  price: string
+  featured?: boolean
+  [key: string]: unknown
+}
+
+// Cache for featured tours
+let featuredToursCache: Tour[] | null = null
+let cacheTimestamp = 0
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+const FALLBACK_FILE = path.join(process.cwd(), 'data', 'tours.json')
+
+const ensureDataDir = () => {
+  const dataDir = path.dirname(FALLBACK_FILE)
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true })
+  }
+}
+
+const loadFallbackTours = (): Tour[] => {
+  try {
+    ensureDataDir()
+    if (fs.existsSync(FALLBACK_FILE)) {
+      const data = fs.readFileSync(FALLBACK_FILE, 'utf8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('Error loading fallback tours:', error)
+  }
+  return []
+}
+
+export async function GET() {
+  const startTime = Date.now()
+  
+  try {
+    // Check cache first
+    const now = Date.now()
+    if (featuredToursCache && (now - cacheTimestamp) < CACHE_DURATION) {
+      const responseTime = Date.now() - startTime
+      return NextResponse.json({ 
+        success: true, 
+        data: featuredToursCache,
+        message: 'Featured tours retrieved from cache',
+        responseTime: `${responseTime}ms`
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        }
+      })
+    }
+
+    // Check if Supabase is configured
+    const isSupabaseConfigured = supabaseUrl && 
+                                supabaseKey &&
+                                supabaseUrl !== 'https://placeholder.supabase.co' &&
+                                supabaseKey !== 'placeholder-service-key' &&
+                                supabaseUrl.includes('supabase.co') &&
+                                supabaseKey.length > 50
+    
+    if (!isSupabaseConfigured) {
+      const fallbackTours = loadFallbackTours()
+      const featured = fallbackTours.filter(t => t.featured === true)
+      
+      // Update cache
+      featuredToursCache = featured
+      cacheTimestamp = now
+      
+      const responseTime = Date.now() - startTime
+      return NextResponse.json({ 
+        success: true, 
+        data: featured,
+        message: 'Featured tours retrieved from fallback storage',
+        responseTime: `${responseTime}ms`
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        }
+      })
+    }
+    
+    // Fetch only featured tours from Supabase
+    const { data, error } = await supabaseAdmin
+      .from('tours')
+      .select('*')
+      .eq('featured', true)
+      .eq('status', 'active')
+      .order('createdat', { ascending: false })
+      .limit(20) // Limit to 20 featured tours for performance
+    
+    if (error) {
+      console.error('Supabase error:', error)
+      // Fallback to file storage
+      const fallbackTours = loadFallbackTours()
+      const featured = fallbackTours.filter(t => t.featured === true)
+      
+      featuredToursCache = featured
+      cacheTimestamp = now
+      
+      const responseTime = Date.now() - startTime
+      return NextResponse.json({ 
+        success: true, 
+        data: featured,
+        message: 'Featured tours retrieved from fallback storage due to error',
+        responseTime: `${responseTime}ms`
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        }
+      })
+    }
+    
+    // Transform database field names to frontend format
+    const featured = (data || []).map((tour: Tour) => ({
+      ...tour,
+      keyExperiences: (tour as any).key_experiences || [],
+      createdAt: (tour as any).created_at || (tour as any).createdat || new Date().toISOString(),
+      updatedAt: (tour as any).updated_at || (tour as any).updatedat || new Date().toISOString(),
+      importantInfo: (tour as any).important_info || (tour as any).importantInfo || {}
+    }))
+    
+    // Update cache
+    featuredToursCache = featured
+    cacheTimestamp = now
+    
+    const responseTime = Date.now() - startTime
+    return NextResponse.json({ 
+      success: true, 
+      data: featured,
+      message: 'Featured tours retrieved successfully',
+      responseTime: `${responseTime}ms`
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching featured tours:', error)
+    const fallbackTours = loadFallbackTours()
+    const featured = fallbackTours.filter(t => t.featured === true)
+    
+    const responseTime = Date.now() - startTime
+    return NextResponse.json({ 
+      success: true, 
+      data: featured,
+      message: 'Featured tours retrieved from fallback storage due to error',
+      responseTime: `${responseTime}ms`
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      }
+    })
+  }
+}
+

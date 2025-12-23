@@ -61,7 +61,11 @@ function mapSupabaseToFrontend(data: Record<string, unknown>) {
     requireTwoFactor: data.require_two_factor ?? false,
     allowedFileTypes: (data.allowed_file_types as string[]) || [],
     currency: data.currency || 'LKR',
-    paymentMethods: (data.payment_methods as string[]) || [],
+    paymentMethods: Array.isArray(data.payment_methods) && data.payment_methods.length > 0
+      ? (data.payment_methods as string[])
+      : (data.payment_methods && !Array.isArray(data.payment_methods) 
+          ? [data.payment_methods as string] 
+          : ['payhere', 'credit_card', 'bank_transfer', 'cash']), // Default if empty
     taxRate: data.tax_rate || 15,
     bookingDeposit: data.booking_deposit || 20,
     payhereMerchantId: data.payhere_merchant_id || '',
@@ -104,7 +108,7 @@ function mapFrontendToSupabase(data: Record<string, unknown>) {
     require_two_factor: data.requireTwoFactor ?? false,
     allowed_file_types: data.allowedFileTypes || [],
     currency: data.currency || 'LKR',
-    payment_methods: data.paymentMethods || [],
+    payment_methods: Array.isArray(data.paymentMethods) ? data.paymentMethods : (data.paymentMethods ? [data.paymentMethods] : []),
     tax_rate: data.taxRate || 15,
     booking_deposit: data.bookingDeposit || 20,
     payhere_merchant_id: data.payhereMerchantId || '',
@@ -141,7 +145,9 @@ export async function GET() {
         console.error('Supabase settings error:', error)
         // Fall through to file storage
       } else if (data) {
+        console.log('Loaded payment methods from DB:', data.payment_methods)
         const mappedSettings = mapSupabaseToFrontend(data)
+        console.log('Mapped payment methods:', mappedSettings.paymentMethods)
         return NextResponse.json({ success: true, data: mappedSettings })
       }
     }
@@ -159,7 +165,8 @@ export async function GET() {
       site_url: 'https://isleandecho.com',
       admin_email: 'admin@isleandecho.com',
       timezone: 'Asia/Colombo',
-      language: 'en'
+      language: 'en',
+      payment_methods: ['payhere', 'credit_card', 'bank_transfer', 'cash']
     })
 
     return NextResponse.json({ success: true, data: defaultSettings })
@@ -189,6 +196,13 @@ export async function PUT(request: NextRequest) {
     if (isSupabaseConfigured) {
       const supabaseData = mapFrontendToSupabase(settings)
       
+      // Ensure payment_methods is properly formatted as an array
+      if (supabaseData.payment_methods && !Array.isArray(supabaseData.payment_methods)) {
+        supabaseData.payment_methods = [supabaseData.payment_methods]
+      }
+      
+      console.log('Saving payment methods:', supabaseData.payment_methods)
+      
       const { data, error } = await supabaseAdmin
         .from('settings')
         .upsert({
@@ -203,8 +217,10 @@ export async function PUT(request: NextRequest) {
 
       if (error) {
         console.error('Supabase update error:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
         // Fall through to file storage
       } else if (data) {
+        console.log('Settings saved successfully, payment methods:', data.payment_methods)
         const mappedSettings = mapSupabaseToFrontend(data)
         return NextResponse.json({ 
           success: true, 

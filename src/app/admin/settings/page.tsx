@@ -142,7 +142,27 @@ export default function AdminSettingsPage() {
         const result = await response.json()
         
         if (result.success && result.data) {
-          setSettings(result.data)
+          // Ensure paymentMethods is always an array
+          let paymentMethods = Array.isArray(result.data.paymentMethods) 
+            ? result.data.paymentMethods 
+            : (result.data.paymentMethods ? [result.data.paymentMethods] : [])
+          
+          // If paymentMethods is empty, use defaults
+          if (paymentMethods.length === 0) {
+            paymentMethods = defaultSettings.paymentMethods
+          }
+          
+          console.log('Loaded payment methods:', paymentMethods)
+          
+          const loadedSettings = {
+            ...result.data,
+            paymentMethods: paymentMethods
+          }
+          setSettings(loadedSettings)
+        } else {
+          // If no data loaded, use defaults
+          console.log('No settings data, using defaults')
+          setSettings(defaultSettings)
         }
       } catch (error) {
         console.error('Error loading settings:', error)
@@ -167,20 +187,53 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setLoading(true)
     try {
+      // Ensure paymentMethods is always an array
+      const paymentMethodsToSave = Array.isArray(settings.paymentMethods) 
+        ? settings.paymentMethods 
+        : (settings.paymentMethods ? [settings.paymentMethods] : [])
+      
+      console.log('Saving payment methods:', paymentMethodsToSave)
+      
+      const settingsToSave = {
+        ...settings,
+        paymentMethods: paymentMethodsToSave
+      }
+
       const response = await fetch('/api/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({ settings: settingsToSave }),
       })
 
       const result = await response.json()
 
       if (result.success) {
+        console.log('Save successful, reloading settings...')
+        // Reload settings from server to ensure consistency
+        const reloadResponse = await fetch('/api/settings')
+        const reloadResult = await reloadResponse.json()
+        
+        if (reloadResult.success && reloadResult.data) {
+          // Ensure paymentMethods is always an array when reloading
+          let paymentMethods = Array.isArray(reloadResult.data.paymentMethods) 
+            ? reloadResult.data.paymentMethods 
+            : (reloadResult.data.paymentMethods ? [reloadResult.data.paymentMethods] : [])
+          
+          console.log('Reloaded payment methods:', paymentMethods)
+          
+          const reloadedSettings = {
+            ...reloadResult.data,
+            paymentMethods: paymentMethods
+          }
+          setSettings(reloadedSettings)
+        }
+        
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
       } else {
+        console.error('Save failed:', result.error)
         alert(result.error || 'Failed to save settings')
       }
     } catch (error) {
@@ -673,30 +726,40 @@ export default function AdminSettingsPage() {
         <div className="mt-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">Enabled Payment Methods</label>
           <div className="space-y-2 mt-2">
-            {['payhere', 'credit_card', 'bank_transfer', 'cash', 'paypal', 'stripe'].map((method) => (
-              <label key={method} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.paymentMethods.includes(method)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      updateSetting('paymentMethods', [...settings.paymentMethods, method])
-                    } else {
-                      updateSetting('paymentMethods', settings.paymentMethods.filter(m => m !== method))
-                    }
-                  }}
-                  className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span className="capitalize text-sm text-gray-700">
-                  {method === 'payhere' ? 'PayHere' : method.replace('_', ' ')}
-                </span>
-                {method === 'payhere' && (
-                  <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                    Recommended
+            {['payhere', 'credit_card', 'bank_transfer', 'cash', 'paypal', 'stripe'].map((method) => {
+              const isChecked = Array.isArray(settings.paymentMethods) && settings.paymentMethods.includes(method)
+              return (
+                <label key={method} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => {
+                      const currentMethods = Array.isArray(settings.paymentMethods) ? settings.paymentMethods : []
+                      if (e.target.checked) {
+                        if (!currentMethods.includes(method)) {
+                          const newMethods = [...currentMethods, method]
+                          console.log('Adding payment method:', method, 'New array:', newMethods)
+                          updateSetting('paymentMethods', newMethods)
+                        }
+                      } else {
+                        const newMethods = currentMethods.filter(m => m !== method)
+                        console.log('Removing payment method:', method, 'New array:', newMethods)
+                        updateSetting('paymentMethods', newMethods)
+                      }
+                    }}
+                    className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="capitalize text-sm text-gray-700">
+                    {method === 'payhere' ? 'PayHere' : method.replace('_', ' ')}
                   </span>
-                )}
-              </label>
-            ))}
+                  {method === 'payhere' && (
+                    <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                      Recommended
+                    </span>
+                  )}
+                </label>
+              )
+            })}
           </div>
         </div>
       </div>

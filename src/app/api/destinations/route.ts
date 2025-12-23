@@ -139,9 +139,12 @@ async function calculateToursCount(destinations: Destination[]): Promise<Map<str
   return toursCountMap
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    console.log('GET /api/destinations - Fetching destinations...')
+    const { searchParams } = new URL(request.url)
+    const includeTourCount = searchParams.get('includeTourCount') === 'true'
+    
+    console.log('GET /api/destinations - Fetching destinations...', { includeTourCount })
     
     // Check if Supabase is configured
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -149,7 +152,7 @@ export async function GET() {
     
     const isSupabaseConfigured = supabaseUrl && 
                                   supabaseKey && 
-                                  supabaseUrl.includes('supabase.co') && 
+                                  supabaseUrl.includes('supabase.co') &&
                                   supabaseKey.length > 50
     
     let destinations: Destination[] = []
@@ -183,14 +186,21 @@ export async function GET() {
       destinations = loadFallbackDestinations()
     }
     
-    // Calculate tours count for each destination
-    const toursCountMap = await calculateToursCount(destinations)
-    
-    // Add toursCount to each destination
-    const destinationsWithCount = destinations.map(dest => ({
-      ...dest,
-      toursCount: toursCountMap.get(dest.name) || 0
-    }))
+    // Only calculate tours count if requested (for performance)
+    let destinationsWithCount = destinations
+    if (includeTourCount) {
+      const toursCountMap = await calculateToursCount(destinations)
+      destinationsWithCount = destinations.map(dest => ({
+        ...dest,
+        toursCount: toursCountMap.get(dest.name) || 0
+      }))
+    } else {
+      // Set default count to 0 for faster response
+      destinationsWithCount = destinations.map(dest => ({
+        ...dest,
+        toursCount: 0
+      }))
+    }
     
     console.log('Current destinations count:', destinationsWithCount.length)
     return NextResponse.json({ 
@@ -199,7 +209,7 @@ export async function GET() {
       message: isSupabaseConfigured ? 'Destinations retrieved from Supabase' : 'Destinations retrieved from fallback storage'
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       }
     })
   } catch (error: unknown) {
@@ -207,11 +217,10 @@ export async function GET() {
     console.log('Falling back to persistent storage')
     const fallbackDestinations = loadFallbackDestinations()
     
-    // Try to calculate tours count even in error case
-    const toursCountMap = await calculateToursCount(fallbackDestinations)
+    // Don't calculate tour count in error case for faster response
     const destinationsWithCount = fallbackDestinations.map(dest => ({
       ...dest,
-      toursCount: toursCountMap.get(dest.name) || 0
+      toursCount: 0
     }))
     
     return NextResponse.json({ 

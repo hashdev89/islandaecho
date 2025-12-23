@@ -466,7 +466,16 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      console.error('Failed to parse request body as JSON:', parseError)
+      return NextResponse.json(
+        { success: false, message: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
     console.log('POST /api/tours - Received data:', body)
     
     // Validate required fields
@@ -596,10 +605,10 @@ export async function POST(request: NextRequest) {
       dbTour.itinerary = []
     }
     
-    // Skip important_info - column doesn't exist in this schema
-    // if (newTour.importantInfo) {
-    //   dbTour.important_info = newTour.importantInfo
-    // }
+    // Handle importantInfo JSONB field
+    if (newTour.importantInfo !== undefined) {
+      dbTour.importantInfo = newTour.importantInfo || {}
+    }
 
     console.log('Prepared tour data for database:', JSON.stringify(dbTour, null, 2))
 
@@ -700,7 +709,16 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      console.error('Failed to parse request body as JSON:', parseError)
+      return NextResponse.json(
+        { success: false, message: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
     const { id, ...updateData } = body
     console.log('PUT /api/tours - Received update data:', { id, updateData })
 
@@ -823,10 +841,10 @@ export async function PUT(request: NextRequest) {
         : []
     }
     
-    // Skip important_info - column doesn't exist in this schema
-    // if (updateData.importantInfo || updateData.important_info) {
-    //   dbUpdateData.important_info = updateData.importantInfo || updateData.important_info || {}
-    // }
+    // Handle importantInfo JSONB field
+    if (updateData.importantInfo !== undefined) {
+      dbUpdateData.importantInfo = updateData.importantInfo || {}
+    }
 
     // Remove frontend-only fields
     delete dbUpdateData.keyExperiences
@@ -837,7 +855,6 @@ export async function PUT(request: NextRequest) {
     delete dbUpdateData.groupsize
     delete dbUpdateData.bestTime
     delete dbUpdateData.besttime
-    delete dbUpdateData.importantInfo
 
     console.log('Prepared tour data for database update:', dbUpdateData)
 

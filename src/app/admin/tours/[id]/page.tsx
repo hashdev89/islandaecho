@@ -102,6 +102,18 @@ export default function TourEditor() {
   const fetchDestinations = async () => {
     try {
       const response = await fetch('/api/destinations')
+      if (!response.ok) {
+        console.error('Failed to fetch destinations - HTTP error:', response.status)
+        setAvailableDestinations([])
+        return
+      }
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        console.error('Failed to fetch destinations - non-JSON response:', text.substring(0, 200))
+        setAvailableDestinations([])
+        return
+      }
       const result = await response.json()
       
       if (result.success && Array.isArray(result.data)) {
@@ -192,7 +204,22 @@ export default function TourEditor() {
           if (found) {
             console.log('Found tour data:', found)
             console.log('Tour destinations:', found.destinations)
-            setTour(found as TourPackage)
+            // Ensure importantInfo has the correct structure
+            const normalizedTour = {
+              ...found,
+              importantInfo: {
+                requirements: Array.isArray(found.importantInfo?.requirements)
+                  ? found.importantInfo.requirements.map((req: any) => ({
+                      activity: req.activity || '',
+                      requirements: Array.isArray(req.requirements) ? req.requirements : []
+                    }))
+                  : [],
+                whatToBring: Array.isArray(found.importantInfo?.whatToBring) 
+                  ? found.importantInfo.whatToBring 
+                  : []
+              }
+            }
+            setTour(normalizedTour as TourPackage)
           } else {
             console.log('Tour not found with ID:', tourId)
             // Set a default tour structure to prevent crashes
@@ -531,14 +558,14 @@ export default function TourEditor() {
       ...tour,
       importantInfo: {
         ...currentImportantInfo,
-        requirements: [...currentImportantInfo.requirements, newRequirement]
+        requirements: [...(currentImportantInfo.requirements || []), newRequirement]
       }
     })
   }
 
   const removeRequirement = (reqIndex: number) => {
     const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
-    const newRequirements = currentImportantInfo.requirements.filter((_, index) => index !== reqIndex)
+    const newRequirements = (currentImportantInfo.requirements || []).filter((_, index) => index !== reqIndex)
     setTour({
       ...tour,
       importantInfo: {
@@ -550,8 +577,11 @@ export default function TourEditor() {
 
   const addRequirementItem = (reqIndex: number) => {
     const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
-    const newRequirements = [...currentImportantInfo.requirements]
+    const newRequirements = [...(currentImportantInfo.requirements || [])]
     if (newRequirements[reqIndex]) {
+      if (!newRequirements[reqIndex].requirements) {
+        newRequirements[reqIndex].requirements = []
+      }
       newRequirements[reqIndex].requirements.push('')
     }
     setTour({
@@ -565,8 +595,8 @@ export default function TourEditor() {
 
   const removeRequirementItem = (reqIndex: number, requirementIndex: number) => {
     const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
-    const newRequirements = [...currentImportantInfo.requirements]
-    if (newRequirements[reqIndex]) {
+    const newRequirements = [...(currentImportantInfo.requirements || [])]
+    if (newRequirements[reqIndex] && newRequirements[reqIndex].requirements) {
       newRequirements[reqIndex].requirements = newRequirements[reqIndex].requirements.filter((_, index) => index !== requirementIndex)
     }
     setTour({
@@ -580,8 +610,8 @@ export default function TourEditor() {
 
   const updateRequirement = (reqIndex: number, requirementIndex: number, value: string) => {
     const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
-    const newRequirements = [...currentImportantInfo.requirements]
-    if (newRequirements[reqIndex] && newRequirements[reqIndex].requirements[requirementIndex] !== undefined) {
+    const newRequirements = [...(currentImportantInfo.requirements || [])]
+    if (newRequirements[reqIndex] && newRequirements[reqIndex].requirements && newRequirements[reqIndex].requirements[requirementIndex] !== undefined) {
       newRequirements[reqIndex].requirements[requirementIndex] = value
     }
     setTour({
@@ -595,7 +625,7 @@ export default function TourEditor() {
 
   const updateRequirementActivity = (reqIndex: number, value: string) => {
     const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
-    const newRequirements = [...currentImportantInfo.requirements]
+    const newRequirements = [...(currentImportantInfo.requirements || [])]
     if (newRequirements[reqIndex]) {
       newRequirements[reqIndex].activity = value
     }
@@ -615,7 +645,7 @@ export default function TourEditor() {
         ...tour,
         importantInfo: {
           ...currentImportantInfo,
-          whatToBring: [...currentImportantInfo.whatToBring, newWhatToBring.trim()]
+          whatToBring: [...(currentImportantInfo.whatToBring || []), newWhatToBring.trim()]
         }
       })
       setNewWhatToBring('')
@@ -624,7 +654,7 @@ export default function TourEditor() {
 
   const removeWhatToBring = (index: number) => {
     const currentImportantInfo = tour.importantInfo || { requirements: [], whatToBring: [] }
-    const newWhatToBring = currentImportantInfo.whatToBring.filter((_, i) => i !== index)
+    const newWhatToBring = (currentImportantInfo.whatToBring || []).filter((_, i) => i !== index)
     setTour({
       ...tour,
       importantInfo: {
@@ -1310,7 +1340,7 @@ export default function TourEditor() {
                       </button>
                     </div>
                     <div className="space-y-2">
-                      {req.requirements.map((requirement, requirementIndex) => (
+                      {(req.requirements || []).map((requirement, requirementIndex) => (
                         <div key={requirementIndex} className="flex items-center space-x-2">
                           <input
                             type="text"

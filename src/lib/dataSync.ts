@@ -105,6 +105,17 @@ class DataSyncService {
   async fetchTours(): Promise<TourData[]> {
     try {
       const response = await fetch('/api/tours')
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Failed to fetch tours - HTTP error:', response.status, errorText)
+        return []
+      }
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        console.error('Failed to fetch tours - non-JSON response:', text.substring(0, 200))
+        return []
+      }
       const result = await response.json()
       return result.success ? result.data : []
     } catch (error) {
@@ -131,11 +142,24 @@ class DataSyncService {
         body: JSON.stringify(tourData),
       })
       
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('DataSync: Create tour HTTP error:', response.status, errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`)
+      }
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        console.error('DataSync: Create tour - non-JSON response:', text.substring(0, 200))
+        throw new Error('Server returned non-JSON response')
+      }
+      
       const result = await response.json()
       console.log('DataSync: Create tour response:', result)
       
-      if (!response.ok || !result.success) {
-        const errorMessage = result.message || result.error?.message || `HTTP ${response.status}: Failed to create tour`
+      if (!result.success) {
+        const errorMessage = result.message || result.error?.message || 'Failed to create tour'
         console.error('DataSync: Tour creation failed:', {
           status: response.status,
           message: errorMessage,
@@ -167,7 +191,14 @@ class DataSyncService {
       if (!response.ok) {
         const errorText = await response.text()
         console.error('Update tour HTTP error:', response.status, errorText)
-        throw new Error(`HTTP ${response.status}: ${errorText}`)
+        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`)
+      }
+      
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        console.error('Update tour - non-JSON response:', text.substring(0, 200))
+        throw new Error('Server returned non-JSON response')
       }
       
       const result = await response.json()
