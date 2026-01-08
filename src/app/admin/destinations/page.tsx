@@ -14,6 +14,7 @@ import {
   Globe,
   RefreshCw
 } from 'lucide-react'
+import { useAuth } from '../../../contexts/AuthContext'
 
 interface Destination {
   id: string
@@ -29,6 +30,7 @@ interface Destination {
 }
 
 export default function DestinationsManagement() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [regionFilter, setRegionFilter] = useState('all')
   const [destinations, setDestinations] = useState<Destination[]>([])
@@ -220,13 +222,15 @@ export default function DestinationsManagement() {
                   >
                     <Edit className="h-4 w-4" />
                   </Link>
-                  <button
-                    onClick={() => handleDeleteDestination(destination.id)}
-                    className="text-red-400 hover:text-red-600 p-1"
-                    title="Delete destination"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => handleDeleteDestination(destination.id)}
+                      className="text-red-400 hover:text-red-600 p-1"
+                      title="Delete destination"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                   <button className="text-gray-400 hover:text-gray-600 p-1">
                     <MoreHorizontal className="h-4 w-4" />
                   </button>

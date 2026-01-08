@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   RefreshCw
 } from 'lucide-react'
+import { useAuth } from '../../../contexts/AuthContext'
 
 interface TourPackage {
   id: string
@@ -29,6 +30,7 @@ interface TourPackage {
 }
 
 export default function ToursManagement() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [tours, setTours] = useState<TourPackage[]>([])
@@ -294,13 +296,15 @@ export default function ToursManagement() {
                       >
                         <Edit className="h-4 w-4" />
                       </Link>
-                      <button
-                        onClick={() => handleDeleteTour(tour.id)}
-                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="Delete tour"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {user?.role === 'admin' && (
+                        <button
+                          onClick={() => handleDeleteTour(tour.id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Delete tour"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                       <button className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors">
                         <MoreHorizontal className="h-4 w-4" />
                       </button>

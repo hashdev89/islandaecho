@@ -224,9 +224,19 @@ export default function BookingDetailPage() {
           </div>
         </div>
         <div className="flex space-x-3">
-          <button className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+          <button 
+            onClick={() => {
+              const link = document.createElement('a')
+              link.href = `/api/invoices/${booking.id}`
+              link.download = `Invoice-${booking.id}.pdf`
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+            }}
+            className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
             <Download className="w-4 h-4 mr-2" />
-            Export
+            Download Invoice
           </button>
           <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <Send className="w-4 h-4 mr-2" />
@@ -414,7 +424,17 @@ export default function BookingDetailPage() {
                 <Phone className="w-4 h-4 mr-2" />
                 Call Customer
               </button>
-              <button className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              <button 
+                onClick={() => {
+                  const link = document.createElement('a')
+                  link.href = `/api/invoices/${booking.id}`
+                  link.download = `Invoice-${booking.id}.pdf`
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                }}
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Download Invoice
               </button>

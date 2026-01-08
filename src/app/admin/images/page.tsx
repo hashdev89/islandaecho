@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import ImageUploadModal from '@/components/ImageUploadModal'
+import { useAuth } from '../../../contexts/AuthContext'
 
 interface ImageItem {
   id: string
@@ -32,6 +33,7 @@ interface ImageItem {
 }
 
 export default function ImagesManagement() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -44,6 +46,9 @@ export default function ImagesManagement() {
   const [imageUsage, setImageUsage] = useState<{ [key: string]: string[] }>({})
   const [migrating, setMigrating] = useState(false)
   const [cleaning, setCleaning] = useState(false)
+  
+  // Check if user has access (admin or staff only)
+  const hasAccess = user?.role === 'admin' || user?.role === 'staff'
 
   // Fetch image usage from API
   const fetchImageUsage = async () => {
@@ -182,8 +187,22 @@ export default function ImagesManagement() {
 
   // Load images on component mount
   useEffect(() => {
-    fetchImages()
-  }, [fetchImages])
+    if (hasAccess) {
+      fetchImages()
+    }
+  }, [fetchImages, hasAccess])
+
+  // Check access before rendering
+  if (!hasAccess) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You need admin or staff privileges to access this page.</p>
+        </div>
+      </div>
+    )
+  }
 
   const categories = [...new Set(images.map(img => img.category))]
 

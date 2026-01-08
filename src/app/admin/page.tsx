@@ -15,6 +15,7 @@ import {
   Eye,
   RefreshCw
 } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface Booking {
   id: string
@@ -34,8 +35,22 @@ interface Booking {
 }
 
 export default function AdminDashboard() {
+  const { user } = useAuth()
   const [recentBookings, setRecentBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [totalChats, setTotalChats] = useState(0)
+  
+  // Only admin can access dashboard
+  if (user?.role !== 'admin') {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You need admin privileges to access the dashboard.</p>
+        </div>
+      </div>
+    )
+  }
   const [stats, setStats] = useState([
     {
       name: 'Total Tours',
@@ -70,6 +85,19 @@ export default function AdminDashboard() {
       href: '/admin/bookings'
     }
   ])
+
+  // Function to fetch chat count
+  const fetchChatCount = async () => {
+    try {
+      const res = await fetch('/api/chat/conversations?status=all')
+      const json = await res.json()
+      if (json.success && json.data) {
+        setTotalChats(json.data.length)
+      }
+    } catch (error) {
+      console.error('Error fetching chat count:', error)
+    }
+  }
 
   // Function to fetch bookings data
   const fetchBookings = async () => {
@@ -117,40 +145,28 @@ export default function AdminDashboard() {
           .reduce((sum: number, b: Booking) => sum + (b.totalPrice || 0), 0);
 
         const confirmedBookings = bookings.filter((b: Booking) => b.status === 'confirmed').length;
-        setStats([
-          {
-            name: 'Total Tours',
-            value: '12',
-            change: '+12%',
-            changeType: 'positive',
-            icon: Package,
-            href: '/admin/tours'
-          },
-          {
-            name: 'Destinations',
-            value: '8',
-            change: '+2',
-            changeType: 'positive',
-            icon: MapPin,
-            href: '/admin/destinations'
-          },
-          {
-            name: 'Total Bookings',
-            value: bookings.length.toString(),
-            change: `+${confirmedBookings}`,
-            changeType: 'positive',
-            icon: Calendar,
-            href: '/admin/bookings'
-          },
-          {
-            name: 'Revenue',
-            value: `$${totalRevenue.toLocaleString()}`,
-            change: '+20.1%',
-            changeType: 'positive',
-            icon: DollarSign,
-            href: '/admin/bookings'
+        setStats(prev => prev.map(stat => {
+          if (stat.name === 'Total Bookings') {
+            return {
+              ...stat,
+              value: bookings.length.toString(),
+              change: `+${confirmedBookings}`
+            }
           }
-        ])
+          if (stat.name === 'Revenue') {
+            return {
+              ...stat,
+              value: `$${totalRevenue.toLocaleString()}`
+            }
+          }
+          if (stat.name === 'Chats') {
+            return {
+              ...stat,
+              value: totalChats.toString()
+            }
+          }
+          return stat
+        }))
       }
     } catch (error) {
       console.error('Error fetching bookings:', error)
@@ -161,7 +177,17 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchBookings()
+    fetchChatCount()
   }, [])
+
+  // Update stats when totalChats changes
+  useEffect(() => {
+    setStats(prev => prev.map(stat => 
+      stat.name === 'Chats' 
+        ? { ...stat, value: totalChats.toString() }
+        : stat
+    ))
+  }, [totalChats])
 
   const quickActions = [
     {
@@ -220,13 +246,15 @@ export default function AdminDashboard() {
                     <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
                     <dd className="flex items-baseline">
                       <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
-                      <div className={`ml-2 flex items-baseline text-sm font-semibold ${
-                        stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        <TrendingUp className="self-center flex-shrink-0 h-4 w-4 text-green-500" />
-                        <span className="sr-only">{stat.changeType === 'positive' ? 'Increased' : 'Decreased'} by</span>
-                        {stat.change}
-                      </div>
+                      {stat.change && (
+                        <div className={`ml-2 flex items-baseline text-sm font-semibold ${
+                          stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          <TrendingUp className="self-center flex-shrink-0 h-4 w-4 text-green-500" />
+                          <span className="sr-only">{stat.changeType === 'positive' ? 'Increased' : 'Decreased'} by</span>
+                          {stat.change}
+                        </div>
+                      )}
                     </dd>
                   </dl>
                 </div>

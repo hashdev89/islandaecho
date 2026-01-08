@@ -1,14 +1,33 @@
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, MapPin, Package, Phone } from 'lucide-react'
+import { Home, MapPin, Package, Phone, MessageCircle } from 'lucide-react'
 import { useMobileMenu } from '../contexts/MobileMenuContext'
 
 export default function MobileBottomNav() {
   const pathname = usePathname()
   const { isMenuOpen } = useMobileMenu()
+  const [isChatOpen, setIsChatOpen] = useState(false)
+
+  // Handle chat button click
+  const handleChatClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    // Trigger chat open event that WhatsAppChat component can listen to
+    window.dispatchEvent(new CustomEvent('openChat'))
+  }
+
+  // Listen for chat state changes
+  useEffect(() => {
+    const handleChatStateChange = (e: CustomEvent) => {
+      setIsChatOpen(e.detail.isOpen)
+    }
+    window.addEventListener('chatStateChange', handleChatStateChange as EventListener)
+    return () => {
+      window.removeEventListener('chatStateChange', handleChatStateChange as EventListener)
+    }
+  }, [])
 
   const navItems = useMemo(() => [
     { name: 'Home', href: '/', icon: Home, label: 'Home' },
@@ -50,6 +69,21 @@ export default function MobileBottomNav() {
             </Link>
           )
         })}
+        {/* Chat Button - Next to Contact */}
+        <button
+          onClick={handleChatClick}
+          className={`flex flex-col items-center justify-center flex-1 h-full min-h-[44px] touch-manipulation ${
+            isChatOpen
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-gray-400'
+          }`}
+          aria-label="Open chat"
+        >
+          <MessageCircle className={`w-5 h-5 mb-1 ${isChatOpen ? 'scale-110' : ''}`} />
+          <span className={`text-xs font-medium ${isChatOpen ? 'font-semibold' : ''}`}>
+            Chat
+          </span>
+        </button>
       </div>
     </nav>
   )

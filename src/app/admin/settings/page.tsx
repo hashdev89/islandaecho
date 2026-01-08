@@ -30,6 +30,7 @@ interface SettingsData {
   contactPhone: string
   contactAddress: string
   businessHours: string
+  whatsappPhone: string
   
   // Email Settings
   smtpHost: string
@@ -91,6 +92,7 @@ export default function AdminSettingsPage() {
     contactPhone: '+94 11 234 5678',
     contactAddress: '123 Galle Road, Colombo 03, Sri Lanka',
     businessHours: 'Mon-Fri: 9:00 AM - 6:00 PM, Sat: 9:00 AM - 4:00 PM',
+    whatsappPhone: '94741415812',
     
     // Email Settings
     smtpHost: 'smtp.gmail.com',
@@ -372,6 +374,18 @@ export default function AdminSettingsPage() {
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           placeholder="e.g., Mon-Fri: 9:00 AM - 6:00 PM"
         />
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Phone Number</label>
+        <input
+          type="text"
+          value={settings.whatsappPhone}
+          onChange={(e) => updateSetting('whatsappPhone', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="e.g., 94741415812 (country code + number without + or spaces)"
+        />
+        <p className="mt-1 text-xs text-gray-500">Format: country code + number (e.g., 94741415812 for +94 741 415 812)</p>
       </div>
     </div>
   )

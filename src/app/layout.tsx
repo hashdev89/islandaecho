@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Footer from "../components/Footer";
+import ConditionalFooter from "../components/ConditionalFooter";
 import ClientProviders from "../components/ClientProviders";
 import GoogleAnalytics from "../components/GoogleAnalytics";
 import MobileBottomNav from "../components/MobileBottomNav";
@@ -102,7 +102,7 @@ export default function RootLayout({
       >
         <ClientProviders>
           {children}
-          <Footer />
+          <ConditionalFooter />
           <MobileBottomNav />
           <WhatsAppChat />
         </ClientProviders>

@@ -1,97 +1,667 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { MessageCircle, X } from 'lucide-react'
+import { MessageCircle, X, Send, Phone } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabaseClient'
+
+interface Message {
+  id: string
+  conversation_id: string
+  sender_id: string | null
+  sender_name: string
+  sender_role: 'admin' | 'staff' | 'customer'
+  content: string
+  message_type: 'text' | 'system' | 'whatsapp_link'
+  read_at: string | null
+  created_at: string
+}
+
+interface Conversation {
+  id: string
+  customer_id: string | null
+  customer_name: string
+  customer_email: string | null
+  customer_phone: string | null
+  assigned_to: string | null
+  status: 'active' | 'closed' | 'archived'
+  last_message_at: string
+  created_at: string
+}
 
 export default function WhatsAppChat() {
+  const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
-  // WhatsApp number format: country code + number without + or spaces
-  const phoneNumber = '94741415812' // +94 741 415 812
-  const message = encodeURIComponent('Hello! I would like to know more about your tours.')
 
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`
+  // Listen for chat open event from mobile nav
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setIsOpen(true)
+    }
+    window.addEventListener('openChat', handleOpenChat)
+    return () => {
+      window.removeEventListener('openChat', handleOpenChat)
+    }
+  }, [])
 
-  const handleClick = () => {
+  // Notify mobile nav of chat state changes
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('chatStateChange', { detail: { isOpen } }))
+  }, [isOpen])
+  const [conversation, setConversation] = useState<Conversation | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [newMessage, setNewMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const [whatsappPhone, setWhatsappPhone] = useState('94741415812') // Default
+
+  // Load WhatsApp phone from settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/settings')
+        const result = await response.json()
+        if (result.success && result.data?.whatsappPhone) {
+          setWhatsappPhone(result.data.whatsappPhone)
+        }
+      } catch (error) {
+        console.error('Error loading WhatsApp phone:', error)
+      }
+    }
+    loadSettings()
+  }, [])
+
+  // Load or create conversation
+  const loadOrCreateConversation = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // If user is logged in, try to find existing conversation
+      if (user?.id) {
+        const response = await fetch(`/api/chat/conversations?status=active`)
+        const result = await response.json()
+
+        if (result.success && result.data && result.data.length > 0) {
+          const userConversation = result.data.find(
+            (conv: Conversation) => conv.customer_id === user.id
+          )
+          if (userConversation) {
+            setConversation(userConversation)
+            await loadMessages(userConversation.id)
+            setLoading(false)
+            return
+          }
+        }
+      }
+
+      // Create new conversation
+      // For guest users, generate a unique identifier
+      const customerName = user?.name || `Guest_${Date.now()}`
+      const customerEmail = user?.email || `guest_${Date.now()}@temp.com`
+      const customerPhone = user?.phone || null
+
+      console.log('Creating conversation for:', { customerName, customerEmail, customerPhone })
+
+      const response = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: user?.id || null,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('Conversation creation result:', result)
+
+      if (result.success && result.data) {
+        setConversation(result.data)
+        console.log('Conversation created successfully:', result.data.id)
+        // Load messages for the new conversation
+        await loadMessages(result.data.id)
+      } else {
+        const errorMsg = result.error || 'Failed to create conversation'
+        setError(errorMsg)
+        console.error('Failed to create conversation:', errorMsg)
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error)
+      setError('Failed to load chat. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load messages
+  const loadMessages = async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/chat/messages?conversation_id=${conversationId}`)
+      const result = await response.json()
+
+      if (result.success) {
+        const loadedMessages = result.data || []
+        // Sort by created_at to ensure correct order
+        loadedMessages.sort((a: Message, b: Message) => {
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        })
+        setMessages(loadedMessages)
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+    }
+  }
+
+  // Send message
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !conversation || sending) return
+
+    try {
+      setSending(true)
+      const response = await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: conversation.id,
+          sender_id: user?.id || null,
+          sender_name: user?.name || 'Guest',
+          sender_role: user?.role || 'customer',
+          content: newMessage.trim(),
+          message_type: 'text'
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setNewMessage('')
+        // Reload messages to get the latest including the one just sent and welcome message
+        await loadMessages(conversation.id)
+        
+        // If name was updated, reload conversation to get updated name
+        if (result.name_updated && conversation) {
+          const convResponse = await fetch(`/api/chat/conversations?status=active`)
+          const convResult = await convResponse.json()
+          if (convResult.success && convResult.data) {
+            const updatedConv = convResult.data.find((c: Conversation) => c.id === conversation.id)
+            if (updatedConv) {
+              setConversation(updatedConv)
+            }
+          }
+        }
+        
+        // Scroll to bottom after sending
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
+      } else {
+        alert('Failed to send message: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      alert('Failed to send message')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Open WhatsApp
+  const openWhatsApp = () => {
+    const message = encodeURIComponent('Hello! I would like to know more about your tours.')
+    const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
   }
 
-  return (
-    <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50">
-      {/* Chat Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-3 sm:p-4 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center group"
-        aria-label="Open WhatsApp chat"
-        style={{
-          width: '56px',
-          height: '56px',
-          boxShadow: '0 4px 20px rgba(37, 211, 102, 0.4)'
-        }}
-      >
-        {isOpen ? (
-          <X className="w-6 h-6" />
-        ) : (
-          <MessageCircle className="w-6 h-6" />
-        )}
-        
-        {/* Pulse animation */}
-        {!isOpen && (
-          <span 
-            className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-75"
-            style={{ animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }}
-          />
-        )}
-      </button>
+  // Set up real-time subscription and polling
+  useEffect(() => {
+    if (!conversation) return
 
-      {/* Chat Popup */}
+    // Try Supabase realtime first
+    const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+                                process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co'
+
+    let channel: any = null
+    let pollInterval: NodeJS.Timeout | null = null
+
+    // Always use polling for reliable real-time updates (works with both Supabase and file storage)
+    // Poll every 2 seconds to reduce flickering while still being responsive
+    pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/chat/messages?conversation_id=${conversation.id}`)
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          const currentMessages = result.data
+          // Sort by created_at
+          currentMessages.sort((a: Message, b: Message) => {
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          })
+          
+          // Only update if there are actual changes to prevent flickering
+          setMessages((prev) => {
+            // Check if message count changed
+            if (currentMessages.length !== prev.length) {
+              return currentMessages
+            }
+            // Check if any message IDs are different (new messages)
+            const prevIds = new Set(prev.map(m => m.id))
+            const hasNewMessages = currentMessages.some((m: Message) => !prevIds.has(m.id))
+            if (hasNewMessages) {
+              return currentMessages
+            }
+            // Check if message IDs are in different order (shouldn't happen, but just in case)
+            const prevIdsStr = prev.map(m => m.id).sort().join(',')
+            const currentIdsStr = currentMessages.map((m: Message) => m.id).sort().join(',')
+            if (prevIdsStr !== currentIdsStr) {
+              return currentMessages
+            }
+            // No changes detected - return previous state to prevent re-render
+            return prev
+          })
+        }
+      } catch (error) {
+        console.error('Error polling messages:', error)
+      }
+      }, 2000)
+
+    // Also try Supabase realtime if configured (as backup/additional sync)
+    if (isSupabaseConfigured) {
+      try {
+        channel = supabase
+          .channel(`conversation:${conversation.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'messages',
+              filter: `conversation_id=eq.${conversation.id}`
+            },
+            (payload) => {
+              const newMessage = payload.new as Message
+              setMessages((prev) => {
+                // Avoid duplicates
+                if (prev.some(m => m.id === newMessage.id)) return prev
+                // Add new message and sort by created_at
+                const updated = [...prev, newMessage]
+                updated.sort((a, b) => {
+                  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                })
+                return updated
+              })
+            }
+          )
+          .subscribe()
+      } catch (error) {
+        console.error('Error setting up Supabase realtime:', error)
+        // Continue with polling only
+      }
+    }
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
+      if (pollInterval) {
+        clearInterval(pollInterval)
+      }
+    }
+  }, [conversation])
+
+  useEffect(() => {
+    if (isOpen) {
+      if (!conversation && !loading) {
+        // Always load or create conversation when chat opens
+        loadOrCreateConversation()
+      } else if (conversation) {
+        // If conversation exists, refresh messages
+        loadMessages(conversation.id)
+      }
+    }
+  }, [isOpen, conversation])
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [messages.length])
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  return (
+    <>
+      {/* Desktop Chat Button and Popup Container - Hidden on mobile */}
+      <div className="hidden sm:block fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center group relative"
+          aria-label="Open chat"
+          style={{
+            width: '56px',
+            height: '56px',
+            boxShadow: '0 4px 20px rgba(37, 211, 102, 0.4)'
+          }}
+        >
+          {isOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <MessageCircle className="w-6 h-6" />
+          )}
+          
+          {/* Pulse animation */}
+          {!isOpen && (
+            <span 
+              className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-75"
+              style={{ animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }}
+            />
+          )}
+        </button>
+
+        {/* Desktop Chat Popup */}
+        {isOpen && (
+          <div className="absolute bottom-20 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 flex flex-col"
+            style={{ height: '600px', maxHeight: '80vh' }}>
+            {/* Header */}
+            <div className="bg-[#25D366] p-4 text-white">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center p-2">
+                  <Image
+                    src="/logoisle&echo.png"
+                    alt="ISLE & ECHO Logo"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">ISLE & ECHO</h3>
+                  <p className="text-sm opacity-90">
+                    {conversation ? 'Live Chat' : 'We\'re here to help!'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+              {loading ? (
+                <div className="text-center text-gray-500 py-8">
+                  <p>Setting up your chat...</p>
+                  <p className="text-xs text-gray-400 mt-2">Please wait...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-8">
+                  <p className="text-red-600 text-sm mb-4">{error}</p>
+                  <button
+                    onClick={loadOrCreateConversation}
+                    className="px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] text-sm"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {conversation && messages.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-700 mb-2 text-sm font-medium">
+                        Hi! 👋 How can we help you plan your perfect Sri Lanka adventure?
+                      </p>
+                      <p className="text-gray-500 text-xs">
+                        Start the conversation! Our team will respond as soon as possible.
+                      </p>
+                    </div>
+                  ) : null}
+                  {messages.length > 0 && messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.sender_role === 'customer' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] px-4 py-2 rounded-lg ${
+                          message.sender_role === 'customer'
+                            ? 'bg-[#25D366] text-white'
+                            : message.message_type === 'whatsapp_link'
+                            ? 'bg-green-100 border border-green-300'
+                            : 'bg-white border border-gray-200'
+                        }`}
+                      >
+                        {message.message_type === 'whatsapp_link' ? (
+                          <a
+                            href={message.content}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-green-700 hover:text-green-800"
+                          >
+                            <Phone className="w-4 h-4" />
+                            <span>Continue on WhatsApp</span>
+                          </a>
+                        ) : (
+                          <>
+                            <p className="text-xs font-semibold mb-1 opacity-90">
+                              {message.sender_role === 'customer' ? 'You' : message.sender_name}
+                              {message.sender_role !== 'customer' && (
+                                <span className="ml-1 text-xs opacity-75">
+                                  ({message.sender_role === 'admin' ? 'Admin' : 'Staff'})
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <p className="text-xs opacity-75 mt-1">
+                              {formatTime(message.created_at)}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+            </div>
+
+            {/* Message Input - Always show, but disable if no conversation yet */}
+            <div className="border-t border-gray-200 p-4 bg-white">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && conversation) {
+                      e.preventDefault()
+                      sendMessage()
+                    }
+                  }}
+                  placeholder={conversation ? "Type a message..." : "Setting up chat..."}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={!conversation || sending}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!conversation || !newMessage.trim() || sending}
+                  className="px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="mt-2 flex justify-end">
+                <button
+                  onClick={openWhatsApp}
+                  className="text-xs text-gray-500 hover:text-[#25D366] flex items-center gap-1"
+                  title="Continue conversation on WhatsApp"
+                >
+                  <Phone className="w-3 h-3" />
+                  <span>Continue on WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Full-Screen Chat Overlay */}
       {isOpen && (
-        <div className="absolute bottom-20 right-0 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-[#25D366] p-4 text-white">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center p-2">
+        <div className="sm:hidden fixed inset-0 z-[100] bg-white flex flex-col">
+          {/* Mobile Header with Close Button */}
+          <div className="bg-[#25D366] p-4 text-white flex items-center justify-between">
+            <div className="flex items-center space-x-3 flex-1">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center p-2">
                 <Image
                   src="/logoisle&echo.png"
                   alt="ISLE & ECHO Logo"
-                  width={32}
-                  height={32}
+                  width={24}
+                  height={24}
                   className="object-contain"
                 />
               </div>
               <div>
-                <h3 className="font-semibold text-lg">ISLE & ECHO</h3>
-                <p className="text-sm opacity-90">We&apos;re here to help!</p>
+                <h3 className="font-semibold text-base">ISLE & ECHO</h3>
+                <p className="text-xs opacity-90">
+                  {conversation ? 'Live Chat' : 'We\'re here to help!'}
+                </p>
               </div>
             </div>
-          </div>
-          
-          <div className="p-6">
-            <p className="text-gray-700 mb-4 text-sm">
-              Hi! 👋 How can we help you plan your perfect Sri Lanka adventure?
-            </p>
-            
             <button
-              onClick={handleClick}
-              className="w-full bg-[#25D366] hover:bg-[#20BA5A] text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+              onClick={() => setIsOpen(false)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              aria-label="Close chat"
             >
-              <svg
-                className="w-5 h-5"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-              </svg>
-              <span>Start Chat on WhatsApp</span>
+              <X className="w-6 h-6" />
             </button>
-            
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              Click to open WhatsApp
-            </p>
+          </div>
+
+          {/* Mobile Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+            {loading ? (
+              <div className="text-center text-gray-500 py-8">
+                <p>Setting up your chat...</p>
+                <p className="text-xs text-gray-400 mt-2">Please wait...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <p className="text-red-600 text-sm mb-4">{error}</p>
+                <button
+                  onClick={loadOrCreateConversation}
+                  className="px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] text-sm"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <>
+                {conversation && messages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-700 mb-2 text-sm font-medium">
+                      Hi! 👋 How can we help you plan your perfect Sri Lanka adventure?
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      Start the conversation! Our team will respond as soon as possible.
+                    </p>
+                  </div>
+                ) : null}
+                {messages.length > 0 && messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender_role === 'customer' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] px-4 py-2 rounded-lg ${
+                        message.sender_role === 'customer'
+                          ? 'bg-[#25D366] text-white'
+                          : message.message_type === 'whatsapp_link'
+                          ? 'bg-green-100 border border-green-300'
+                          : 'bg-white border border-gray-200'
+                      }`}
+                    >
+                      {message.message_type === 'whatsapp_link' ? (
+                        <a
+                          href={message.content}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-green-700 hover:text-green-800"
+                        >
+                          <Phone className="w-4 h-4" />
+                          <span>Continue on WhatsApp</span>
+                        </a>
+                      ) : (
+                        <>
+                          <p className="text-xs font-semibold mb-1 opacity-90">
+                            {message.sender_role === 'customer' ? 'You' : message.sender_name}
+                            {message.sender_role !== 'customer' && (
+                              <span className="ml-1 text-xs opacity-75">
+                                ({message.sender_role === 'admin' ? 'Admin' : 'Staff'})
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          <p className="text-xs opacity-75 mt-1">
+                            {formatTime(message.created_at)}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </>
+            )}
+          </div>
+
+          {/* Mobile Message Input */}
+          <div className="border-t border-gray-200 p-3 bg-white safe-area-inset-bottom">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && conversation) {
+                    e.preventDefault()
+                    sendMessage()
+                  }
+                }}
+                placeholder={conversation ? "Type a message..." : "Setting up chat..."}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
+                style={{ fontSize: '16px' }}
+                disabled={!conversation || sending}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!conversation || !newMessage.trim() || sending}
+                className="px-3 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={openWhatsApp}
+                className="text-xs text-gray-500 hover:text-[#25D366] flex items-center gap-1"
+              >
+                <Phone className="w-3 h-3" />
+                <span>Continue on WhatsApp</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+
+    </>
   )
 }
-

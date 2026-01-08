@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { verifyPayHerePayment, mapPayHereStatusToPaymentStatus, PayHereStatus } from '@/lib/payhere'
 import { supabaseAdmin } from '@/lib/supabaseClient'
+import { generateInvoicePDF } from '@/lib/invoiceGenerator'
+import { sendInvoiceEmail } from '@/lib/emailService'
 
 export async function POST(req: Request) {
   try {
@@ -63,11 +65,14 @@ export async function POST(req: Request) {
     }
     
     // Try to update in Supabase
+    let bookingData = null
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const { error } = await supabaseAdmin
+      const { data: updatedBooking, error } = await supabaseAdmin
         .from('bookings')
         .update(updateData)
         .eq('id', orderId)
+        .select('*')
+        .single()
       
       if (error) {
         console.error('Error updating booking in Supabase:', error)
@@ -75,6 +80,28 @@ export async function POST(req: Request) {
         // You can implement fallback storage here if needed
       } else {
         console.log('Booking updated successfully:', orderId, paymentStatus)
+        bookingData = updatedBooking
+      }
+    }
+    
+    // Generate and send invoice if payment is successful
+    if (statusCode === PayHereStatus.SUCCESS && bookingData) {
+      try {
+        console.log('Generating invoice for booking:', orderId)
+        const invoicePdf = await generateInvoicePDF(bookingData)
+        
+        console.log('Sending invoice email to:', bookingData.customer_email)
+        await sendInvoiceEmail(
+          bookingData.customer_email,
+          bookingData.customer_name,
+          orderId,
+          invoicePdf
+        )
+        console.log('Invoice sent successfully to customer')
+      } catch (invoiceError) {
+        // Log error but don't fail the payment notification
+        // Payment is already processed, invoice can be sent manually later
+        console.error('Error generating/sending invoice:', invoiceError)
       }
     }
     

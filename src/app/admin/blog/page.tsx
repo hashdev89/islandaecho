@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Plus, Edit, Trash2, Eye, Search, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '../../../contexts/AuthContext'
 
 interface BlogPost {
   id: number
@@ -25,12 +26,16 @@ const categories = ["All", "Cultural Heritage", "Nature", "Wildlife", "Beaches",
 const statuses = ["All", "Published", "Draft", "Archived"]
 
 export default function AdminBlogPage() {
+  const { user } = useAuth()
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [selectedStatus, setSelectedStatus] = useState("All")
+  
+  // Check if user has access (admin or staff only)
+  const hasAccess = user?.role === 'admin' || user?.role === 'staff'
 
   useEffect(() => {
     fetchBlogPosts()

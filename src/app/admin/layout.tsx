@@ -1,181 +1,221 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
-  MapPin,
-  Package,
+  MessageCircle,
+  FileText,
+  Calendar,
   Image as ImageIcon,
-  Users,
   Settings,
-  LogOut,
+  Users,
+  TrendingUp,
+  Search as SearchIcon,
   Menu,
   X,
-  Home,
-  Calendar,
-  FileText,
-  Search,
-  BarChart3
+  LogOut,
+  Package,
+  MapPin
 } from 'lucide-react'
-import AdminRoute from '../../components/AdminRoute'
 import { useAuth } from '../../contexts/AuthContext'
+import AdminRoute from '../../components/AdminRoute'
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { user, logout } = useAuth()
   const pathname = usePathname()
-  const { logout } = useAuth()
-  const router = useRouter()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [totalChatCount, setTotalChatCount] = useState(0)
 
-  const handleLogout = () => {
-    logout()
-    setSidebarOpen(false)
-    router.push('/')
+  // Fetch total chat count
+  useEffect(() => {
+    const fetchChatCount = async () => {
+      try {
+        const response = await fetch('/api/chat/conversations?status=all')
+        const result = await response.json()
+        if (result.success && result.data) {
+          setTotalChatCount(result.data.length)
+        }
+      } catch (error) {
+        console.error('Error fetching chat count:', error)
+      }
+    }
+
+    if (user && (user.role === 'admin' || user.role === 'staff')) {
+      fetchChatCount()
+      // Poll every 10 seconds for updates
+      const interval = setInterval(fetchChatCount, 10000)
+      return () => clearInterval(interval)
+    }
+  }, [user])
+
+  const getNavigationItems = () => {
+    const isAdmin = user?.role === 'admin'
+    const isStaff = user?.role === 'staff'
+    const isCustomer = user?.role === 'customer'
+
+    const allItems = [
+      { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['admin'] },
+      { name: 'Chat', href: '/admin/chat', icon: MessageCircle, roles: ['admin', 'staff'], badge: totalChatCount },
+      { name: 'Blog Posts', href: '/admin/blog', icon: FileText, roles: ['admin', 'staff'] },
+      { name: 'Bookings', href: '/admin/bookings', icon: Calendar, roles: ['admin', 'staff', 'customer'] },
+      { name: 'Images', href: '/admin/images', icon: ImageIcon, roles: ['admin', 'staff'] },
+      { name: 'Tours', href: '/admin/tours', icon: Package, roles: ['admin', 'staff'] },
+      { name: 'Destinations', href: '/admin/destinations', icon: MapPin, roles: ['admin', 'staff'] },
+      { name: 'Users', href: '/admin/users', icon: Users, roles: ['admin'] },
+      { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp, roles: ['admin'] },
+      { name: 'SEO', href: '/admin/seo', icon: SearchIcon, roles: ['admin'] },
+      { name: 'Settings', href: '/admin/settings', icon: Settings, roles: ['admin'] },
+    ]
+
+    if (isAdmin) {
+      return allItems
+    } else if (isStaff) {
+      return allItems.filter(item => item.roles.includes('staff'))
+    } else if (isCustomer) {
+      return allItems.filter(item => item.roles.includes('customer'))
+    }
+    return []
   }
 
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Tour Packages', href: '/admin/tours', icon: Package },
-    { name: 'Destinations', href: '/admin/destinations', icon: MapPin },
-    { name: 'Blog Posts', href: '/admin/blog', icon: FileText },
-    { name: 'Bookings', href: '/admin/bookings', icon: Calendar },
-    { name: 'Images', href: '/admin/images', icon: ImageIcon },
-    { name: 'SEO & Analytics', href: '/admin/seo', icon: Search },
-    { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-    { name: 'Users', href: '/admin/users', icon: Users },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
-  ]
+  const navigation = getNavigationItems()
+
+  const isActive = (href: string) => {
+    if (href === '/admin') {
+      return pathname === '/admin'
+    }
+    return pathname?.startsWith(href)
+  }
 
   return (
     <AdminRoute>
       <div className="min-h-screen bg-gray-50">
-        {/* Mobile sidebar */}
-        <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-          <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-            <div className="flex h-16 items-center justify-between px-4">
-              <h1 className="text-xl font-bold text-gray-900">ISLE & ECHO</h1>
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        <div
+          className={`fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="relative w-10 h-10 flex-shrink-0">
+                  <Image
+                    src="/logoisle&echo.png"
+                    alt="ISLE & ECHO"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
+                  <p className="text-xs text-gray-500 capitalize">{user?.role || 'User'}</p>
+                </div>
+              </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="lg:hidden text-gray-500 hover:text-gray-700"
               >
-                <X className="h-6 w-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <nav className="flex-1 space-y-1 px-2 py-4">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href
-                return (
+
+            <nav className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-1">
+                {navigation.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                      isActive
-                        ? 'bg-blue-100 text-blue-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
                     onClick={() => setSidebarOpen(false)}
-                  >
-                    <item.icon className="mr-3 h-5 w-5" />
-                    {item.name}
-                  </Link>
-                )
-              })}
-            </nav>
-            <div className="border-t border-gray-200 p-4">
-              <Link
-                href="/"
-                className="flex items-center px-2 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md"
-              >
-                <Home className="mr-3 h-5 w-5" />
-                Back to Website
-              </Link>
-              <button 
-                onClick={handleLogout}
-                className="flex w-full items-center px-2 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md"
-              >
-                <LogOut className="mr-3 h-5 w-5" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop sidebar */}
-        <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-          <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-            <div className="flex h-16 items-center px-4">
-              <h1 className="text-xl font-bold text-gray-900">ISLE & ECHO </h1>
-            </div>
-            <nav className="flex-1 space-y-1 px-2 py-4">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                      isActive
-                        ? 'bg-blue-100 text-blue-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                      isActive(item.href)
+                        ? 'bg-blue-50 text-blue-700 font-medium'
+                        : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    <item.icon className="mr-3 h-5 w-5" />
-                    {item.name}
+                    <div className="flex items-center space-x-3">
+                      <item.icon className="w-5 h-5" />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.badge !== undefined && item.badge !== null && item.badge > 0 && (
+                      <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </Link>
-                )
-              })}
+                ))}
+              </div>
             </nav>
-            <div className="border-t border-gray-200 p-4">
-              <Link
-                href="/"
-                className="flex items-center px-2 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md"
+
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <span className="text-gray-600 text-xs font-semibold">
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
+                  <p className="text-xs text-gray-500 truncate">{user?.email || ''}</p>
+                </div>
+              </div>
+              <button
+                onClick={logout}
+                className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <Home className="mr-3 h-5 w-5" />
-                Back to Website
-              </Link>
-              <button 
-                onClick={handleLogout}
-                className="flex w-full items-center px-2 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md"
-              >
-                <LogOut className="mr-3 h-5 w-5" />
-                Logout
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Main content */}
         <div className="lg:pl-64">
-          {/* Top bar */}
-          <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-            <button
-              type="button"
-              className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="h-6 w-6" />
-            </button>
-            <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-              <div className="flex flex-1"></div>
-              <div className="flex items-center gap-x-4 lg:gap-x-6">
-                <div className="text-sm text-gray-500">
-                  Welcome, Admin
+          <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden text-gray-500 hover:text-gray-700"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <div className="hidden sm:flex items-center space-x-3">
+                <div className="relative w-8 h-8">
+                  <Image
+                    src="/logoisle&echo.png"
+                    alt="ISLE & ECHO"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="hidden md:block">
+                  <div className="text-sm font-semibold text-gray-900">ISLE & ECHO</div>
+                  <div className="text-xs text-gray-500">Admin Panel</div>
                 </div>
               </div>
             </div>
+            <div className="flex-1" />
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600 capitalize">{user?.name || 'User'}</span>
+            </div>
           </div>
 
-          {/* Page content */}
-          <main className="py-6">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              {children}
-            </div>
+          <main className="p-6">
+            {children}
           </main>
         </div>
       </div>

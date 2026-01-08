@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Trash2
 } from 'lucide-react'
+import { useAuth } from '../../../contexts/AuthContext'
 
 interface Booking {
   id: string
@@ -36,10 +37,15 @@ interface Booking {
   paymentMethod?: string
 }
 
-async function fetchBookings(): Promise<Booking[]> {
+async function fetchBookings(userEmail?: string, userRole?: string, userId?: string): Promise<Booking[]> {
   try {
     console.log('Fetching bookings from API...')
-    const res = await fetch('/api/bookings')
+    const headers: HeadersInit = {}
+    if (userEmail) headers['x-user-email'] = userEmail
+    if (userRole) headers['x-user-role'] = userRole
+    if (userId) headers['x-user-id'] = userId
+    
+    const res = await fetch('/api/bookings', { headers })
     const json = await res.json()
     console.log('Bookings API response:', json)
     console.log('Bookings API response data:', json.data)
@@ -88,6 +94,7 @@ async function fetchBookings(): Promise<Booking[]> {
 }
 
 export default function BookingsPage() {
+  const { user } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -101,7 +108,7 @@ export default function BookingsPage() {
       setLoading(true)
       setError(null)
       console.log('Loading bookings...')
-      const data = await fetchBookings()
+      const data = await fetchBookings(user?.email, user?.role, user?.id)
       console.log('Received bookings data:', data)
       setBookings(data)
       console.log('Bookings loaded successfully:', data.length, 'bookings')
@@ -118,7 +125,7 @@ export default function BookingsPage() {
     try {
       setRefreshing(true)
       setError(null)
-      const data = await fetchBookings()
+      const data = await fetchBookings(user?.email, user?.role, user?.id)
       setBookings(data)
       console.log('Bookings refreshed successfully:', data.length, 'bookings')
     } catch (e: unknown) {
@@ -509,13 +516,15 @@ export default function BookingsPage() {
                       >
                         <Eye className="w-4 h-4" />
                       </Link>
-                      <button 
-                        onClick={() => handleDeleteClick(booking)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete Booking"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {(user?.role === 'admin' || user?.role === 'staff') && (
+                        <button 
+                          onClick={() => handleDeleteClick(booking)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete Booking"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

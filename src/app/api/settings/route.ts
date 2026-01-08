@@ -76,7 +76,8 @@ function mapSupabaseToFrontend(data: Record<string, unknown>) {
     secondaryColor: data.secondary_color || '#1E40AF',
     logoUrl: data.logo_url || '',
     faviconUrl: data.favicon_url || '',
-    theme: data.theme || 'light'
+    theme: data.theme || 'light',
+    whatsappPhone: data.whatsapp_phone || '94741415812'
   }
 }
 
@@ -119,7 +120,8 @@ function mapFrontendToSupabase(data: Record<string, unknown>) {
     secondary_color: data.secondaryColor || '#1E40AF',
     logo_url: data.logoUrl || '',
     favicon_url: data.faviconUrl || '',
-    theme: data.theme || 'light'
+    theme: data.theme || 'light',
+    whatsapp_phone: data.whatsappPhone || '94741415812'
   }
 }
 

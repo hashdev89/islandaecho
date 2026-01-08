@@ -56,56 +56,97 @@ const saveFallbackBookings = (bookings: Booking[]) => {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
 	try {
-		console.log('GET /api/bookings - Fetching bookings from Supabase...')
-		console.log('Fallback file path:', FALLBACK_FILE)
-		console.log('File exists:', fs.existsSync(FALLBACK_FILE))
+		// Get user info from request headers (passed from frontend)
+		const userEmail = request.headers.get('x-user-email') || ''
+		const userRole = request.headers.get('x-user-role') || ''
+		const userId = request.headers.get('x-user-id') || ''
+		
+		console.log('GET /api/bookings - User info:', { userEmail, userRole, userId })
 		
 		const fallbackBookings = loadFallbackBookings()
-		console.log('Current fallback bookings count:', fallbackBookings.length)
-		console.log('Fallback bookings:', fallbackBookings)
+		
+		// Filter bookings based on user role
+		let filteredBookings = fallbackBookings
+		
+		if (userRole === 'customer') {
+			// Customers can only see their own bookings
+			filteredBookings = fallbackBookings.filter(
+				(booking: Booking) => booking.customer_email?.toLowerCase() === userEmail.toLowerCase()
+			)
+			console.log(`Filtered bookings for customer ${userEmail}: ${filteredBookings.length} bookings`)
+		} else if (userRole === 'staff') {
+			// Staff can see all bookings (they can manage them)
+			// No filtering needed for staff
+			console.log(`Staff user ${userEmail}: showing all ${fallbackBookings.length} bookings`)
+		} else if (userRole === 'admin') {
+			// Admin can see all bookings
+			console.log(`Admin user: showing all ${fallbackBookings.length} bookings`)
+		}
 		
 		// Check if Supabase is configured
 		if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
 			console.log('Supabase not configured, using fallback bookings data')
-			console.log('Returning fallback bookings:', fallbackBookings)
 			return NextResponse.json({ 
 				success: true, 
-				data: fallbackBookings,
+				data: filteredBookings,
 				message: 'Bookings retrieved from fallback storage' 
 			})
 		}
 		
-		// TEMPORARY: Force using fallback data for debugging
-		console.log('TEMPORARY: Using fallback data instead of Supabase')
-		return NextResponse.json({ 
-			success: true, 
-			data: fallbackBookings,
-			message: 'Bookings retrieved from fallback storage (forced)' 
-		})
-		
-		const { data, error } = await supabaseAdmin
+		// Try Supabase with role-based filtering
+		let query = supabaseAdmin
 			.from('bookings')
 			.select('*')
-			.order('created_at', { ascending: false })
 		
-		console.log('Supabase bookings query result:', { data, error })
+		// Apply role-based filtering
+		if (userRole === 'customer') {
+			query = query.eq('customer_email', userEmail.toLowerCase())
+		}
+		// Staff and admin see all bookings, no filter needed
+		
+		query = query.order('created_at', { ascending: false })
+		
+		const { data, error } = await query
 		
 		if (error) {
 			console.error('Supabase error:', error)
-			throw error
+			// Return filtered fallback data
+			return NextResponse.json({ 
+				success: true, 
+				data: filteredBookings,
+				message: 'Bookings retrieved from fallback storage due to Supabase error' 
+			})
 		}
 		
-		return NextResponse.json({ success: true, data: data || [] })
+		// Apply role-based filtering to Supabase data as well
+		let filteredData = data || []
+		if (userRole === 'customer') {
+			filteredData = filteredData.filter(
+				(booking: Booking) => booking.customer_email?.toLowerCase() === userEmail.toLowerCase()
+			)
+		}
+		
+		return NextResponse.json({ success: true, data: filteredData })
 	} catch (error: unknown) {
 		console.error('Bookings API error:', error)
-		console.log('Falling back to persistent storage')
 		const fallbackBookings = loadFallbackBookings()
-		console.log('Fallback bookings in error handler:', fallbackBookings)
+		
+		// Apply role-based filtering even in error case
+		const userEmail = request.headers.get('x-user-email') || ''
+		const userRole = request.headers.get('x-user-role') || ''
+		let filteredBookings = fallbackBookings
+		
+		if (userRole === 'customer') {
+			filteredBookings = fallbackBookings.filter(
+				(booking: Booking) => booking.customer_email?.toLowerCase() === userEmail.toLowerCase()
+			)
+		}
+		
 		return NextResponse.json({ 
 			success: true, 
-			data: fallbackBookings,
+			data: filteredBookings,
 			message: 'Bookings retrieved from fallback storage due to error' 
 		})
 	}
