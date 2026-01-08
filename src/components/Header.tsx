@@ -101,7 +101,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 transition-all duration-500 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl shadow-lg border-b border-gray-200 dark:border-gray-700">
+      <header className="sticky top-0 z-50 transition-all duration-500 bg-white/80">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo Section */}
@@ -119,8 +119,8 @@ export default function Header() {
                 </div>
                 {/* Logo Text */}
                 <div className="hidden md:block">
-                  <div className="text-[#1E3A8A] dark:text-blue-400 font-bold text-xl tracking-wide">ISLE & ECHO</div>
-                  <div className="text-gray-600 dark:text-white text-xs font-light">Feel the Isle, Hear The Echo</div>
+                  <div className="text-[#1E3A8A]">ISLE & ECHO</div>
+                  <div className="text-gray-600">Feel the Isle, Hear The Echo</div>
                 </div>
               </Link>
             </div>
@@ -132,7 +132,7 @@ export default function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 font-medium relative group"
+                    className="text-gray-800"
                   >
                     {item.name}
                   </Link>
@@ -140,16 +140,16 @@ export default function Header() {
                   <div key={item.name} className="relative">
                     <button
                       onClick={() => toggleDropdown('tours')}
-                      className="flex items-center space-x-1 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 font-medium"
+                      className="flex items-center space-x-1 text-gray-800"
                     >
                       <span>Tour Package</span>
                       <ChevronDown className="w-4 h-4" />
                     </button>
                     {activeDropdown === 'tours' && (
-                      <div className="absolute left-0 mt-2 w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 z-10 border border-white/20 dark:border-gray-700/20">
+                      <div className="absolute left-0 mt-2 w-64 bg-white/95">
                         <Link
                           href="/tours"
-                          className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-white transition-all duration-200 rounded-lg mx-2 hover:bg-gradient-to-r hover:from-[#4091FE] hover:to-[#187BFF]"
+                          className="block px-4 py-2 text-sm text-gray-700"
                           onClick={() => setActiveDropdown('')}
                         >
                           All Tour Packages
@@ -158,7 +158,7 @@ export default function Header() {
                           <Link
                             key={t.id}
                             href={`/tours/${t.id}`}
-                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-white transition-all duration-200 rounded-lg mx-2 hover:bg-gradient-to-r hover:from-[#4091FE] hover:to-[#187BFF]"
+                            className="block px-4 py-2 text-sm text-gray-700"
                             onClick={() => setActiveDropdown('')}
                           >
                             {t.name} {t.duration ? `– ${t.duration}` : ''}
@@ -177,14 +177,14 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => toggleDropdown('language')}
-                  className="flex items-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 rounded-full px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 backdrop-blur-sm font-medium"
+                  className="flex items-center space-x-2 text-gray-800"
                 >
                   <Globe className="w-4 h-4" />
                   <span className="text-sm font-medium">{selectedLanguage}</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {activeDropdown === 'language' && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 z-10 border border-white/20 dark:border-gray-700/20">
+                  <div className="absolute right-0 mt-2 w-48 bg-white/95">
                     {languages.map((language) => (
                       <button
                         key={language.code}
@@ -192,7 +192,7 @@ export default function Header() {
                           setSelectedLanguage(language.code)
                           setActiveDropdown('')
                         }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-white transition-all duration-200 rounded-lg mx-1 hover:bg-gradient-to-r hover:from-[#4091FE] hover:to-[#187BFF]"
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700"
                       >
                         {language.name}
                       </button>
@@ -205,14 +205,14 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => toggleDropdown('currency')}
-                  className="flex items-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 rounded-full px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 backdrop-blur-sm font-medium"
+                  className="flex items-center space-x-2 text-gray-800"
                 >
                   <DollarSign className="w-4 h-4" />
                   <span className="text-sm font-medium">{selectedCurrency}</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {activeDropdown === 'currency' && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 z-10 border border-white/20 dark:border-gray-700/20">
+                  <div className="absolute right-0 mt-2 w-48 bg-white/95">
                     {currencies.map((currency) => (
                       <button
                         key={currency.code}
@@ -220,7 +220,7 @@ export default function Header() {
                           setSelectedCurrency(currency.code)
                           setActiveDropdown('')
                         }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-white transition-all duration-200 rounded-lg mx-1 hover:bg-gradient-to-r hover:from-[#4091FE] hover:to-[#187BFF]"
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700"
                       >
                         <span className="font-medium">{currency.symbol}</span> {currency.name}
                       </button>
@@ -234,18 +234,18 @@ export default function Header() {
                 <div className="relative">
                   <button
                     onClick={() => toggleDropdown('user')}
-                    className="flex items-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 rounded-full px-3 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 backdrop-blur-sm font-medium"
+                    className="flex items-center space-x-2 text-gray-800"
                   >
                     <User className="w-4 h-4" />
                     <span className="text-sm font-medium">{user.name}</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>
                   {activeDropdown === 'user' && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 z-10 border border-white/20 dark:border-gray-700/20">
+                    <div className="absolute right-0 mt-2 w-48 bg-white/95">
                       {user.role === 'admin' && (
                         <Link
                           href="/admin"
-                          className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-white transition-all duration-200 rounded-lg mx-1 hover:bg-gradient-to-r hover:from-[#4091FE] hover:to-[#187BFF]"
+                          className="block px-4 py-2 text-sm text-gray-700"
                           onClick={() => setActiveDropdown('')}
                         >
                           <Settings className="inline w-4 h-4 mr-2" />
@@ -254,7 +254,7 @@ export default function Header() {
                       )}
                       <button
                         onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-white transition-all duration-200 rounded-lg mx-1 hover:bg-gradient-to-r hover:from-[#4091FE] hover:to-[#187BFF]"
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700"
                       >
                         <LogOut className="inline w-4 h-4 mr-2" />
                         Sign Out
@@ -279,7 +279,7 @@ export default function Header() {
             <div className="lg:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 active:text-[#1E3A8A] transition-all duration-300 rounded-full p-2.5 hover:bg-blue-50 dark:hover:bg-gray-700 backdrop-blur-sm font-medium min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
+                className="text-gray-800"
                 aria-label="Toggle menu"
               >
                 {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -289,13 +289,13 @@ export default function Header() {
 
           {/* Mobile Navigation */}
           {isMenuOpen && (
-            <div className="lg:hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl border-t border-gray-200 dark:border-gray-700 shadow-lg">
+            <div className="lg:hidden bg-white/90">
               <div className="px-2 pt-2 pb-3 space-y-1">
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="block px-3 py-3 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 active:text-[#1E3A8A] transition-all duration-300 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium min-h-[44px] flex items-center touch-manipulation"
+                    className="block px-3 py-3 text-gray-800"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {item.name}
@@ -305,14 +305,14 @@ export default function Header() {
 
 
                 {/* Mobile Language & Currency */}
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                <div className="border-t border-gray-200">
                   <div className="px-3 py-2">
-                    <div className="flex items-center justify-between text-gray-800 dark:text-gray-200 text-sm font-medium">
+                    <div className="flex items-center justify-between text-gray-800">
                       <span>Language:</span>
                       <select
                         value={selectedLanguage}
                         onChange={(e) => setSelectedLanguage(e.target.value)}
-                        className="bg-white/80 dark:bg-gray-800/80 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 font-medium text-base min-h-[44px] touch-manipulation"
+                        className="bg-white/80"
                       >
                         {languages.map((language) => (
                           <option key={language.code} value={language.code}>
@@ -324,12 +324,12 @@ export default function Header() {
                   </div>
                   
                   <div className="px-3 py-2">
-                    <div className="flex items-center justify-between text-gray-800 dark:text-gray-200 text-sm font-medium">
+                    <div className="flex items-center justify-between text-gray-800">
                       <span>Currency:</span>
                       <select
                         value={selectedCurrency}
                         onChange={(e) => setSelectedCurrency(e.target.value)}
-                        className="bg-white/80 dark:bg-gray-800/80 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 font-medium text-base min-h-[44px] touch-manipulation"
+                        className="bg-white/80"
                       >
                         {currencies.map((currency) => (
                           <option key={currency.code} value={currency.code}>
@@ -342,13 +342,13 @@ export default function Header() {
                 </div>
 
                 {/* Mobile Auth Buttons */}
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 px-3 space-y-2">
+                <div className="border-t border-gray-200">
                   {user ? (
                     <>
                       {user.role === 'admin' && (
                       <Link
                         href="/admin"
-                        className="w-full flex items-center justify-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium min-h-[44px] touch-manipulation"
+                        className="w-full flex items-center justify-center space-x-2 text-gray-800"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         <Settings className="w-4 h-4" />
@@ -360,7 +360,7 @@ export default function Header() {
                           handleLogout()
                           setIsMenuOpen(false)
                         }}
-                        className="w-full flex items-center justify-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-[#1E3A8A] dark:hover:text-blue-400 transition-all duration-300 py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 font-medium min-h-[44px] touch-manipulation"
+                        className="w-full flex items-center justify-center space-x-2 text-gray-800"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>

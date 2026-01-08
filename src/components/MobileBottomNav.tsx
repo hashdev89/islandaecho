@@ -45,7 +45,7 @@ export default function MobileBottomNav() {
   }, [pathname])
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg sm:hidden will-change-transform transition-transform duration-300 ${
+    <nav className={`fixed bottom-0 left-0 right-0 z-50 bg-white
       isMenuOpen ? 'translate-y-full' : 'translate-y-0'
     }`}>
       <div className="flex justify-around items-center h-16 px-2">
@@ -58,8 +58,8 @@ export default function MobileBottomNav() {
               prefetch={true}
               className={`flex flex-col items-center justify-center flex-1 h-full min-h-[44px] touch-manipulation ${
                 active
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400'
+                  ? 'text-blue-600'
+                  : 'text-gray-600'
               }`}
             >
               <item.icon className={`w-5 h-5 mb-1 ${active ? 'scale-110' : ''}`} />
@@ -74,8 +74,8 @@ export default function MobileBottomNav() {
           onClick={handleChatClick}
           className={`flex flex-col items-center justify-center flex-1 h-full min-h-[44px] touch-manipulation ${
             isChatOpen
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-gray-600 dark:text-gray-400'
+              ? 'text-blue-600'
+              : 'text-gray-600'
           }`}
           aria-label="Open chat"
         >

@@ -489,7 +489,7 @@ export default function WhatsAppChat() {
                     }
                   }}
                   placeholder={conversation ? "Type a message..." : "Setting up chat..."}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 border border-gray-300"
                   disabled={!conversation || sending}
                 />
                 <button
@@ -624,7 +624,7 @@ export default function WhatsAppChat() {
           </div>
 
           {/* Mobile Message Input */}
-          <div className="border-t border-gray-200 p-3 bg-white safe-area-inset-bottom">
+          <div className="border-t border-gray-200">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -637,7 +637,7 @@ export default function WhatsAppChat() {
                   }
                 }}
                 placeholder={conversation ? "Type a message..." : "Setting up chat..."}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 border border-gray-300"
                 style={{ fontSize: '16px' }}
                 disabled={!conversation || sending}
               />

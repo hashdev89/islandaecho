@@ -308,17 +308,17 @@ export default function CustomBookingPage() {
 
   if (!tripData) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading your custom trip...</p>
+          <p className="text-gray-600">Loading your custom trip...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
       {/* Hero Section */}
@@ -372,7 +372,7 @@ export default function CustomBookingPage() {
               {/* Interactive 3D Mapbox Map */}
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Tour Route Map</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Tour Route Map</h2>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
                     className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
@@ -381,7 +381,7 @@ export default function CustomBookingPage() {
                     {isEditing ? 'Done Editing' : 'Edit Trip'}
                   </button>
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <div className="bg-white">
                   {/* Mapbox 3D Interactive Map */}
                   <MapboxMap 
                     destinations={selectedDestinations.map(dest => ({
@@ -395,31 +395,31 @@ export default function CustomBookingPage() {
                   {/* Map Legend */}
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Tour Destinations</h4>
+                      <h4 className="font-semibold text-gray-900">Tour Destinations</h4>
                       <div className="space-y-2">
                         {selectedDestinations.map((dest, index) => (
                           <div key={index} className="flex items-center space-x-2">
                             <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                            <span className="text-sm text-gray-700 dark:text-gray-300">{dest.name}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">({dest.region})</span>
+                            <span className="text-sm text-gray-700">{dest.name}</span>
+                            <span className="text-xs text-gray-500">({dest.region})</span>
                           </div>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Map Features</h4>
+                      <h4 className="font-semibold text-gray-900">Map Features</h4>
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <span className="text-sm text-gray-700 dark:text-gray-300">Tour Destinations</span>
+                          <span className="text-sm text-gray-700">Tour Destinations</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                          <span className="text-sm text-gray-700 dark:text-gray-300">Tour Route</span>
+                          <span className="text-sm text-gray-700">Tour Route</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Navigation className="w-3 h-3 text-green-600" />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">Interactive Navigation</span>
+                          <span className="text-sm text-gray-700">Interactive Navigation</span>
                         </div>
                       </div>
                     </div>
@@ -428,13 +428,13 @@ export default function CustomBookingPage() {
                   {/* Destination Details */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                     {selectedDestinations.map((dest, index) => (
-                      <div key={index} className="bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                      <div key={index} className="bg-gradient-to-br from-blue-50 to-green-50">
                         <div className="flex items-center space-x-2 mb-2">
                           <MapPin className="w-4 h-4 text-blue-600" />
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{dest.name}</h3>
+                          <h3 className="font-semibold text-gray-900">{dest.name}</h3>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{dest.region}</p>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-gray-600">{dest.region}</p>
+                        <div className="text-xs text-gray-500">
                           Coordinates: {dest.coordinates[1].toFixed(4)}, {dest.coordinates[0].toFixed(4)}
                         </div>
                       </div>
@@ -445,17 +445,17 @@ export default function CustomBookingPage() {
 
               {/* Detailed Itinerary */}
               <div>
-                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Detailed Itinerary</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-900">Detailed Itinerary</h2>
                 <div className="space-y-6">
                   {selectedDestinations.map((destination, index) => (
-                    <div key={destination.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <div key={destination.id} className="bg-white">
                       <div className="flex items-center mb-4">
                         <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">
                           {index + 1}
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{destination.name}</h3>
-                          <p className="text-gray-600 dark:text-gray-300">{destination.region}</p>
+                          <h3 className="text-xl font-semibold text-gray-900">{destination.name}</h3>
+                          <p className="text-gray-600">{destination.region}</p>
                         </div>
                         {isEditing && (
                           <button
@@ -466,13 +466,13 @@ export default function CustomBookingPage() {
                           </button>
                         )}
                       </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-4">{destination.description}</p>
+                      <p className="text-gray-600">{destination.description}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Activities</h4>
+                          <h4 className="font-semibold text-gray-900">Activities</h4>
                           <ul className="space-y-1">
                             {destination.activities.map((activity, idx) => (
-                              <li key={idx} className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                              <li key={idx} className="flex items-center text-sm text-gray-600">
                                 <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                                 {activity}
                               </li>
@@ -480,12 +480,12 @@ export default function CustomBookingPage() {
                           </ul>
                         </div>
                         <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Highlights</h4>
+                          <h4 className="font-semibold text-gray-900">Highlights</h4>
                           <ul className="space-y-1">
-                            <li className="text-sm text-gray-600 dark:text-gray-300">• Cultural exploration</li>
-                            <li className="text-sm text-gray-600 dark:text-gray-300">• Local experiences</li>
-                            <li className="text-sm text-gray-600 dark:text-gray-300">• Professional guide</li>
-                            <li className="text-sm text-gray-600 dark:text-gray-300">• Comfortable accommodation</li>
+                            <li className="text-sm text-gray-600">• Cultural exploration</li>
+                            <li className="text-sm text-gray-600">• Local experiences</li>
+                            <li className="text-sm text-gray-600">• Professional guide</li>
+                            <li className="text-sm text-gray-600">• Comfortable accommodation</li>
                           </ul>
                         </div>
                       </div>
@@ -497,14 +497,14 @@ export default function CustomBookingPage() {
               {/* Trip Interests */}
               {tripData.interests.length > 0 && (
                 <div>
-                  <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Your Interests</h2>
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">We&apos;ll tailor activities based on your preferences</p>
+                  <h2 className="text-2xl font-bold mb-6 text-gray-900">Your Interests</h2>
+                  <div className="bg-white">
+                    <p className="text-gray-600">We&apos;ll tailor activities based on your preferences</p>
                     <div className="flex flex-wrap gap-2">
                       {tripData.interests.map((interest) => (
                         <span
                           key={interest}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
                         >
                           <Check className="w-3 h-3 mr-1" />
                           {interest}
@@ -517,7 +517,7 @@ export default function CustomBookingPage() {
 
               {/* Image Gallery */}
               <div>
-                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Destination Gallery</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-900">Destination Gallery</h2>
                 <div className="grid grid-cols-3 gap-4">
                   {selectedDestinations.slice(0, 6).map((destination, index) => (
                     <Image
@@ -540,15 +540,15 @@ export default function CustomBookingPage() {
             {/* Sidebar */}
             <div className="lg:sticky lg:top-6 lg:h-fit lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto space-y-6">
               {/* Quick Booking */}
-              <div id="booking-form" className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Quick Booking</h3>
+              <div id="booking-form" className="bg-white">
+                <h3 className="text-xl font-bold mb-4 text-gray-900">Quick Booking</h3>
                 <form onSubmit={handleBookingSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Tour Package</label>
+                    <label className="block text-sm font-medium text-gray-700">Select Tour Package</label>
                     <select
                       value={bookingData.selectedTour}
                       onChange={(e) => handleTourSelection(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300"
                       required
                     >
                       <option value="">Choose a tour package...</option>
@@ -559,57 +559,57 @@ export default function CustomBookingPage() {
                       ))}
                     </select>
                     {bookingData.selectedTour && (
-                      <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <div className="mt-2 p-3 bg-blue-50">
+                        <p className="text-sm text-blue-800">
                           <strong>Selected:</strong> {availableTours.find(t => t.id === bookingData.selectedTour)?.name}
                         </p>
-                        <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                        <p className="text-xs text-blue-600">
                           Duration: {availableTours.find(t => t.id === bookingData.selectedTour)?.duration}
                         </p>
                       </div>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
                     <input
                       type="text"
                       value={bookingData.fullName}
                       onChange={(e) => handleFullNameChange(e.target.value)}
                       placeholder="Enter your full name"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+                    <label className="block text-sm font-medium text-gray-700">Email Address</label>
                     <input
                       type="email"
                       value={bookingData.email}
                       onChange={(e) => setBookingData({...bookingData, email: e.target.value})}
                       placeholder="Enter your email"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Number</label>
+                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
                     <input
                       type="tel"
                       value={bookingData.phone}
                       onChange={(e) => setBookingData({...bookingData, phone: e.target.value})}
                       placeholder="Enter your phone number"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tour Start Date</label>
+                    <label className="block text-sm font-medium text-gray-700">Tour Start Date</label>
                     <div className="relative">
                     <input
                       type="date"
                       value={bookingData.startDate}
                       onChange={(e) => handleStartDateChange(e.target.value)}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white cursor-pointer"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300"
                       min={new Date().toISOString().split('T')[0]}
                       required
                         placeholder="Select start date"
@@ -618,13 +618,13 @@ export default function CustomBookingPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tour End Date</label>
+                    <label className="block text-sm font-medium text-gray-700">Tour End Date</label>
                     <div className="relative">
                     <input
                       type="date"
                       value={bookingData.endDate}
                       onChange={(e) => setBookingData({...bookingData, endDate: e.target.value})}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white cursor-pointer"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300"
                       min={bookingData.startDate || new Date().toISOString().split('T')[0]}
                       required
                         placeholder="Select end date"
@@ -633,24 +633,24 @@ export default function CustomBookingPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Number of Guests</label>
+                    <label className="block text-sm font-medium text-gray-700">Number of Guests</label>
                     <input
                       type="number"
                       value={bookingData.guests}
                       onChange={(e) => setBookingData({...bookingData, guests: parseInt(e.target.value)})}
                       min="1"
                       max="10"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Special Requests</label>
+                    <label className="block text-sm font-medium text-gray-700">Special Requests</label>
                     <textarea
                       value={bookingData.specialRequests}
                       onChange={(e) => setBookingData({...bookingData, specialRequests: e.target.value})}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300"
                       placeholder="Any special requirements or preferences..."
                     />
                   </div>
@@ -665,58 +665,58 @@ export default function CustomBookingPage() {
               </div>
 
               {/* Tour Information */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Tour Information</h3>
+              <div className="bg-white">
+                <h3 className="text-xl font-bold mb-4 text-gray-900">Tour Information</h3>
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <Clock className="w-5 h-5 text-blue-600" />
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Duration</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedDestinations.length} Days</p>
+                      <p className="text-sm text-gray-600">Duration</p>
+                      <p className="font-medium text-gray-900">{selectedDestinations.length} Days</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     <Users className="w-5 h-5 text-blue-600" />
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Group Size</p>
-                      <p className="font-medium text-gray-900 dark:text-white">Custom</p>
+                      <p className="text-sm text-gray-600">Group Size</p>
+                      <p className="font-medium text-gray-900">Custom</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     <MapPin className="w-5 h-5 text-blue-600" />
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Destinations</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedDestinations.length} Locations</p>
+                      <p className="text-sm text-gray-600">Destinations</p>
+                      <p className="font-medium text-gray-900">{selectedDestinations.length} Locations</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* What's Included */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">What&apos;s Included</h3>
+              <div className="bg-white">
+                <h3 className="text-xl font-bold mb-4 text-gray-900">What&apos;s Included</h3>
                 <ul className="space-y-2">
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                     Professional English-speaking guide
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                     All accommodation
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                     Daily breakfast
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                     Air-conditioned vehicle
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                     Airport transfers
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                     Bottled water
                   </li>
@@ -724,26 +724,26 @@ export default function CustomBookingPage() {
               </div>
 
               {/* Not Included */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Not Included</h3>
+              <div className="bg-white">
+                <h3 className="text-xl font-bold mb-4 text-gray-900">Not Included</h3>
                 <ul className="space-y-2">
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <X className="w-4 h-4 text-red-500 mr-2" />
                     International flights
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <X className="w-4 h-4 text-red-500 mr-2" />
                     Personal expenses
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <X className="w-4 h-4 text-red-500 mr-2" />
                     Tips for guides
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <X className="w-4 h-4 text-red-500 mr-2" />
                     Travel insurance
                   </li>
-                  <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <li className="flex items-center text-sm text-gray-600">
                     <X className="w-4 h-4 text-red-500 mr-2" />
                     Optional activities
                   </li>
