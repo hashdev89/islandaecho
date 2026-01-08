@@ -120,7 +120,13 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    // Enable SWC minification for better performance
+    swcMinify: true,
   },
+  // Performance optimizations
+  swcMinify: true,
+  // Enable React strict mode for better performance
+  reactStrictMode: true,
   // SEO optimizations
   compress: true,
   poweredByHeader: false,

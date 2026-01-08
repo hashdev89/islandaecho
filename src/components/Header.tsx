@@ -70,13 +70,22 @@ export default function Header() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/tours')
+        // Use featured endpoint instead of fetching all tours
+        const res = await fetch('/api/tours/featured', {
+          next: { revalidate: 300 } // Cache for 5 minutes
+        })
         const json = await res.json()
-        if (json.success) {
-          const items = json.data.filter((t: any) => t.featured).map((t: any) => ({ id: t.id, name: t.name, duration: t.duration }))
+        if (json.success && json.data) {
+          const items = (json.data || []).slice(0, 10).map((t: any) => ({ 
+            id: t.id, 
+            name: t.name, 
+            duration: t.duration 
+          }))
           setFeaturedTours(items)
         }
-      } catch {}
+      } catch {
+        // Silently fail - dropdown will just be empty
+      }
     }
     load()
   }, [])

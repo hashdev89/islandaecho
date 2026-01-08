@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: DestinationPageProps): Promis
 async function getDestination(id: string): Promise<Destination | null> {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/destinations`, {
-      cache: 'no-store'
+      next: { revalidate: 300 } // Cache for 5 minutes
     })
     const data = await response.json()
     

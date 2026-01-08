@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -112,102 +112,175 @@ export default function HomePage() {
 
   // Fetch featured tours and destinations in parallel for better performance
   useEffect(() => {
+    let isMounted = true
+    
+    // Safety timeout to ensure loading states are cleared after 15 seconds
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted) {
+        console.warn('Loading timeout reached, clearing loading states')
+        setLoadingTours(false)
+        setLoadingDestinations(false)
+      }
+    }, 15000)
+    
     const loadData = async () => {
       try {
         setLoadingTours(true)
         setLoadingDestinations(true)
         
-        // Fetch featured tours and destinations in parallel (priority)
-        const [toursRes, destinationsRes] = await Promise.all([
-          fetch('/api/tours/featured'),
-          fetch('/api/destinations?includeTourCount=false') // Skip tour count for faster loading
-        ])
+        // Create a timeout promise
+        const timeoutPromise = (ms: number) => 
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), ms)
+          )
         
-        // Handle featured tours
-        try {
-          if (toursRes.ok) {
-            const contentType = toursRes.headers.get('content-type')
-            if (contentType && contentType.includes('application/json')) {
-              const json = await toursRes.json()
-              if (json.success) {
-                const featured = (json.data || []).filter((t: Tour) => {
-                  const isValid = t && t.featured && t.id && t.name
-                  if (!isValid) {
-                    console.log('Invalid tour data:', t)
-                  }
-                  return isValid
-                })
-                console.log('Found featured tours:', featured.length)
-                setFeaturedTours(featured)
-              }
+        // Fetch with timeout (10 seconds)
+        const fetchWithTimeout = async (url: string, timeout = 10000) => {
+          try {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), timeout)
+            
+            const response = await fetch(url, {
+              signal: controller.signal,
+              next: { revalidate: 300 } // Cache for 5 minutes, revalidate in background
+            })
+            
+            clearTimeout(timeoutId)
+            return response
+          } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') {
+              throw new Error('Request timeout')
             }
+            throw error
           }
-        } catch (error) {
-          console.error('Error loading featured tours:', error)
-          setFeaturedTours([])
-        } finally {
-          setLoadingTours(false)
         }
         
-        // Handle destinations
+        // Fetch featured tours and destinations in parallel (priority)
         try {
-          if (destinationsRes.ok) {
-            const contentType = destinationsRes.headers.get('content-type')
-            if (contentType && contentType.includes('application/json')) {
-              const json = await destinationsRes.json()
-              if (json.success) {
-                setDestinations(json.data || [])
+          const [toursRes, destinationsRes] = await Promise.allSettled([
+            fetchWithTimeout('/api/tours/featured', 10000),
+            fetchWithTimeout('/api/destinations?includeTourCount=false', 10000)
+          ])
+          
+          // Handle featured tours
+          if (isMounted) {
+            try {
+              if (toursRes.status === 'fulfilled' && toursRes.value.ok) {
+                const contentType = toursRes.value.headers.get('content-type')
+                if (contentType && contentType.includes('application/json')) {
+                  const json = await toursRes.value.json()
+                  if (json.success && json.data) {
+                    const featured = (json.data || []).filter((t: Tour) => {
+                      const isValid = t && t.featured && t.id && t.name
+                      return isValid
+                    })
+                    setFeaturedTours(featured)
+                  } else {
+                    setFeaturedTours([])
+                  }
+                } else {
+                  setFeaturedTours([])
+                }
+              } else {
+                setFeaturedTours([])
               }
+            } catch (error) {
+              console.error('Error processing featured tours:', error)
+              setFeaturedTours([])
+            } finally {
+              setLoadingTours(false)
+            }
+          }
+          
+          // Handle destinations
+          if (isMounted) {
+            try {
+              if (destinationsRes.status === 'fulfilled' && destinationsRes.value.ok) {
+                const contentType = destinationsRes.value.headers.get('content-type')
+                if (contentType && contentType.includes('application/json')) {
+                  const json = await destinationsRes.value.json()
+                  if (json.success && json.data) {
+                    setDestinations(json.data || [])
+                  } else {
+                    setDestinations([])
+                  }
+                } else {
+                  setDestinations([])
+                }
+              } else {
+                setDestinations([])
+              }
+            } catch (error) {
+              console.error('Error processing destinations:', error)
+              setDestinations([])
+            } finally {
+              setLoadingDestinations(false)
             }
           }
         } catch (error) {
-          console.error('Error loading destinations:', error)
-          setDestinations([])
-        } finally {
-          setLoadingDestinations(false)
+          console.error('Error fetching data:', error)
+          if (isMounted) {
+            setFeaturedTours([])
+            setDestinations([])
+            setLoadingTours(false)
+            setLoadingDestinations(false)
+          }
         }
         
         // Fetch all tours in the background (for search functionality) - lower priority
         // This doesn't block the initial render
-        fetch('/api/tours')
-          .then(async (res) => {
-            if (res.ok) {
-              const contentType = res.headers.get('content-type')
-              if (contentType && contentType.includes('application/json')) {
-                const json = await res.json()
-                if (json.success) {
-                  const tours = json.data || []
-                  // Remove duplicates based on id
-                  const uniqueTours = tours.filter((tour: Tour, index: number, self: Tour[]) => 
-                    index === self.findIndex((t: Tour) => t.id === tour.id)
-                  )
-                  setAllTours(uniqueTours)
+        if (isMounted) {
+          fetchWithTimeout('/api/tours', 15000)
+            .then(async (res) => {
+              if (isMounted && res.ok) {
+                const contentType = res.headers.get('content-type')
+                if (contentType && contentType.includes('application/json')) {
+                  const json = await res.json()
+                  if (json.success && json.data) {
+                    const tours = json.data || []
+                    // Remove duplicates based on id
+                    const uniqueTours = tours.filter((tour: Tour, index: number, self: Tour[]) => 
+                      index === self.findIndex((t: Tour) => t.id === tour.id)
+                    )
+                    setAllTours(uniqueTours)
+                  }
                 }
               }
-            }
-          })
-          .catch((error) => {
-            console.error('Error loading all tours (background):', error)
-            // Don't set loading state for background fetch
-          })
+            })
+            .catch((error) => {
+              console.error('Error loading all tours (background):', error)
+              // Don't set loading state for background fetch
+            })
+        }
       } catch (error) {
         console.error('Error loading data:', error)
-        setFeaturedTours([])
-        setDestinations([])
-        setLoadingTours(false)
-        setLoadingDestinations(false)
+        if (isMounted) {
+          setFeaturedTours([])
+          setDestinations([])
+          setLoadingTours(false)
+          setLoadingDestinations(false)
+        }
       }
     }
+    
     loadData()
+    
+    // Cleanup function
+    return () => {
+      isMounted = false
+      clearTimeout(safetyTimeout)
+    }
   }, [])
 
-  // Filter destinations
-  const filteredDestinations = (destinations || []).filter(destination => {
-    const regionMatch = selectedRegion === 'all' || destination.region === selectedRegion
-    const searchMatch = destination.name.toLowerCase().includes(destinationSearchQuery.toLowerCase()) ||
-                       (destination.description || '').toLowerCase().includes(destinationSearchQuery.toLowerCase())
-    return regionMatch && searchMatch
-  })
+  // Filter destinations with useMemo for performance
+  const filteredDestinations = useMemo(() => {
+    return (destinations || []).filter(destination => {
+      const regionMatch = selectedRegion === 'all' || destination.region === selectedRegion
+      const searchMatch = destination.name.toLowerCase().includes(destinationSearchQuery.toLowerCase()) ||
+                         (destination.description || '').toLowerCase().includes(destinationSearchQuery.toLowerCase())
+      return regionMatch && searchMatch
+    })
+  }, [destinations, selectedRegion, destinationSearchQuery])
 
   // Handle YouTube video initialization and state tracking
   useEffect(() => {
@@ -1064,6 +1137,12 @@ export default function HomePage() {
                     <p className="text-gray-500 text-lg">Loading featured tours...</p>
                   </div>
                 </div>
+              ) : !loadingTours && (!featuredTours || featuredTours.length === 0) ? (
+                <div className="flex items-center justify-center w-full py-12">
+                  <div className="text-center">
+                    <p className="text-gray-500 text-lg">No featured tours available at the moment.</p>
+                  </div>
+                </div>
               ) : featuredTours && featuredTours.length > 0 ? featuredTours.map((tour, index) => (
                 <div key={tour.id || `tour-${index}`} className="flex-shrink-0 w-[280px] sm:w-72 md:w-80 snap-start">
                   <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
@@ -1257,6 +1336,12 @@ export default function HomePage() {
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p className="text-gray-500 text-lg">Loading destinations...</p>
+              </div>
+            </div>
+          ) : !loadingDestinations && filteredDestinations.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <p className="text-gray-500 text-lg">No destinations found.</p>
               </div>
             </div>
           ) : filteredDestinations.length > 0 ? (
