@@ -8,7 +8,11 @@
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Dark mode removed - keeping light mode only */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  color-scheme: dark;
+}
 
 body {
   background: var(--background);
@@ -107,7 +111,45 @@ html * {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
-/* Input field styles - light mode only */
+/* Ensure dark mode classes work properly */
+.dark {
+  color-scheme: dark;
+}
+
+/* Mobile optimizations */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Ensure minimum touch target size (44x44px) */
+button, a[role="button"], input[type="button"], input[type="submit"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Mobile scroll improvements */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Better mobile scrolling */
+@media (max-width: 640px) {
+  .overflow-x-auto {
+    scroll-snap-type: x mandatory;
+  }
+}
+
+/* Force immediate theme changes for critical elements */
+.dark * {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode input field fixes - ensure text is visible */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -120,6 +162,51 @@ input[type="time"],
 textarea,
 select {
   color: #171717;
+}
+
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="search"],
+.dark input[type="tel"],
+.dark input[type="url"],
+.dark input[type="number"],
+.dark input[type="date"],
+.dark input[type="time"],
+.dark textarea,
+.dark select {
+  color: #ffffff !important;
+}
+
+.dark input[type="text"]:not([class*="bg-"]),
+.dark input[type="email"]:not([class*="bg-"]),
+.dark input[type="password"]:not([class*="bg-"]),
+.dark input[type="search"]:not([class*="bg-"]),
+.dark input[type="tel"]:not([class*="bg-"]),
+.dark input[type="url"]:not([class*="bg-"]),
+.dark input[type="number"]:not([class*="bg-"]),
+.dark input[type="date"]:not([class*="bg-"]),
+.dark input[type="time"]:not([class*="bg-"]),
+.dark textarea:not([class*="bg-"]),
+.dark select:not([class*="bg-"]) {
+  background-color: #1f2937 !important;
+}
+
+/* Placeholder text in dark mode */
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 1;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Ensure select option elements are visible in dark mode */
+.dark select option {
+  background-color: #1f2937;
+  color: #ffffff;
 }
 
 /* Date input calendar popup fixes */
@@ -141,6 +228,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
 
 input[type="date"]::-webkit-inner-spin-button,
 input[type="date"]::-webkit-outer-spin-button {
@@ -472,107 +562,4 @@ input[type="date"]::-moz-calendar-picker-indicator {
   100% {
     background-position: 0% 50%;
   }
-}
-
-/* YouTube container styles */
-.youtube-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.youtube-container iframe {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  transform: translate(-50%, -50%);
-  border: none;
-  outline: none;
-  pointer-events: none;
-  object-fit: cover;
-}
-
-.youtube-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* Hide YouTube controls with CSS */
-.youtube-container iframe::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  z-index: 10;
-  pointer-events: none;
-}
-
-/* Additional CSS to hide YouTube UI elements */
-.youtube-container {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-/* Force fullscreen and hide all YouTube elements */
-.youtube-container iframe {
-  -webkit-transform: translate(-50%, -50%) scale(1.1);
-  transform: translate(-50%, -50%) scale(1.1);
-  filter: brightness(1.1) contrast(1.1);
-}
-
-/* Hide any remaining YouTube UI */
-.youtube-overlay::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: transparent;
-  z-index: 999;
-  pointer-events: none;
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.8s ease-out;
-}
-
-.animate-fade-in-up.delay-100 {
-  animation-delay: 0.1s;
-}
-
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
 }

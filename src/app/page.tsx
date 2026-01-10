@@ -575,7 +575,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <Header />
 
       {/* Hero Section - Inspired by Swimlane's hero */}
@@ -709,38 +709,38 @@ export default function HomePage() {
               </div>
             
                              {/* Search Form */}
-             <div className="rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-6 md:p-8 backdrop-blur-lg border bg-white/60">
+             <div className="rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-6 md:p-8 backdrop-blur-lg border bg-white/60 dark:bg-gray-800 relative z-10">
                {searchTab === 'tours' && (
                  <>
                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 relative z-10">
                      {/* Tour Package */}
                      <div className="relative">
-                       <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950">Tour Package</label>
+                       <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Tour Package</label>
                        <div className="relative">
                          <select
                            value={searchData.tourPackage}
                            onChange={(e) => setSearchData({...searchData, tourPackage: e.target.value})}
-                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors bg-white/60"
+                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
                          >
-                           <option value="" className="bg-white">Select Your Package</option>
+                           <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Select Your Package</option>
                           {allTours.map((tourPackage: Tour, index: number) => (
-                            <option key={`${tourPackage.id}-${index}`} value={tourPackage.id} className="bg-white">
+                            <option key={`${tourPackage.id}-${index}`} value={tourPackage.id} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                               {tourPackage.name}
                             </option>
                           ))}
                          </select>
-                         <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-600" />
+                         <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-600 dark:text-gray-400" />
                        </div>
                      </div>
                      
                      {/* Start Date */}
                      <div className="relative">
-                       <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950">Start Date</label>
+                       <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Start Date</label>
                        <div className="relative">
                          <button
                            type="button"
                            onClick={() => setShowToursDatePicker(!showToursDatePicker)}
-                           className="w-full px-3 sm:px-4 py-3 sm:py-4 pr-10 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] active:border-[#187BFF] transition-colors text-left bg-white/60"
+                           className="w-full px-3 sm:px-4 py-3 sm:py-4 pr-10 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] active:border-[#187BFF] transition-colors text-left bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
                          >
                            {searchData.startDate 
                              ? new Date(searchData.startDate).toLocaleDateString('en-US', { 
@@ -755,21 +755,21 @@ export default function HomePage() {
                        
                        {/* Date Picker Popup */}
                        {showToursDatePicker && (
-                         <div className="absolute top-full left-0 mt-1 text-black">
+                         <div className="absolute top-full left-0 mt-1 text-black dark:text-white bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 p-3 sm:p-4 min-w-[280px] max-w-[90vw] sm:max-w-none">
                            {/* Calendar Header */}
                            <div className="flex items-center justify-between mb-4">
                              <button
                                onClick={() => setCurrentToursMonth(new Date(currentToursMonth.getFullYear(), currentToursMonth.getMonth() - 1))}
-                               className="p-1 hover:bg-gray-100"
+                               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-900 dark:text-white"
                              >
                                ←
                              </button>
-                             <h3 className="font-semibold text-gray-900">
+                             <h3 className="font-semibold text-gray-900 dark:text-white">
                                {currentToursMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                              </h3>
                              <button
                                onClick={() => setCurrentToursMonth(new Date(currentToursMonth.getFullYear(), currentToursMonth.getMonth() + 1))}
-                               className="p-1 hover:bg-gray-100"
+                               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-900 dark:text-white"
                              >
                                →
                              </button>
@@ -778,7 +778,7 @@ export default function HomePage() {
                            {/* Calendar Grid */}
                            <div className="grid grid-cols-7 gap-1 mb-2">
                              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                               <div key={day} className="text-center text-xs font-medium text-gray-700">
+                               <div key={day} className="text-center text-xs font-medium text-gray-700 dark:text-gray-300 p-1">
                                  {day}
                                </div>
                              ))}
@@ -804,12 +804,12 @@ export default function HomePage() {
                                    disabled={isPast}
                                    className={`p-2 text-sm rounded transition-colors ${
                                      isPast
-                                       ? 'text-gray-500'
+                                       ? 'text-gray-500 dark:text-gray-500 cursor-not-allowed'
                                        : isTourDateSelected(date)
-                                       ? 'bg-blue-600'
+                                       ? 'bg-blue-600 dark:bg-blue-500 text-white'
                                        : isToday
-                                       ? 'bg-gray-100'
-                                       : 'hover:bg-gray-100'
+                                       ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
                                    }`}
                                  >
                                    {day}
@@ -819,7 +819,7 @@ export default function HomePage() {
                            </div>
                            
                            {/* Instructions */}
-                           <div className="mt-3 text-xs text-gray-700">
+                           <div className="mt-3 text-xs text-gray-700 dark:text-gray-300 text-center">
                              {!selectedTourStartDate 
                                ? 'Click to select start date'
                                : 'Date selected'
@@ -831,12 +831,12 @@ export default function HomePage() {
                      
                      {/* Number of Guests */}
                      <div className="relative">
-                     <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950">Number of Guests</label>
+                     <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Number of Guests</label>
                        <div className="relative">
                          <select
                            value={searchData.guests}
                            onChange={(e) => setSearchData({...searchData, guests: parseInt(e.target.value)})}
-                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-gray-900"
+                           className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800 min-h-[44px] touch-manipulation"
                          >
                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                              <option key={num} value={num}>{num} {num === 1 ? 'Guest' : 'Guests'}</option>
@@ -849,7 +849,7 @@ export default function HomePage() {
                    
                    {/* Tour Package Summary */}
                    {searchData.tourPackage && (
-                     <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                     <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                        {(() => {
                          const selectedTour = allTours.find((tour: Tour) => tour.id === searchData.tourPackage);
                          if (!selectedTour) return null;
@@ -859,27 +859,27 @@ export default function HomePage() {
                              {/* Tour Info */}
                              <div className="flex items-center justify-between">
                                <div className="text-left">
-                                 <h3 className="text-lg font-bold text-blue-900">{selectedTour.name}</h3>
-                                 <p className="text-blue-600">{selectedTour.duration}</p>
+                                 <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100">{selectedTour.name}</h3>
+                                 <p className="text-blue-600 dark:text-blue-400 font-medium pb-2">{selectedTour.duration}</p>
                                </div>
                                <div className="text-right">
                                  <div className="flex items-center space-x-1">
                                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                   <span className="text-sm font-semibold text-blue-900">{selectedTour.rating}</span>
+                                   <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">{selectedTour.rating}</span>
                                  </div>
-                                 <p className="text-xs text-blue-600">({selectedTour.reviews} reviews)</p>
+                                 <p className="text-xs text-blue-600 dark:text-blue-400">({selectedTour.reviews} reviews)</p>
                                </div>
                              </div>
                              
                              {/* Location Summary */}
                              <div>
-                               <h4 className="text-sm font-semibold text-blue-900">
+                               <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center">
                                  <span className="mr-2">🗺️</span>
                                  Tour Locations
                                </h4>
                                <div className="flex flex-wrap gap-2">
                                  {(selectedTour.destinations || []).map((destination: string, idx: number) => (
-                                   <span key={idx} className="bg-white">
+                                   <span key={idx} className="bg-white dark:bg-blue-800 text-blue-700 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-medium shadow-sm">
                                      {destination}
                                    </span>
                                  ))}
@@ -909,7 +909,7 @@ export default function HomePage() {
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 relative z-10">
                       {/* Destinations Selection */}
                       <div className="lg:col-span-2">
-                        <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950">Destinations</label>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Destinations</label>
                         <div className="relative">
                           <select
                             onChange={(e) => {
@@ -917,17 +917,17 @@ export default function HomePage() {
                                 handleDestinationToggle(e.target.value)
                               }
                             }}
-                            className="w-full pl-3 pr-8 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-base text-gray-900"
+                            className="w-full pl-3 pr-8 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors text-base text-gray-900 dark:text-white bg-white/60 dark:bg-gray-800 min-h-[44px] touch-manipulation"
                             value=""
                           >
-                            <option value="" className="bg-white">Select destinations</option>
+                            <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Select destinations</option>
                             {availableDestinations.map((destination) => (
-                              <option key={destination.id} value={destination.id} className="bg-white">
+                              <option key={destination.id} value={destination.id} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                                 {destination.name} - {destination.region}
                               </option>
                             ))}
                           </select>
-                          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-600" />
+                          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-600 dark:text-gray-400" />
                         </div>
                         
                         {/* Selected Destinations Display */}
@@ -961,11 +961,11 @@ export default function HomePage() {
                       <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4 z-20">
                         {/* Date Range */}
                         <div className="relative">
-                          <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950">Date Range</label>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Date Range</label>
                           <button
                             type="button"
                             onClick={() => setShowDatePicker(!showDatePicker)}
-                            className="w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] active:border-[#187BFF] transition-colors text-base text-left bg-white/60"
+                            className="w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent cursor-pointer hover:border-[#187BFF] active:border-[#187BFF] transition-colors text-base text-left bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
                           >
                             {(() => {
                               console.log('Displaying date range:', customTripData.dateRange);
@@ -1055,12 +1055,12 @@ export default function HomePage() {
                         
                         {/* Number of Guests */}
                         <div className="relative">
-                          <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950">Guests</label>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-950 dark:text-white">Guests</label>
                           <div className="relative">
                             <select
                               value={customTripData.guests}
                               onChange={(e) => setCustomTripData({...customTripData, guests: parseInt(e.target.value)})}
-                              className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors bg-white/60"
+                              className="w-full pl-3 sm:pl-4 pr-8 sm:pr-10 py-3 sm:py-4 text-base sm:text-base border rounded-lg focus:ring-2 focus:ring-[#187BFF] focus:border-transparent appearance-none cursor-pointer hover:border-[#187BFF] transition-colors bg-white/60 dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation"
                             >
                               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                                 <option key={num} value={num}>{num}</option>
@@ -1074,7 +1074,7 @@ export default function HomePage() {
 
                     {/* Interests Row */}
                     <div className="mt-4">
-                      <label className="block text-sm font-medium mb-2 text-blue-950">Interests</label>
+                      <label className="block text-sm font-medium mb-2 text-blue-950 dark:text-white">Interests</label>
                       <div className="flex flex-wrap gap-2">
                         {tripInterests.map((interest) => (
                           <button
@@ -1107,8 +1107,8 @@ export default function HomePage() {
 
                {searchTab === 'rent-car' && (
                  <div className="text-center py-8">
-                   <p className="text-gray-800">Car rental service coming soon!</p>
-                   <button className="bg-gray-300">
+                   <p className="text-gray-800 dark:text-gray-200 mb-4 text-sm sm:text-base">Car rental service coming soon!</p>
+                   <button className="bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-6 py-3 rounded-lg font-medium cursor-not-allowed min-h-[44px] touch-manipulation w-full sm:w-auto">
                      Coming Soon
                    </button>
                  </div>
@@ -1120,9 +1120,9 @@ export default function HomePage() {
       </section>
       
       {/* Featured Tour Packages */}
-      <section className="py-8 sm:py-12 bg-white">
+      <section className="py-8 sm:py-12 bg-white dark:bg-gray-900">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="pr-5 text-xl sm:text-2xl font-bold mb-6 sm:mb-8 text-gray-900">Featured Tour Packages</h2>
+          <h2 className="pr-5 text-xl sm:text-2xl font-bold mb-6 sm:mb-8 text-gray-900 dark:text-white">Featured Tour Packages</h2>
           <div className="relative">
             {/* Slider Container */}
             <div 
@@ -1134,18 +1134,18 @@ export default function HomePage() {
                 <div className="flex items-center justify-center w-full py-12">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading featured tours...</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">Loading featured tours...</p>
                   </div>
                 </div>
               ) : !loadingTours && (!featuredTours || featuredTours.length === 0) ? (
                 <div className="flex items-center justify-center w-full py-12">
                   <div className="text-center">
-                    <p className="text-gray-500">No featured tours available at the moment.</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">No featured tours available at the moment.</p>
                   </div>
                 </div>
               ) : featuredTours && featuredTours.length > 0 ? featuredTours.map((tour, index) => (
                 <div key={tour.id || `tour-${index}`} className="flex-shrink-0 w-[280px] sm:w-72 md:w-80 snap-start">
-                  <div className="bg-white">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100 dark:border-gray-700">
                     <div className="relative">
                       <Image
                         src={tour.image || (tour.images?.[0] ?? '/next.svg')}
@@ -1160,30 +1160,30 @@ export default function HomePage() {
                       <div style={{ background: '#A0FF07' }} className="absolute top-2 sm:top-3 left-2 sm:left-3 text-gray-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold">
                       {tour.style}
                       </div>
-                      <button className="absolute top-2 sm:top-3 right-2 sm:right-3 w-9 h-9 sm:w-10 sm:h-10 bg-white/90">
-                        <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                      <button className="absolute top-2 sm:top-3 right-2 sm:right-3 w-9 h-9 sm:w-10 sm:h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 active:bg-white/80 dark:active:bg-gray-700/80 transition-colors touch-manipulation min-w-[36px] min-h-[36px]">
+                        <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-300" />
                       </button>
               </div>
                     <div className="p-4 sm:p-5">
-                      <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900">{tour.name}</h3>
-                      <p className="text-gray-800">{tour.duration}</p>
+                      <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900 dark:text-white line-clamp-2">{tour.name}</h3>
+                      <p className="text-gray-800 dark:text-gray-300 text-xs sm:text-sm mb-3">{tour.duration}</p>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-1">
                           <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" />
-                          <span className="text-xs sm:text-sm font-semibold text-gray-900">{tour.rating} Excellent</span>
-                          <span className="text-gray-700">({tour.reviews})</span>
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{tour.rating} Excellent</span>
+                          <span className="text-gray-700 dark:text-gray-400 text-xs sm:text-sm">({tour.reviews})</span>
             </div>
             </div>
                       <div className="mb-3">
-                        <p className="text-xs sm:text-sm text-gray-800">Destinations:</p>
+                        <p className="text-xs sm:text-sm text-gray-800 dark:text-gray-300 mb-2">Destinations:</p>
                         <div className="flex flex-wrap gap-1">
                           {(tour.destinations || []).slice(0, 2).map((dest: string, idx: number) => (
-                            <span key={idx} className="bg-blue-100">
+                            <span key={idx} className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded">
                               {dest}
                             </span>
                           ))}
                           {(tour.destinations || []).length > 2 && (
-                            <span className="text-gray-700">+{(tour.destinations || []).length - 2} more</span>
+                            <span className="text-gray-700 dark:text-gray-400 text-xs">+{(tour.destinations || []).length - 2} more</span>
                           )}
           </div>
         </div>
@@ -1202,8 +1202,8 @@ export default function HomePage() {
             )) : (
               <div className="flex items-center justify-center w-full py-8">
                 <div className="text-center">
-                  <p className="text-gray-500">No featured tours available</p>
-                  <p className="text-gray-400">Please check back later</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-lg">No featured tours available</p>
+                  <p className="text-gray-400 dark:text-gray-500 text-sm">Please check back later</p>
                 </div>
               </div>
             )}
@@ -1218,15 +1218,15 @@ export default function HomePage() {
                   onClick={() => goToSlide(index)}
                   className={`w-3 h-3 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation ${
                     index === currentSlide 
-                      ? 'bg-blue-600' 
-                      : 'bg-gray-300'
+                      ? 'bg-blue-600 dark:bg-blue-500 shadow-lg' 
+                      : 'bg-gray-300 dark:bg-gray-600 hover:bg-blue-400 dark:hover:bg-blue-600'
                   }`}
                   aria-label={`Go to slide ${index + 1}`}
                 >
                   <span className={`w-3 h-3 rounded-full ${
                     index === currentSlide 
-                      ? 'bg-white' 
-                      : 'bg-gray-500'
+                      ? 'bg-white dark:bg-gray-200' 
+                      : 'bg-gray-500 dark:bg-gray-400'
                   }`}></span>
                 </button>
               ))}
@@ -1237,16 +1237,16 @@ export default function HomePage() {
       </section>
 
       {/* Statistics Section - Inspired by Swimlane's stats */}
-      <section className="py-12 sm:py-16 bg-gray-50">
+      <section className="py-12 sm:py-16 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-blue-600">
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-blue-600 dark:bg-blue-500 rounded-full mb-3 sm:mb-4">
                   <stat.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
           </div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stat.number}</div>
-                <div className="text-sm sm:text-base text-gray-800">{stat.label}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">{stat.number}</div>
+                <div className="text-sm sm:text-base text-gray-800 dark:text-gray-300">{stat.label}</div>
                        </div>
             ))}
                      </div>
@@ -1263,13 +1263,13 @@ export default function HomePage() {
         </div>  
       </section>
       {/* Features Section - Inspired by Swimlane's features */}
-      <section className="py-12 sm:py-16 md:py-20 bg-white">
+      <section className="py-12 sm:py-16 md:py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 px-2">
               Why Choose ISLE & ECHO?
             </h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-800">
+            <p className="text-base sm:text-lg md:text-xl text-gray-800 dark:text-gray-300 max-w-3xl mx-auto px-2">
               We provide exceptional travel experiences with unmatched service and attention to detail.
             </p>
                 </div>
@@ -1277,30 +1277,27 @@ export default function HomePage() {
  
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {features.map((feature, index) => {
-              const IconComponent = feature.icon
-              return (
-                <div key={index} className="text-center p-4 sm:p-6 rounded-xl hover:shadow-lg transition-shadow bg-white">
-                  <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-100 mb-4">
-                    <IconComponent className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-gray-700" />
+            {features.map((feature, index) => (
+              <div key={index} className="text-center p-4 sm:p-6 rounded-xl hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
+                <div className={`inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-100 dark:bg-gray-700 mb-3 sm:mb-4 ${feature.color}`}>
+                  <feature.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-gray-700 dark:text-gray-300" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900">{feature.title}</h3>
-                  <p className="text-sm sm:text-base text-gray-800">{feature.description}</p>
-                </div>
-              )
-            })}
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">{feature.title}</h3>
+                <p className="text-sm sm:text-base text-gray-800 dark:text-gray-300">{feature.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
       
       {/* Destinations & Activities Section */}
-      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-green-50 to-emerald-50">
+      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 px-2">
               Discover Sri Lanka&apos;s Destinations
             </h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-800">
+            <p className="text-base sm:text-lg md:text-xl text-gray-800 dark:text-gray-300 max-w-3xl mx-auto px-2">
               Explore the diverse beauty of Sri Lanka with our curated list of destinations and activities.
             </p>
           </div>
@@ -1314,14 +1311,14 @@ export default function HomePage() {
                   placeholder="Search destinations..."
                   value={destinationSearchQuery}
                   onChange={(e) => setDestinationSearchQuery(e.target.value)}
-                  className="px-4 py-2.5 pl-10 border border-gray-300"
+                  className="px-4 py-2.5 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation w-full sm:w-auto"
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
               </div>
               <select 
                 value={selectedRegion}
                 onChange={(e) => setSelectedRegion(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300"
+                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white min-h-[44px] touch-manipulation w-full sm:w-auto"
               >
                 <option value="all">All Regions</option>
                 <option value="Cultural Triangle">Cultural Triangle</option>
@@ -1338,13 +1335,13 @@ export default function HomePage() {
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading destinations...</p>
+                <p className="text-gray-500 dark:text-gray-400 text-lg">Loading destinations...</p>
               </div>
             </div>
           ) : !loadingDestinations && filteredDestinations.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <p className="text-gray-500">No destinations found.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-lg">No destinations found.</p>
               </div>
             </div>
           ) : filteredDestinations.length > 0 ? (
@@ -1359,7 +1356,7 @@ export default function HomePage() {
                 const reviews = Math.floor(Math.random() * 200) + 50 // Random reviews 50-250
 
                 return (
-                  <div key={destination.id} className="bg-white">
+                  <div key={destination.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100 dark:border-gray-700">
                     <div className="relative">
                       <Image
                         src={destination.image || 'https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=400&h=300&fit=crop'}
@@ -1371,22 +1368,22 @@ export default function HomePage() {
                       <div style={{ background: 'linear-gradient(90deg, #ADFF29, #A0FF07)' }} className="absolute top-3 left-3 text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
                         {badge}
                       </div>
-                      <button className="absolute top-3 right-3 w-10 h-10 bg-white/90">
-                        <Heart className="w-5 h-5 text-gray-600" />
+                      <button className="absolute top-3 right-3 w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 active:bg-white/80 dark:active:bg-gray-700/80 transition-colors touch-manipulation min-w-[44px] min-h-[44px]">
+                        <Heart className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                       </button>
                     </div>
                     
                     <div className="p-6">
-                      <h3 className="text-xl font-semibold mb-2 text-gray-900">{destination.name}</h3>
+                      <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">{destination.name}</h3>
                       
                       <div className="flex items-center mb-3">
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-sm text-gray-600">{rating.toFixed(1)} ({reviews})</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{rating.toFixed(1)} ({reviews})</span>
                         </div>
                       </div>
                       
-                      <p className="text-sm mb-4 text-gray-600">{destination.description}</p>
+                      <p className="text-sm mb-4 text-gray-600 dark:text-gray-400">{destination.description}</p>
                       
                       <Link href={`/destinations`}>
                         <button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation">
@@ -1471,6 +1468,117 @@ export default function HomePage() {
       {/* Structured Data */}
       <StructuredData data={organizationSchema} />
       <StructuredData data={websiteSchema} />
+
+      <style jsx>{`
+        .youtube-container {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          z-index: 0;
+        }
+        
+        .youtube-container iframe {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 100%;
+          height: 100%;
+          min-height: 100%;
+          transform: translate(-50%, -50%);
+          border: none;
+          outline: none;
+          pointer-events: none;
+          object-fit: cover;
+        }
+        
+        .youtube-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: transparent;
+          z-index: 0;
+          pointer-events: none;
+        }
+        
+        /* Hide YouTube controls with CSS */
+        .youtube-container iframe::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: transparent;
+          z-index: 10;
+          pointer-events: none;
+        }
+        
+        /* Additional CSS to hide YouTube UI elements */
+        .youtube-container {
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+        }
+        
+        /* Force fullscreen and hide all YouTube elements */
+        .youtube-container iframe {
+          -webkit-transform: translate(-50%, -50%) scale(1.1);
+          transform: translate(-50%, -50%) scale(1.1);
+          filter: brightness(1.1) contrast(1.1);
+        }
+        
+        /* Hide any remaining YouTube UI */
+        .youtube-overlay::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: transparent;
+          z-index: 999;
+          pointer-events: none;
+        }
+        
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 0.8s ease-out;
+        }
+        
+        .animate-fade-in-up.delay-100 {
+          animation-delay: 0.1s;
+        }
+
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      `}</style>
     </div>
   )
 }
