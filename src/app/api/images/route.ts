@@ -82,10 +82,11 @@ export async function GET() {
               continue
             }
 
-            // Verify file is accessible by making a HEAD request
+            // Verify file is accessible by making a HEAD request (non-blocking - log warning but don't skip)
+            // This helps identify broken images but doesn't prevent valid images from showing
             try {
               const controller = new AbortController()
-              const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+              const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
               
               const headResponse = await fetch(urlData.publicUrl, { 
                 method: 'HEAD',
@@ -95,12 +96,12 @@ export async function GET() {
               clearTimeout(timeoutId)
               
               if (!headResponse.ok) {
-                console.warn(`Skipping file ${file.name} - HTTP ${headResponse.status} (file not accessible)`)
-                continue
+                console.warn(`Warning: File ${file.name} returned HTTP ${headResponse.status} - may not be accessible`)
+                // Don't skip - still include it, let the frontend handle broken images
               }
             } catch (fetchError) {
-              console.warn(`Skipping file ${file.name} - could not verify accessibility: ${(fetchError as Error).message}`)
-              continue
+              // Log warning but don't skip - network issues shouldn't prevent images from showing
+              console.warn(`Warning: Could not verify accessibility for ${file.name}: ${(fetchError as Error).message}`)
             }
 
             const imageData: ImageMetadata = {
@@ -127,9 +128,15 @@ export async function GET() {
       }
     }
     
-    // Also fetch local images from public/uploads (only in non-serverless environments)
+    // Fetch local images as fallback (only in non-serverless environments)
+    // This allows local images to show while migrating to Supabase
     const isServerless = process.cwd().includes('/var/task') || process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    const supabaseConfigured = supabaseUrl && supabaseServiceKey && 
+        supabaseUrl !== 'https://placeholder.supabase.co' && 
+        supabaseServiceKey !== 'placeholder-service-key'
     
+    // Show local images as fallback in development (not in serverless)
+    // In production (serverless), only Supabase images will be shown
     if (!isServerless) {
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
       
@@ -138,7 +145,7 @@ export async function GET() {
           const localFiles = fs.readdirSync(uploadsDir)
           const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
           
-          console.log('Reading local uploads directory, found', localFiles.length, 'files')
+          console.log('Reading local uploads directory (Supabase not configured), found', localFiles.length, 'files')
           
           for (const fileName of localFiles) {
             const ext = path.extname(fileName).toLowerCase()
@@ -167,6 +174,8 @@ export async function GET() {
         } catch (error) {
           console.error('Error reading local uploads:', error)
         }
+      } else {
+        console.log('No local uploads directory found')
       }
     } else {
       console.log('Serverless environment detected, skipping local file reading')
