@@ -64,10 +64,44 @@ export async function GET() {
         
         for (const file of files) {
           try {
-            // Get public URL
+            // Validate file has valid metadata (size > 0 indicates file exists)
+            if (!file.metadata?.size || file.metadata.size === 0) {
+              console.warn(`Skipping file ${file.name} - invalid or missing metadata`)
+              continue
+            }
+
+            const filePath = `main/images/${file.name}`
+            
+            // Get public URL first
             const { data: urlData } = supabaseAdmin.storage
               .from(BUCKET_NAME)
-              .getPublicUrl(`main/images/${file.name}`)
+              .getPublicUrl(filePath)
+
+            if (!urlData?.publicUrl) {
+              console.warn(`Skipping file ${file.name} - could not generate public URL`)
+              continue
+            }
+
+            // Verify file is accessible by making a HEAD request
+            try {
+              const controller = new AbortController()
+              const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+              
+              const headResponse = await fetch(urlData.publicUrl, { 
+                method: 'HEAD',
+                signal: controller.signal
+              })
+              
+              clearTimeout(timeoutId)
+              
+              if (!headResponse.ok) {
+                console.warn(`Skipping file ${file.name} - HTTP ${headResponse.status} (file not accessible)`)
+                continue
+              }
+            } catch (fetchError) {
+              console.warn(`Skipping file ${file.name} - could not verify accessibility: ${(fetchError as Error).message}`)
+              continue
+            }
 
             const imageData: ImageMetadata = {
               id: file.id || uuidv4(),
@@ -75,8 +109,8 @@ export async function GET() {
               originalName: file.name,
               fileName: file.name,
               url: urlData.publicUrl,
-              size: getFileSize(file.metadata?.size || 0),
-              sizeBytes: file.metadata?.size || 0,
+              size: getFileSize(file.metadata.size),
+              sizeBytes: file.metadata.size,
               dimensions: 'Unknown',
               category: 'General',
               uploadedAt: file.created_at || new Date().toISOString(),
@@ -93,46 +127,49 @@ export async function GET() {
       }
     }
     
-    // Also fetch local images from public/uploads (priority for local dev)
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+    // Also fetch local images from public/uploads (only in non-serverless environments)
+    const isServerless = process.cwd().includes('/var/task') || process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
     
-    // Clear Supabase images and only use local ones for now
-    images.length = 0
-    
-    if (fs.existsSync(uploadsDir)) {
-      try {
-        const localFiles = fs.readdirSync(uploadsDir)
-        const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-        
-        console.log('Reading local uploads directory, found', localFiles.length, 'files')
-        
-        for (const fileName of localFiles) {
-          const ext = path.extname(fileName).toLowerCase()
-          if (imageExts.includes(ext)) {
-            const filePath = path.join(uploadsDir, fileName)
-            const stats = fs.statSync(filePath)
-            
-            const imageData: ImageMetadata = {
-              id: uuidv4(),
-              name: fileName,
-              originalName: fileName,
-              fileName: fileName,
-              url: `/uploads/${fileName}`, // Local URL
-              size: getFileSize(stats.size),
-              sizeBytes: stats.size,
-              dimensions: 'Unknown',
-              category: 'General',
-              uploadedAt: stats.birthtime.toISOString(),
-              usedIn: []
+    if (!isServerless) {
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+      
+      if (fs.existsSync(uploadsDir)) {
+        try {
+          const localFiles = fs.readdirSync(uploadsDir)
+          const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+          
+          console.log('Reading local uploads directory, found', localFiles.length, 'files')
+          
+          for (const fileName of localFiles) {
+            const ext = path.extname(fileName).toLowerCase()
+            if (imageExts.includes(ext)) {
+              const filePath = path.join(uploadsDir, fileName)
+              const stats = fs.statSync(filePath)
+              
+              const imageData: ImageMetadata = {
+                id: uuidv4(),
+                name: fileName,
+                originalName: fileName,
+                fileName: fileName,
+                url: `/uploads/${fileName}`, // Local URL
+                size: getFileSize(stats.size),
+                sizeBytes: stats.size,
+                dimensions: 'Unknown',
+                category: 'General',
+                uploadedAt: stats.birthtime.toISOString(),
+                usedIn: []
+              }
+              
+              images.push(imageData)
+              console.log('Added local image:', fileName)
             }
-            
-            images.push(imageData)
-            console.log('Added local image:', fileName)
           }
+        } catch (error) {
+          console.error('Error reading local uploads:', error)
         }
-      } catch (error) {
-        console.error('Error reading local uploads:', error)
       }
+    } else {
+      console.log('Serverless environment detected, skipping local file reading')
     }
     
     console.log('Total images found:', images.length)
@@ -191,38 +228,56 @@ export async function POST(request: Request) {
     // Convert file to buffer
     const buffer = await file.arrayBuffer()
 
-    // Save to local public/uploads directory first
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true })
+    // Check if we're in a serverless environment (read-only filesystem)
+    const isServerless = process.cwd().includes('/var/task') || process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    let localUrl: string | null = null
+
+    // Only try to save locally if not in serverless environment
+    if (!isServerless) {
+      try {
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true })
+        }
+        
+        const localPath = path.join(uploadsDir, fileName)
+        fs.writeFileSync(localPath, Buffer.from(buffer))
+        console.log('Image saved to local storage:', localPath)
+        localUrl = `/uploads/${fileName}`
+      } catch (localError: unknown) {
+        console.log('Local storage not available (likely serverless environment), will use Supabase only:', (localError as Error).message)
+      }
+    } else {
+      console.log('Serverless environment detected, skipping local file storage')
     }
-    
-    const localPath = path.join(uploadsDir, fileName)
-    fs.writeFileSync(localPath, Buffer.from(buffer))
-    console.log('Image saved to local storage:', localPath)
 
-    const localUrl = `/uploads/${fileName}`
-
-    // Try to upload to Supabase as backup (optional - don't fail if it doesn't work)
+    // Upload to Supabase (required in serverless, optional in local dev)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    let supabaseUrl_final = localUrl
+    let supabaseUrl_final: string | null = null
     
     if (supabaseUrl && supabaseServiceKey && 
         supabaseUrl !== 'https://placeholder.supabase.co' && 
         supabaseServiceKey !== 'placeholder-service-key') {
       
       try {
-        console.log('Attempting to upload to Supabase as backup...')
+        console.log('Uploading to Supabase storage...')
         
         const bucketCheck = await ensureBucketExists()
         if (!bucketCheck.success) {
-          console.log('Bucket check failed, skipping Supabase upload')
+          console.error('Bucket check failed:', bucketCheck.error)
+          if (isServerless) {
+            // In serverless, Supabase is required
+            return NextResponse.json({ 
+              success: false, 
+              error: 'Supabase storage not available. Cannot upload in serverless environment without Supabase.' 
+            }, { status: 500 })
+          }
         } else {
           const supabasePath = `main/images/${fileName}`
           
-        // Upload to Supabase as backup
-        const { error: uploadError } = await supabaseAdmin.storage
+          // Upload to Supabase
+          const { error: uploadError } = await supabaseAdmin.storage
             .from(BUCKET_NAME)
             .upload(supabasePath, buffer, {
               contentType: file.type,
@@ -235,17 +290,46 @@ export async function POST(request: Request) {
               .from(BUCKET_NAME)
               .getPublicUrl(supabasePath)
             supabaseUrl_final = urlData.publicUrl
-            console.log('Image also uploaded to Supabase as backup')
+            console.log('Image uploaded to Supabase storage')
           } else {
-            console.log('Supabase upload failed, will use local storage only:', uploadError.message)
+            console.error('Supabase upload failed:', uploadError.message)
+            if (isServerless) {
+              // In serverless, Supabase is required
+              return NextResponse.json({ 
+                success: false, 
+                error: `Failed to upload to Supabase: ${uploadError.message}` 
+              }, { status: 500 })
+            }
           }
         }
       } catch (supabaseError: unknown) {
-        console.log('Error uploading to Supabase, using local storage only:', (supabaseError as Error).message)
-        // Continue with local storage - don't fail the request
+        console.error('Error uploading to Supabase:', (supabaseError as Error).message)
+        if (isServerless) {
+          // In serverless, Supabase is required
+          return NextResponse.json({ 
+            success: false, 
+            error: `Failed to upload to Supabase: ${(supabaseError as Error).message}` 
+          }, { status: 500 })
+        }
       }
     } else {
-      console.log('Supabase not configured, saving to local storage only')
+      if (isServerless) {
+        // In serverless, Supabase is required
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Supabase not configured. Cannot upload in serverless environment without Supabase.' 
+        }, { status: 500 })
+      }
+      console.log('Supabase not configured, using local storage only')
+    }
+
+    // Determine final URL (prefer Supabase, fallback to local)
+    const finalUrl = supabaseUrl_final || localUrl
+    if (!finalUrl) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Failed to upload image: no storage available' 
+      }, { status: 500 })
     }
 
     // Create image metadata
@@ -254,7 +338,7 @@ export async function POST(request: Request) {
       name: file.name,
       originalName: file.name,
       fileName: fileName,
-      url: supabaseUrl_final,
+      url: finalUrl,
       size: getFileSize(file.size),
       sizeBytes: file.size,
       dimensions: 'Unknown',
@@ -291,11 +375,19 @@ export async function DELETE(request: Request) {
       }, { status: 400 })
     }
 
-    // Delete from local storage
-    const localPath = path.join(process.cwd(), 'public', 'uploads', fileName)
-    if (fs.existsSync(localPath)) {
-      fs.unlinkSync(localPath)
-      console.log('Deleted from local storage:', fileName)
+    // Delete from local storage (only in non-serverless environments)
+    const isServerless = process.cwd().includes('/var/task') || process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    
+    if (!isServerless) {
+      try {
+        const localPath = path.join(process.cwd(), 'public', 'uploads', fileName)
+        if (fs.existsSync(localPath)) {
+          fs.unlinkSync(localPath)
+          console.log('Deleted from local storage:', fileName)
+        }
+      } catch (error) {
+        console.log('Local storage not available, skipping local delete:', error)
+      }
     }
 
     // Also try to delete from Supabase if configured

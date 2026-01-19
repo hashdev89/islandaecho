@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseClient'
+import { BUCKET_NAME } from '@/lib/supabaseStorage'
 import fs from 'fs'
 import path from 'path'
 
@@ -11,7 +12,7 @@ function isUploadedImage(url: string): boolean {
   if (url.startsWith('/uploads/')) return true
   
   // Check if it's from Supabase storage (your bucket)
-  if (url.includes('supabase.co') && url.includes('storage/v1/object/public/isleandecho')) return true
+  if (url.includes('supabase.co') && url.includes(`storage/v1/object/public/${BUCKET_NAME}`)) return true
   
   // Check if it's from your Supabase storage bucket
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -46,13 +47,13 @@ async function getUploadedImages(): Promise<string[]> {
   if (supabaseUrl && supabaseKey && supabaseUrl.includes('supabase.co')) {
     try {
       const { data: files } = await supabaseAdmin.storage
-        .from('isleandecho')
+        .from(BUCKET_NAME)
         .list('main/images', { limit: 1000 })
       
       if (files) {
         for (const file of files) {
           const { data: urlData } = supabaseAdmin.storage
-            .from('isleandecho')
+            .from(BUCKET_NAME)
             .getPublicUrl(`main/images/${file.name}`)
           if (urlData?.publicUrl) {
             uploadedUrls.push(urlData.publicUrl)

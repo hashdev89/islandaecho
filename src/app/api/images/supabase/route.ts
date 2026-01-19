@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseClient'
 import { v4 as uuidv4 } from 'uuid'
+import { BUCKET_NAME } from '@/lib/supabaseStorage'
 
 interface ImageMetadata {
   id: string
@@ -64,7 +65,7 @@ export async function GET() {
 
     // Fetch images from Supabase storage
     const { data: files, error: listError } = await supabaseAdmin.storage
-      .from('isleandecho')
+      .from(BUCKET_NAME)
       .list('main/images', {
         limit: 1000,
         offset: 0,
@@ -87,20 +88,55 @@ export async function GET() {
     if (files && files.length > 0) {
       for (const file of files) {
         try {
+          const fileWithMetadata = file as FileWithMetadata
+          
+          // Validate file has valid metadata
+          if (!fileWithMetadata.metadata?.size || fileWithMetadata.metadata.size === 0) {
+            console.warn(`Skipping file ${file.name} - invalid or missing metadata`)
+            continue
+          }
+
+          const filePath = `main/images/${file.name}`
+          
           // Get public URL
           const { data: urlData } = supabaseAdmin.storage
-            .from('isleandecho')
-            .getPublicUrl(`main/images/${file.name}`)
+            .from(BUCKET_NAME)
+            .getPublicUrl(filePath)
 
-          const fileWithMetadata = file as FileWithMetadata
+          if (!urlData?.publicUrl) {
+            console.warn(`Skipping file ${file.name} - could not generate public URL`)
+            continue
+          }
+
+          // Verify file is accessible by making a HEAD request
+          try {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+            
+            const headResponse = await fetch(urlData.publicUrl, { 
+              method: 'HEAD',
+              signal: controller.signal
+            })
+            
+            clearTimeout(timeoutId)
+            
+            if (!headResponse.ok) {
+              console.warn(`Skipping file ${file.name} - HTTP ${headResponse.status} (file not accessible)`)
+              continue
+            }
+          } catch (fetchError) {
+            console.warn(`Skipping file ${file.name} - could not verify accessibility: ${(fetchError as Error).message}`)
+            continue
+          }
+
           const imageData: ImageMetadata = {
             id: file.id || uuidv4(),
             name: file.name,
             originalName: file.name,
             fileName: file.name,
             url: urlData.publicUrl,
-            size: getFileSize(fileWithMetadata.metadata?.size || 0),
-            sizeBytes: fileWithMetadata.metadata?.size || 0,
+            size: getFileSize(fileWithMetadata.metadata.size),
+            sizeBytes: fileWithMetadata.metadata.size,
             dimensions: 'Unknown', // We'll get this from metadata if available
             category: 'General',
             uploadedAt: file.created_at || new Date().toISOString(),
@@ -187,7 +223,7 @@ export async function POST(request: Request) {
     // Upload to Supabase storage
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data: _uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from('isleandecho')
+      .from(BUCKET_NAME)
       .upload(filePath, buffer, {
         contentType: file.type,
         upsert: false
@@ -203,7 +239,7 @@ export async function POST(request: Request) {
 
     // Get public URL
     const { data: urlData } = supabaseAdmin.storage
-      .from('isleandecho')
+      .from(BUCKET_NAME)
       .getPublicUrl(filePath)
 
     // Create image metadata
@@ -266,7 +302,7 @@ export async function DELETE(request: Request) {
 
     // Delete from Supabase storage
     const { error: deleteError } = await supabaseAdmin.storage
-      .from('isleandecho')
+      .from(BUCKET_NAME)
       .remove([filePath])
 
     if (deleteError) {
