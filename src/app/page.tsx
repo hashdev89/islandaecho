@@ -18,7 +18,9 @@ import {
   Pause,
   Award,
   Camera,
-  ArrowRight
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import Header from '../components/Header'
 import StructuredData, { organizationSchema, websiteSchema } from '../components/StructuredData'
@@ -65,11 +67,66 @@ export default function HomePage() {
   const [loadingDestinations, setLoadingDestinations] = useState(true)
   const [selectedRegion, setSelectedRegion] = useState('all')
   const [destinationSearchQuery, setDestinationSearchQuery] = useState('')
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false) // Start with video not playing to avoid issues
+  const [isVideoPlaying, setIsVideoPlaying] = useState(true) // Start with video playing on desktop
   const [videoError, setVideoError] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
   const [useFallbackImage, setUseFallbackImage] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  
+  // Hero carousel images - shown when video stops or fails
+  const heroImages = [
+    '/sigiriya.jpeg',
+    'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=1920&h=1080&fit=crop',
+    'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1920&h=1080&fit=crop',
+    'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=1920&h=1080&fit=crop',
+    'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=1920&h=1080&fit=crop',
+    'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=1920&h=1080&fit=crop'
+  ]
+  
+  // Auto-advance carousel when video is not playing (carousel is visible)
+  useEffect(() => {
+    // Only auto-advance when carousel is visible (video not playing or on mobile)
+    const shouldShowCarousel = !isVideoPlaying || useFallbackImage
+    if (shouldShowCarousel) {
+      const interval = setInterval(() => {
+        if (!isTransitioning) {
+          setIsTransitioning(true)
+          setCurrentSlide((prev) => (prev + 1) % heroImages.length)
+          setTimeout(() => setIsTransitioning(false), 4000) // Match fade duration
+        }
+      }, 12000) // Change slide every 12 seconds for slower transition
+      return () => clearInterval(interval)
+    } else {
+      // Reset to first slide when video starts playing
+      setCurrentSlide(0)
+      setIsTransitioning(false)
+    }
+  }, [isVideoPlaying, useFallbackImage, heroImages.length, isTransitioning])
+  
+  const nextSlide = () => {
+    // Only prevent very rapid clicks (within 500ms), not the full fade duration
+    if (isTransitioning) return
+    setIsTransitioning(true)
+    const nextIndex = (currentSlide + 1) % heroImages.length
+    setCurrentSlide(nextIndex)
+    // Reset transition state quickly to allow clicks, fade will still happen
+    setTimeout(() => {
+      setIsTransitioning(false)
+    }, 500) // Short delay to prevent rapid clicking
+  }
+  
+  const prevSlide = () => {
+    // Only prevent very rapid clicks (within 500ms), not the full fade duration
+    if (isTransitioning) return
+    setIsTransitioning(true)
+    const prevIndex = (currentSlide - 1 + heroImages.length) % heroImages.length
+    setCurrentSlide(prevIndex)
+    // Reset transition state quickly to allow clicks, fade will still happen
+    setTimeout(() => {
+      setIsTransitioning(false)
+    }, 500) // Short delay to prevent rapid clicking
+  }
 
   // Update dateRange when selectedStartDate or selectedEndDate changes
   useEffect(() => {
@@ -289,6 +346,14 @@ export default function HomePage() {
       console.log('YouTube iframe found:', iframe);
       console.log('YouTube src:', iframe.src);
       
+      // Try to play video on load (for desktop)
+      const tryPlayVideo = () => {
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          setIsVideoPlaying(true);
+        }
+      };
+      
       // Listen for YouTube API events
       const handleMessage = (event: MessageEvent) => {
         if (event.origin !== 'https://www.youtube.com') return;
@@ -303,6 +368,26 @@ export default function HomePage() {
             case 'video-play':
               setIsVideoPlaying(true);
               break;
+            case 'video-end':
+              // When video ends, switch to slideshow
+              console.log('Video ended, switching to slideshow');
+              setIsVideoPlaying(false);
+              break;
+            case 'onStateChange':
+              // Handle YouTube player state changes
+              // 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued
+              if (data.info === 0) {
+                // Video ended
+                console.log('Video ended, switching to slideshow');
+                setIsVideoPlaying(false);
+              } else if (data.info === 1) {
+                // Video is playing
+                setIsVideoPlaying(true);
+              } else if (data.info === 2) {
+                // Video is paused
+                setIsVideoPlaying(false);
+              }
+              break;
           }
         } catch {
           // Ignore non-JSON messages
@@ -310,6 +395,9 @@ export default function HomePage() {
       };
       
       window.addEventListener('message', handleMessage);
+      
+      // Try to play video after a short delay to ensure iframe is ready
+      setTimeout(tryPlayVideo, 1000);
       
       return () => {
         window.removeEventListener('message', handleMessage);
@@ -582,23 +670,39 @@ export default function HomePage() {
       <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white overflow-visible sm:overflow-hidden min-h-auto sm:min-h-screen w-full flex items-start sm:items-center pt-20 pb-11 sm:pt-0 sm:pb-0">
         {/* Background Video/Image */}
         <div className="absolute inset-0 z-0 overflow-hidden">
-          {/* Sigiriya Background - shown when video is not playing or failed */}
+          {/* Hero Carousel - shown when video is not playing or failed */}
           {/* Always visible on mobile, conditionally hidden on desktop when video plays */}
-          <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isVideoPlaying && !useFallbackImage ? 'sm:opacity-0 opacity-100' : 'opacity-100'}`}>
+          <div className={`absolute inset-0 z-0 transition-opacity duration-500 group ${isVideoPlaying && !useFallbackImage ? 'sm:opacity-0 opacity-100' : 'opacity-100'}`}>
+            {/* Full-screen carousel */}
+            <div className="relative w-full h-full">
+              {/* Carousel Images with Fade Animation */}
+              {heroImages.map((image, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity ease-in-out duration-[4000ms] will-change-opacity ${
+                    index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                  }`}
+                  style={{
+                    transition: 'opacity 4s ease-in-out'
+                  }}
+                >
             <Image
-              src="/sigiriya.jpeg"
-              alt="Sigiriya Rock Fortress - Sri Lanka"
+                    src={image}
+                    alt={`Sri Lanka Hero Image ${index + 1}`}
               fill
-              priority
+                    priority={index === 0}
               className="object-cover"
-              quality={75}
+                    quality={85}
               sizes="100vw"
-              fetchPriority="high"
-              unoptimized={false}
+                    fetchPriority={index === 0 ? "high" : "auto"}
               style={{ objectFit: 'cover' }}
             />
+                </div>
+              ))}
+              
             {/* Dark overlay */}
-            <div className="absolute inset-0 bg-black/70"></div>
+              <div className="absolute inset-0 bg-black/70 z-20 pointer-events-none"></div>
+            </div>
           </div>
           
           {/* YouTube Video Background - shown only on desktop when video is playing and not using fallback */}
@@ -606,7 +710,7 @@ export default function HomePage() {
             <div className="youtube-container">
               <iframe
                 id="hero-video"
-                src="https://www.youtube.com/embed/y5bHGWAE50c?autoplay=1&mute=1&loop=1&playlist=y5bHGWAE50c&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&start=0&cc_load_policy=0&playsinline=1&enablejsapi=1&origin=*&widget_referrer=*&widgetid=1&autohide=1&wmode=transparent"
+                src="https://www.youtube.com/embed/y5bHGWAE50c?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&start=0&cc_load_policy=0&playsinline=1&enablejsapi=1&origin=*&widget_referrer=*&widgetid=1&autohide=1&wmode=transparent"
                 title="Sri Lanka Travel Video"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -615,6 +719,13 @@ export default function HomePage() {
                   console.log('YouTube video loaded');
                   setVideoLoaded(true);
                   setIsVideoPlaying(true);
+                  // Ensure video plays on load
+                  setTimeout(() => {
+                    const iframe = document.getElementById('hero-video') as HTMLIFrameElement;
+                    if (iframe && iframe.contentWindow) {
+                      iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                    }
+                  }, 500);
                 }}
                 onError={() => {
                   console.error('YouTube video failed to load');
@@ -627,8 +738,43 @@ export default function HomePage() {
               <div className="youtube-overlay"></div>
             </div>
             {/* Dark overlay on top of video */}
-            <div className="absolute inset-0 bg-black/70 z-30"></div>
+            <div className="absolute inset-0 bg-black/70 z-30 pointer-events-none"></div>
           </div>
+        </div>
+
+        {/* Carousel Navigation Controls - Moved outside nested containers for proper z-index */}
+        <div className="absolute inset-0 z-[9999] hidden sm:flex items-center justify-between px-4 sm:px-6 lg:px-8 pointer-events-none">
+          {/* Left Arrow */}
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              console.log('Left arrow clicked')
+              prevSlide()
+            }}
+            className="bg-white/10 hover:bg-blue-600 active:bg-blue-800 backdrop-blur-sm border border-white/30 hover:border-blue-600 text-white rounded-full p-3 sm:p-4 transition-all duration-300 pointer-events-auto flex items-center justify-center shadow-lg hover:shadow-xl"
+            style={{ cursor: 'pointer', zIndex: 10000 }}
+            aria-label="Previous slide"
+            type="button"
+          >
+            <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8 text-white pointer-events-none" />
+          </button>
+          
+          {/* Right Arrow */}
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              console.log('Right arrow clicked')
+              nextSlide()
+            }}
+            className="bg-white/10 hover:bg-blue-600 active:bg-blue-800 backdrop-blur-sm border border-white/30 hover:border-blue-600 text-white rounded-full p-3 sm:p-4 transition-all duration-300 pointer-events-auto flex items-center justify-center shadow-lg hover:shadow-xl"
+            style={{ cursor: 'pointer', zIndex: 10000 }}
+            aria-label="Next slide"
+            type="button"
+          >
+            <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 text-white pointer-events-none" />
+          </button>
         </div>
 
         
