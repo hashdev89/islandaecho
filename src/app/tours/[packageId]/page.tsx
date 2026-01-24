@@ -1088,6 +1088,23 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-12">
 
+              {/* Key Experiences */}
+              {tourPackage.keyExperiences && tourPackage.keyExperiences.length > 0 && (
+                <div>
+                  <h2 className="text-2xl font-bold mb-6 text-gray-900">Key Experiences</h2>
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
+                      {(tourPackage.keyExperiences || []).map((item, index) => (
+                        <li key={index} className="flex items-start text-sm text-gray-700">
+                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 mr-2" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
               {/* Interactive 3D Mapbox Map */}
               <div>
                 <h2 className="text-2xl font-bold mb-6 text-gray-900">Tour Route Map</h2>
@@ -1176,7 +1193,7 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Activities</h4>
+                          <h4 className="font-semibold text-gray-900 mb-2">Highlights</h4>
                           <ul className="space-y-1">
                             {(day.activities || []).map((activity, index) => (
                               <li key={index} className="flex items-center text-sm text-gray-600">
@@ -1216,23 +1233,6 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                   ))}
                 </div>
               </div>
-
-              {/* Key Experiences */}
-              {tourPackage.keyExperiences && tourPackage.keyExperiences.length > 0 && (
-                <div>
-                  <h2 className="text-2xl font-bold mb-6 text-gray-900">Key Experiences</h2>
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
-                      {(tourPackage.keyExperiences || []).map((item, index) => (
-                        <li key={index} className="flex items-start text-sm text-gray-700">
-                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 mr-2" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
 
               {/* Image Gallery */}
               <div>

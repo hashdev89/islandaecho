@@ -146,7 +146,6 @@ export default function TourEditor() {
   const [newInclusion, setNewInclusion] = useState('')
   const [newExclusion, setNewExclusion] = useState('')
   const [newAccommodation, setNewAccommodation] = useState('')
-  const [newHighlight, setNewHighlight] = useState('')
   const [newKeyExperience, setNewKeyExperience] = useState('')
   const [newWhatToBring, setNewWhatToBring] = useState('')
   const [showDestinationSelector, setShowDestinationSelector] = useState(false)
@@ -387,13 +386,6 @@ export default function TourEditor() {
     if (newAccommodation.trim()) {
       setTour({ ...tour, accommodation: [...tour.accommodation, newAccommodation.trim()] })
       setNewAccommodation('')
-    }
-  }
-
-  const addHighlight = () => {
-    if (newHighlight.trim()) {
-      setTour({ ...tour, highlights: [...tour.highlights, newHighlight.trim()] })
-      setNewHighlight('')
     }
   }
 
@@ -890,39 +882,6 @@ export default function TourEditor() {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Highlights */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Highlights</h2>
-            <div className="flex space-x-2 mb-4">
-              <input
-                type="text"
-                value={newHighlight}
-                onChange={(e) => setNewHighlight(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Add a highlight"
-              />
-              <button
-                onClick={addHighlight}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-2">
-              {(tour.highlights || []).map((highlight, index) => (
-                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                  <span className="text-sm">{highlight}</span>
-                  <button
-                    onClick={() => removeItem(tour.highlights || [], index, 'highlights')}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
 
