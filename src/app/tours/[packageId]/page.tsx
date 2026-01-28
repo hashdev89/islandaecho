@@ -1236,7 +1236,7 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
                           <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
                             <Car className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400 shrink-0" />
-                            Transport
+                            Transport only
                           </h4>
                           <div className="space-y-2 flex-1 text-sm text-gray-600 dark:text-gray-400">
                             {day.transportation ? (
