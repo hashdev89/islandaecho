@@ -18,7 +18,8 @@ import {
   X,
   LogOut,
   Package,
-  MapPin
+  MapPin,
+  LayoutTemplate
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import AdminRoute from '../../components/AdminRoute'
@@ -71,6 +72,7 @@ export default function AdminLayout({
       { name: 'Users', href: '/admin/users', icon: Users, roles: ['admin'] },
       { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp, roles: ['admin'] },
       { name: 'SEO', href: '/admin/seo', icon: SearchIcon, roles: ['admin'] },
+      { name: 'Site Content', href: '/admin/site-content', icon: LayoutTemplate, roles: ['admin'] },
       { name: 'Settings', href: '/admin/settings', icon: Settings, roles: ['admin'] },
     ]
 

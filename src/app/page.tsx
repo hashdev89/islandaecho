@@ -68,15 +68,16 @@ export default function HomePage() {
   const [loadingDestinations, setLoadingDestinations] = useState(true)
   const [selectedRegion, setSelectedRegion] = useState('all')
   const [destinationSearchQuery, setDestinationSearchQuery] = useState('')
-  const [isVideoPlaying, setIsVideoPlaying] = useState(true) // Start with video playing on desktop
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false) // Video does not autoplay; carousel shows by default
   const [videoError, setVideoError] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
   const [useFallbackImage, setUseFallbackImage] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [siteContent, setSiteContent] = useState<Record<string, unknown> | null>(null)
   
-  // Hero carousel images - shown when video stops or fails
-  const heroImages = [
+  // Hero carousel images - from Site Content CMS when available, else defaults
+  const defaultHeroImages = [
     '/sigiriya.jpeg',
     'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=1920&h=1080&fit=crop',
     'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1920&h=1080&fit=crop',
@@ -84,7 +85,20 @@ export default function HomePage() {
     'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=1920&h=1080&fit=crop',
     'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=1920&h=1080&fit=crop'
   ]
-  
+  const heroImages = useMemo(() => {
+    const fromCms = (siteContent?.hero as Record<string, unknown>)?.heroImages
+    if (Array.isArray(fromCms) && fromCms.length > 0) {
+      const valid = fromCms.filter((u): u is string => typeof u === 'string' && u.length > 0)
+      if (valid.length > 0) return valid
+    }
+    return defaultHeroImages
+  }, [siteContent])
+
+  // Keep currentSlide in bounds when heroImages from CMS changes
+  useEffect(() => {
+    setCurrentSlide((s) => Math.min(s, Math.max(0, heroImages.length - 1)))
+  }, [heroImages.length])
+
   // Auto-advance carousel when video is not playing (carousel is visible)
   useEffect(() => {
     // Only auto-advance when carousel is visible (video not playing or on mobile)
@@ -330,6 +344,17 @@ export default function HomePage() {
     }
   }, [])
 
+  useEffect(() => {
+    let isMounted = true
+    fetch('/api/site-content', { cache: 'no-store' })
+      .then(res => (res.ok ? res.json() : null))
+      .then((json: { success?: boolean; data?: Record<string, unknown> } | null) => {
+        if (isMounted && json?.success && json.data) setSiteContent(json.data)
+      })
+      .catch(() => {})
+    return () => { isMounted = false }
+  }, [])
+
   // Filter destinations with useMemo for performance
   const filteredDestinations = useMemo(() => {
     return (destinations || []).filter(destination => {
@@ -396,9 +421,6 @@ export default function HomePage() {
       };
       
       window.addEventListener('message', handleMessage);
-      
-      // Try to play video after a short delay to ensure iframe is ready
-      setTimeout(tryPlayVideo, 1000);
       
       return () => {
         window.removeEventListener('message', handleMessage);
@@ -701,8 +723,8 @@ export default function HomePage() {
                 </div>
               ))}
               
-            {/* Dark overlay */}
-              <div className="absolute inset-0 bg-black/70 z-20 pointer-events-none"></div>
+            {/* Dark overlay - 50% opacity so images show through more */}
+              <div className="absolute inset-0 bg-black/50 z-20 pointer-events-none"></div>
             </div>
           </div>
           
@@ -719,14 +741,8 @@ export default function HomePage() {
                 onLoad={() => {
                   console.log('YouTube video loaded');
                   setVideoLoaded(true);
-                  setIsVideoPlaying(true);
-                  // Ensure video plays on load
-                  setTimeout(() => {
-                    const iframe = document.getElementById('hero-video') as HTMLIFrameElement;
-                    if (iframe && iframe.contentWindow) {
-                      iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-                    }
-                  }, 500);
+                  // Video does not autoplay; carousel stays visible until user plays
+                  setIsVideoPlaying(false);
                 }}
                 onError={() => {
                   console.error('YouTube video failed to load');
@@ -738,7 +754,7 @@ export default function HomePage() {
               {/* CSS Overlay to hide YouTube controls */}
               <div className="youtube-overlay"></div>
             </div>
-            {/* Dark overlay on top of video */}
+            {/* Dark overlay on top of video - 70% opacity */}
             <div className="absolute inset-0 bg-black/70 z-30 pointer-events-none"></div>
           </div>
         </div>
@@ -1401,12 +1417,15 @@ export default function HomePage() {
       </section>
 
 
-      <section className='py-12 sm:py-16 md:py-20 bg-image-bg'>
+      <section
+        className='py-12 sm:py-16 md:py-20 bg-image-bg bg-cover bg-center bg-no-repeat'
+        style={((siteContent?.sriLankaBanner as Record<string, unknown>)?.backgroundImage as string) ? { backgroundImage: `url(${(siteContent?.sriLankaBanner as Record<string, unknown>).backgroundImage})` } : undefined}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className='text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-center text-white text-shadow-sri-lanka'>
-            Sri Lanka
+            {((siteContent?.sriLankaBanner as Record<string, unknown>)?.title as string) || 'Sri Lanka'}
           </h1>
-          <p className='text-base sm:text-lg md:text-xl lg:text-2xl text-center text-black text-shadow-subtitle mt-2 sm:mt-4'>Mystic Isle of Echoes</p>
+          <p className='text-base sm:text-lg md:text-xl lg:text-2xl text-center text-black text-shadow-subtitle mt-2 sm:mt-4'>{((siteContent?.sriLankaBanner as Record<string, unknown>)?.subtitle as string) || 'Mystic Isle of Echoes'}</p>
         </div>  
       </section>
       {/* Features Section - Inspired by Swimlane's features */}

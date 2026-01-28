@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   Facebook,
   Twitter,
@@ -9,7 +10,49 @@ import {
   Play as PlayIcon
 } from 'lucide-react'
 
+type FooterContent = {
+  newsletterTitle?: string
+  newsletterSubtitle?: string
+  newsletterButtonText?: string
+  contactHeading?: string
+  contactPhone?: string
+  contactEmail?: string
+  companyHeading?: string
+  companyLinks?: Array<{ label?: string; url?: string }>
+  supportHeading?: string
+  supportLinks?: Array<{ label?: string; url?: string }>
+  otherServicesHeading?: string
+  otherServicesLinks?: Array<{ label?: string; url?: string }>
+  copyrightText?: string
+  bottomLinks?: Array<{ label?: string; url?: string }>
+}
+
 export default function Footer() {
+  const [footerContent, setFooterContent] = useState<FooterContent | null>(null)
+
+  useEffect(() => {
+    fetch('/api/site-content')
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && j.data?.footer) setFooterContent(j.data.footer as FooterContent)
+      })
+      .catch(() => {})
+  }, [])
+
+  const f = footerContent
+  const companyLinks = f?.companyLinks && f.companyLinks.length > 0 ? f.companyLinks : [
+    { label: 'About Us', url: '/about' }, { label: 'Careers', url: '#' }, { label: 'Blog', url: '/blog' }, { label: 'Press', url: '#' }, { label: 'Gift Cards', url: '#' }
+  ]
+  const supportLinks = f?.supportLinks && f.supportLinks.length > 0 ? f.supportLinks : [
+    { label: 'Contact', url: '/contact' }, { label: 'Legal Notice', url: '#' }, { label: 'Privacy Policy', url: '#' }, { label: 'Terms and Conditions', url: '#' }, { label: 'Sitemap', url: '/sitemap.xml' }
+  ]
+  const otherServicesLinks = f?.otherServicesLinks && f.otherServicesLinks.length > 0 ? f.otherServicesLinks : [
+    { label: 'Car Hire', url: '#' }, { label: 'Activity Finder', url: '#' }, { label: 'Tour List', url: '/tours' }, { label: 'Flight Finder', url: '#' }, { label: 'Cruise Ticket', url: '#' }, { label: 'Holiday Rental', url: '#' }, { label: 'Travel Agents', url: '#' }
+  ]
+  const bottomLinks = f?.bottomLinks && f.bottomLinks.length > 0 ? f.bottomLinks : [
+    { label: 'Privacy', url: '#' }, { label: 'Terms', url: '#' }, { label: 'Site Map', url: '/sitemap.xml' }
+  ]
+
   return (
     <footer className="bg-gray-900 text-white">
       {/* Newsletter Section */}
@@ -18,8 +61,8 @@ export default function Footer() {
           <div className="flex flex-col lg:flex-row justify-between items-center gap-8">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div>
-                <h3 className="text-white text-lg font-semibold">Your Travel Journey Starts Here</h3>
-                <p className="text-white/80 text-sm">Sign up and we&apos;ll send the best deals to you</p>
+                <h3 className="text-white text-lg font-semibold">{f?.newsletterTitle || 'Your Travel Journey Starts Here'}</h3>
+                <p className="text-white/80 text-sm">{f?.newsletterSubtitle || "Sign up and we'll send the best deals to you"}</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -29,7 +72,7 @@ export default function Footer() {
                 className="px-4 py-3 rounded-lg border-0 focus:ring-2 focus:ring-white focus:ring-opacity-50 text-gray-900 text-base min-h-[44px] touch-manipulation w-full sm:w-auto"
               />
               <button style={{ background: '#A0FF07' }} className="text-gray-900 px-6 py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all min-h-[44px] touch-manipulation w-full sm:w-auto">
-                Subscribe
+                {f?.newsletterButtonText || 'Subscribe'}
               </button>
             </div>
           </div>
@@ -42,22 +85,22 @@ export default function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
             {/* Contact Us */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">Contact Us</h3>
+              <h3 className="text-lg font-semibold mb-6 text-white">{f?.contactHeading || 'Contact Us'}</h3>
               <div className="space-y-3">
                 <p className="text-gray-400 text-sm">Phone Number</p>
-                <p className="font-semibold text-white">+94 741 415 812</p>
+                <p className="font-semibold text-white">{f?.contactPhone || '+94 741 415 812'}</p>
                 <p className="text-gray-400 text-sm mt-4">Email</p>
-                <p className="font-semibold text-white">info@isleandecho.com</p>
+                <p className="font-semibold text-white">{f?.contactEmail || 'info@isleandecho.com'}</p>
               </div>
             </div>
 
             {/* Company */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">Company</h3>
+              <h3 className="text-lg font-semibold mb-6 text-white">{f?.companyHeading || 'Company'}</h3>
               <div className="space-y-3">
-                {['About Us', 'Careers', 'Blog', 'Press', 'Gift Cards'].map((item) => (
-                  <a key={item} href="#" className="block text-gray-400 hover:text-white transition-colors text-sm">
-                    {item}
+                {companyLinks.map((item, i) => (
+                  <a key={item.label || i} href={item.url || '#'} className="block text-gray-400 hover:text-white transition-colors text-sm">
+                    {item.label}
                   </a>
                 ))}
               </div>
@@ -65,11 +108,11 @@ export default function Footer() {
 
             {/* Support */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">Support</h3>
+              <h3 className="text-lg font-semibold mb-6 text-white">{f?.supportHeading || 'Support'}</h3>
               <div className="space-y-3">
-                {['Contact', 'Legal Notice', 'Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((item) => (
-                  <a key={item} href="#" className="block text-gray-400 hover:text-white transition-colors text-sm">
-                    {item}
+                {supportLinks.map((item, i) => (
+                  <a key={item.label || i} href={item.url || '#'} className="block text-gray-400 hover:text-white transition-colors text-sm">
+                    {item.label}
                   </a>
                 ))}
               </div>
@@ -77,11 +120,11 @@ export default function Footer() {
 
             {/* Other Services */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">Other Services</h3>
+              <h3 className="text-lg font-semibold mb-6 text-white">{f?.otherServicesHeading || 'Other Services'}</h3>
               <div className="space-y-3">
-                {['Car Hire', 'Activity Finder', 'Tour List', 'Flight Finder', 'Cruise Ticket', 'Holiday Rental', 'Travel Agents'].map((item) => (
-                  <a key={item} href="#" className="block text-gray-400 hover:text-white transition-colors text-sm">
-                    {item}
+                {otherServicesLinks.map((item, i) => (
+                  <a key={item.label || i} href={item.url || '#'} className="block text-gray-400 hover:text-white transition-colors text-sm">
+                    {item.label}
                   </a>
                 ))}
               </div>
@@ -116,13 +159,13 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-400 mb-4 md:mb-0 text-sm">
-              © 2024 by ISLE & ECHO. All rights reserved.
+              {f?.copyrightText || '© 2024 by ISLE & ECHO. All rights reserved.'}
             </div>
             <div className="flex items-center space-x-8">
               <div className="flex space-x-6">
-                {['Privacy', 'Terms', 'Site Map'].map((item) => (
-                  <a key={item} href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
-                    {item}
+                {bottomLinks.map((item, i) => (
+                  <a key={item.label || i} href={item.url || '#'} className="text-gray-400 hover:text-white transition-colors text-sm">
+                    {item.label}
                   </a>
                 ))}
               </div>

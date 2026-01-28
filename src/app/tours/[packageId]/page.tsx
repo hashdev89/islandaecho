@@ -12,10 +12,18 @@ import {
   Clock,
   CheckCircle,
   Navigation,
-  Calendar
+  Calendar,
+  Sparkles,
+  Hotel,
+  UtensilsCrossed,
+  Car,
+  Moon
 } from 'lucide-react'
 import Header from '../../../components/Header'
 import dynamic from 'next/dynamic'
+
+// Hero height: use '50vh', '60vh', '70vh', etc. to control how tall the hero is
+const TOUR_HERO_MIN_HEIGHT = '60vh'
 
 // Dynamically import MapboxMap to reduce initial bundle size
 const MapboxMap = dynamic(() => import('../../../components/MapboxMap'), {
@@ -1037,55 +1045,53 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen w-full bg-gray-50">
       <Header />
       
-      {/* Hero Section */}
-      <section className="relative py-12 sm:py-16 md:py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
-            <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 px-2">{tourPackage.name}</h1>
-              <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 opacity-90 px-2">{tourPackage.description}</p>
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-6 sm:mb-8 px-2">
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="text-sm sm:text-base">{tourPackage.duration}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="text-sm sm:text-base">{tourPackage.groupSize}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Star className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="text-sm sm:text-base">4.8/5 (127 reviews)</span>
-                </div>
+      {/* Hero Section - tour image background, ~70% black overlay, content only */}
+      <section
+        className="relative w-full flex items-center justify-center text-white overflow-hidden"
+        style={{ minHeight: TOUR_HERO_MIN_HEIGHT }}
+      >
+        {/* Background image from tour images */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url(${tourPackage.images?.find((img: string) => isUploadedImage(img)) || tourPackage.images?.[0] || '/next.svg'})`,
+          }}
+        />
+        {/* ~70% black overlay for readability */}
+        <div className="absolute inset-0 bg-black/70 z-[1]" aria-hidden />
+        {/* Content on top of overlay */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 px-2">{tourPackage.name}</h1>
+            <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 opacity-90 px-2 max-w-3xl">{tourPackage.description}</p>
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-6 sm:mb-8 px-2">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">{tourPackage.duration}</span>
               </div>
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">{tourPackage.groupSize}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Star className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">4.8/5 (127 reviews)</span>
+              </div>
+            </div>
+            {parseFloat(tourPackage?.price?.replace(/[^0-9.]/g, '') || '0') > 0 && (
               <div className="text-2xl sm:text-3xl font-bold text-yellow-400 mb-4 sm:mb-6 px-2">{tourPackage.price}</div>
-              <button 
-                onClick={handleBooking}
-                className="bg-yellow-400 text-gray-900 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold hover:bg-yellow-300 transition-colors text-base sm:text-lg min-h-[44px] touch-manipulation mx-2 sm:mx-0"
-              >
-                Book This Tour
-              </button>
-            </div>
-            <div className="relative">
-              <Image
-                src={tourPackage.images?.find(img => isUploadedImage(img)) || '/next.svg'}
-                alt={tourPackage.name}
-                width={800}
-                height={384}
-                className="rounded-lg shadow-lg w-full h-96 object-cover"
-              />
-            </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Tour Details */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+      {/* Tour Details - full width content */}
+      <section className="py-16 w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 max-w-[1920px] mx-auto">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-12">
 
@@ -1106,132 +1112,151 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                 </div>
               )}
 
-              {/* Interactive 3D Mapbox Map */}
+              {/* Tour Destinations: cards first, then map, then map features */}
               <div>
-                <h2 className="text-2xl font-bold mb-6 text-gray-900">Tour Route Map</h2>
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  {/* Mapbox 3D Interactive Map */}
-                  <MapboxMap 
-                    key={`tour-map-${tourPackage.id}-${tourDestinations.map(d => d.name).join(',')}`}
-                    destinations={tourDestinations}
-                    tourName={tourPackage.name}
-                  />
-                  
-                  {/* Map Legend */}
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-3">Tour Destinations</h4>
-                      <div className="space-y-2">
-                        {tourDestinations.map((dest, index) => (
-                          <div key={index} className="flex items-center space-x-2">
-                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                            <span className="text-sm text-gray-700">{dest.name}</span>
-                            <span className="text-xs text-gray-500">({dest.region})</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-3">Map Features</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <span className="text-sm text-gray-700">Tour Destinations</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                          <span className="text-sm text-gray-700">Tour Route</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Navigation className="w-3 h-3 text-green-600" />
-                          <span className="text-sm text-gray-700">Interactive Navigation</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Destination Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Tour Destinations</h2>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+                  {/* Destination cards – right under the title */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     {tourDestinations.map((dest, index) => (
-                      <div key={index} className="bg-gradient-to-br from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
+                      <div key={index} className="bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-700/50 dark:to-gray-800/50 rounded-lg p-4 border border-blue-200 dark:border-gray-600">
                         <div className="flex items-center space-x-2 mb-2">
-                          <MapPin className="w-4 h-4 text-blue-600" />
-                          <h3 className="font-semibold text-gray-900">{dest.name}</h3>
+                          <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <h3 className="font-semibold text-gray-900 dark:text-white">{dest.name}</h3>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{dest.region}</p>
-                        <div className="text-xs text-gray-500">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{dest.region}</p>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
                           Coordinates: {dest.lat.toFixed(4)}, {dest.lng.toFixed(4)}
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Map – below the cards */}
+                  <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <MapboxMap 
+                      key={`tour-map-${tourPackage.id}-${tourDestinations.map(d => d.name).join(',')}`}
+                      destinations={tourDestinations}
+                      tourName={tourPackage.name}
+                    />
+                  </div>
+
+                  {/* Map features – at the bottom, list removed */}
+                  <div className="mt-6">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Map Features</h4>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-red-500 rounded-full shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Tour Destinations</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Tour Route</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Navigation className="w-3 h-3 text-green-600 shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Interactive Navigation</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Itinerary */}
               <div>
-                <h2 className="text-2xl font-bold mb-6 text-gray-900">Detailed Itinerary</h2>
-                <div className="space-y-6">
+                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-900 dark:text-white">Detailed Itinerary</h2>
+                <div className="space-y-5 sm:space-y-6">
                   {(tourPackage.itinerary || []).map((day) => (
-                    <div key={day.day} className="bg-white rounded-lg shadow-lg p-6">
-                      <div className="flex items-center mb-4">
-                        <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">
+                    <div key={day.day} className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-none border border-gray-100 dark:border-gray-700 p-4 sm:p-6">
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold shrink-0">
                           {day.day}
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900">{day.title}</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{day.title}</h3>
                       </div>
-                      <p className="text-gray-600 mb-4">{day.description}</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mb-4 sm:mb-5 leading-relaxed">{day.description}</p>
                       {day.image && isUploadedImage(day.image) && (
-                        <div className="mb-4">
+                        <div className="mb-5 sm:mb-6 rounded-lg overflow-hidden">
                           <Image
                             src={day.image}
                             alt={`Day ${day.day} - ${day.title}`}
                             width={800}
                             height={400}
-                            className="w-full h-64 object-cover rounded-lg"
+                            className="w-full h-48 sm:h-56 md:h-64 object-cover"
                           />
                         </div>
                       )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Highlights</h4>
-                          <ul className="space-y-1">
-                            {(day.activities || []).map((activity, index) => (
-                              <li key={index} className="flex items-center text-sm text-gray-600">
-                                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                                {activity}
-                              </li>
-                            ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 sm:gap-5 mt-6">
+                        {/* Highlights */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
+                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 shrink-0" />
+                            Highlights
+                          </h4>
+                          <ul className="space-y-2 flex-1">
+                            {(day.activities || []).length > 0 ? (
+                              (day.activities || []).map((activity, index) => (
+                                <li key={index} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                                  <span>{activity}</span>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-400 dark:text-gray-500">—</li>
+                            )}
                           </ul>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Accommodation</h4>
-                          <p className="text-sm text-gray-600">{day.accommodation}</p>
+                        {/* Accommodation */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
+                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
+                            <Hotel className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 shrink-0" />
+                            Accommodation
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 flex-1">
+                            {day.accommodation || '—'}
+                          </p>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Meals</h4>
-                          <ul className="space-y-1">
-                            {(day.meals || []).map((meal, index) => (
-                              <li key={index} className="text-sm text-gray-600">{meal}</li>
-                            ))}
+                        {/* Meals */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
+                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
+                            <UtensilsCrossed className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
+                            Meals
+                          </h4>
+                          <ul className="space-y-2 flex-1">
+                            {(day.meals || []).length > 0 ? (
+                              (day.meals || []).map((meal, index) => (
+                                <li key={index} className="text-sm text-gray-600 dark:text-gray-400">{meal}</li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-400 dark:text-gray-500">—</li>
+                            )}
                           </ul>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Transport & Travel</h4>
-                          {day.transportation && (
-                            <p className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Transport:</span> {day.transportation}
-                            </p>
-                          )}
-                          {day.travelTime && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Travel Time:</span> {day.travelTime}
-                            </p>
-                          )}
+                        {/* Transport */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
+                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
+                            <Car className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400 shrink-0" />
+                            Transport
+                          </h4>
+                          <div className="space-y-2 flex-1 text-sm text-gray-600 dark:text-gray-400">
+                            {day.transportation ? (
+                              <p><span className="font-medium text-gray-700 dark:text-gray-300">Transport:</span> {day.transportation}</p>
+                            ) : null}
+                            {day.travelTime ? (
+                              <p><span className="font-medium text-gray-700 dark:text-gray-300">Travel time:</span> {day.travelTime}</p>
+                            ) : null}
+                            {!day.transportation && !day.travelTime && <p className="text-gray-400 dark:text-gray-500">—</p>}
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Overnight Stay</h4>
-                          <p className="text-sm text-gray-600">{day.overnightStay || 'N/A'}</p>
+                        {/* Overnight Stay */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0 sm:col-span-2 xl:col-span-1">
+                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
+                            <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 shrink-0" />
+                            Overnight Stay
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 flex-1">
+                            {day.overnightStay || '—'}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1428,7 +1453,7 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                     onClick={handleBooking}
                     className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
-                    Book Now - {tourPackage.price}
+                    Book Now
                   </button>
                 </div>
               </div>
