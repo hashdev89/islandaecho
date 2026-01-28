@@ -237,7 +237,7 @@ export async function DELETE(
                                   supabaseKey.length > 50
     
     if (isSupabaseConfigured) {
-      // First check if user is admin
+      // Fetch the user and count other admins
       const { data: userData, error: fetchError } = await supabaseAdmin
         .from('users')
         .select('role')
@@ -245,8 +245,6 @@ export async function DELETE(
         .single()
       
       if (fetchError) {
-        // User doesn't exist in Supabase - might be a mock/dummy user
-        // Allow deletion for frontend-only users (return success)
         console.log(`User ${resolvedParams.id} not found in Supabase, allowing deletion (likely mock user)`)
         return NextResponse.json({ 
           success: true, 
@@ -255,10 +253,17 @@ export async function DELETE(
       }
       
       if (userData?.role === 'admin') {
-        return NextResponse.json(
-          { error: 'Cannot delete admin users' },
-          { status: 403 }
-        )
+        const { count, error: countError } = await supabaseAdmin
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'admin')
+        
+        if (countError || (count ?? 0) <= 1) {
+          return NextResponse.json(
+            { error: 'Cannot delete the last admin user. Ensure at least one other admin exists first.' },
+            { status: 403 }
+          )
+        }
       }
       
       const { error } = await supabaseAdmin
@@ -298,12 +303,15 @@ export async function DELETE(
       )
     }
     
-    // Check if user is admin
+    // If user is admin, require at least one other admin
     if (users[userIndex].role === 'admin') {
-      return NextResponse.json(
-        { error: 'Cannot delete admin users' },
-        { status: 403 }
-      )
+      const adminCount = users.filter((u: User) => u.role === 'admin').length
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot delete the last admin user. Ensure at least one other admin exists first.' },
+          { status: 403 }
+        )
+      }
     }
     
     // Remove user

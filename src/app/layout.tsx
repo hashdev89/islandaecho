@@ -1,19 +1,10 @@
-
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import ConditionalFooter from "../components/ConditionalFooter";
 import ClientProviders from "../components/ClientProviders";
 import GoogleAnalytics from "../components/GoogleAnalytics";
 import MobileBottomNav from "../components/MobileBottomNav";
 import WhatsAppChat from "../components/WhatsAppChat";
-
-// Optimize font loading with next/font
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -91,13 +82,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className="font-inter" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
         <meta name="theme-color" content="#1E3A8A" />
       </head>
       <body
-        className={`antialiased ${inter.className}`}
+        className="antialiased font-inter"
         suppressHydrationWarning={true}
       >
         <ClientProviders>
@@ -107,8 +101,8 @@ export default function RootLayout({
           <WhatsAppChat />
         </ClientProviders>
         
-        {/* Analytics */}
-        <GoogleAnalytics 
+        {/* Analytics & tracking from dashboard: Admin → SEO → Analytics tab (GA, GTM, Search Console, Facebook Pixel, Google Ads, Bing) */}
+        <GoogleAnalytics
           googleAnalyticsId={process.env.NEXT_PUBLIC_GA_ID}
           googleTagManagerId={process.env.NEXT_PUBLIC_GTM_ID}
         />

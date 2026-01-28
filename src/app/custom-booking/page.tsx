@@ -531,6 +531,7 @@ export default function CustomBookingPage() {
                       }`}
                       onClick={() => setSelectedImage(index)}
                       loading={index < 3 ? "eager" : "lazy"}
+                      unoptimized={!!destination.image}
                     />
                   ))}
                 </div>

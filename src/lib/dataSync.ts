@@ -9,6 +9,7 @@ export interface Day {
   meals: string[]
   transportation?: string
   travelTime?: string
+  overnightStay?: string
   image?: string
 }
 
@@ -102,9 +103,18 @@ class DataSyncService {
   }
 
   // Tour Management
-  async fetchTours(): Promise<TourData[]> {
+  async fetchTours(forceRefresh = false): Promise<TourData[]> {
     try {
-      const response = await fetch('/api/tours')
+      // Always use cache-busting to ensure fresh data (especially after saves)
+      const cacheBuster = `?t=${Date.now()}`
+      const response = await fetch(`/api/tours${cacheBuster}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
       if (!response.ok) {
         const errorText = await response.text()
         console.error('Failed to fetch tours - HTTP error:', response.status, errorText)
@@ -117,6 +127,7 @@ class DataSyncService {
         return []
       }
       const result = await response.json()
+      console.log('Fetched tours from API:', result.success ? result.data.length : 0, 'tours')
       return result.success ? result.data : []
     } catch (error) {
       console.error('Failed to fetch tours:', error)
@@ -179,7 +190,11 @@ class DataSyncService {
 
   async updateTour(tourData: TourData): Promise<TourData | null> {
     try {
-      console.log('Updating tour with data:', tourData)
+      console.log('========== DataSync: Updating tour ==========')
+      console.log('Tour ID:', tourData.id)
+      console.log('Tour name:', tourData.name)
+      console.log('Itinerary count:', tourData.itinerary?.length || 0)
+      
       const response = await fetch('/api/tours', {
         method: 'PUT',
         headers: {
@@ -188,21 +203,55 @@ class DataSyncService {
         body: JSON.stringify(tourData),
       })
       
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+      console.log('Response content-type:', response.headers.get('content-type'))
+      
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Update tour HTTP error:', response.status, errorText)
-        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`)
+        // Try to get error text
+        let errorText = ''
+        try {
+          errorText = await response.text()
+          console.error('Update tour HTTP error response:', errorText.substring(0, 500))
+          
+          // Try to parse as JSON if it looks like JSON
+          if (errorText.trim().startsWith('{')) {
+            try {
+              const errorJson = JSON.parse(errorText)
+              throw new Error(`HTTP ${response.status}: ${errorJson.message || errorText.substring(0, 200)}`)
+            } catch {
+              throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`)
+            }
+          } else {
+            // It's HTML or plain text
+            throw new Error(`HTTP ${response.status}: Server returned ${errorText.substring(0, 200)}`)
+          }
+        } catch (textError) {
+          console.error('Failed to read error response:', textError)
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
       }
       
       const contentType = response.headers.get('content-type')
+      console.log('Content-Type header:', contentType)
+      
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text()
-        console.error('Update tour - non-JSON response:', text.substring(0, 200))
-        throw new Error('Server returned non-JSON response')
+        console.error('Update tour - non-JSON response received!')
+        console.error('Response text (first 500 chars):', text.substring(0, 500))
+        
+        // If it's HTML, it's likely an error page
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          throw new Error('Server returned HTML error page instead of JSON. This usually means the API route crashed or returned an error.')
+        }
+        
+        throw new Error(`Server returned non-JSON response: ${text.substring(0, 200)}`)
       }
       
       const result = await response.json()
-      console.log('Update tour response:', result)
+      console.log('Update tour response (success):', result.success)
+      console.log('Update tour response data:', result.data ? 'Present' : 'Missing')
+      
       if (result.success) {
         this.notify('tours', await this.fetchTours())
         return result.data
@@ -211,8 +260,12 @@ class DataSyncService {
         throw new Error(result.message || 'Failed to update tour')
       }
     } catch (error) {
-      console.error('Failed to update tour:', error)
-      throw error // Re-throw to let the caller handle it
+      const msg = (error instanceof Error ? error.message : null) || String(error) || 'Unknown error'
+      console.error('[DataSync] Update tour failed —', msg)
+      if (error instanceof Error && error.stack) {
+        console.error('[DataSync] Stack:', error.stack)
+      }
+      throw error
     }
   }
 
@@ -221,6 +274,12 @@ class DataSyncService {
       const response = await fetch(`/api/tours?id=${tourId}`, {
         method: 'DELETE',
       })
+      const contentType = response.headers.get('content-type')
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text()
+        console.error('Delete tour received non-JSON:', text.substring(0, 200))
+        return false
+      }
       const result = await response.json()
       if (result.success) {
         this.notify('tours', await this.fetchTours())

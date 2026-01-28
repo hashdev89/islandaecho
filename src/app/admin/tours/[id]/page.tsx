@@ -28,6 +28,7 @@ interface Day {
   meals: string[]
   transportation?: string
   travelTime?: string
+  overnightStay?: string
   image?: string
 }
 
@@ -190,8 +191,11 @@ export default function TourEditor() {
       
       if (!isNew) {
         try {
+          console.log('========== LOADING TOUR ==========')
           console.log('Fetching tours for tourId:', tourId)
-          const all = await dataSync.fetchTours()
+          // Always force refresh to get latest data from server (bypass all caches)
+          const all = await dataSync.fetchTours(true)
+          console.log('All tours fetched:', all?.length || 0, 'tours')
           console.log('All tours:', all)
           
           if (!Array.isArray(all)) {
@@ -203,9 +207,74 @@ export default function TourEditor() {
           if (found) {
             console.log('Found tour data:', found)
             console.log('Tour destinations:', found.destinations)
+            console.log('Tour itinerary:', found.itinerary)
+            if (found.itinerary && found.itinerary.length > 0) {
+              console.log('First day of itinerary:', found.itinerary[0])
+              console.log('First day overnightStay:', found.itinerary[0]?.overnightStay)
+            }
             // Ensure importantInfo has the correct structure
+            // Ensure itinerary preserves ALL days and ALL fields - handle null/undefined/empty objects
+            const rawItinerary = Array.isArray(found.itinerary) ? found.itinerary : []
+            const normalizedItinerary = rawItinerary
+              .filter(day => day !== null && day !== undefined) // Remove null/undefined entries
+              .map((day: any, index: number) => {
+                  // Handle empty objects or malformed day data
+                  if (!day || typeof day !== 'object') {
+                    console.warn(`Invalid day object at index ${index}:`, day)
+                    return {
+                      day: index + 1,
+                      title: '',
+                      description: '',
+                      activities: [],
+                      accommodation: '',
+                      meals: [],
+                      transportation: '',
+                      travelTime: '',
+                      overnightStay: '',
+                      image: ''
+                    }
+                  }
+                  
+                  // Ensure day number is set correctly (use index + 1 if day.day is missing or 0)
+                  const dayNumber = (day.day && day.day > 0) ? day.day : (index + 1)
+                  return {
+                    day: dayNumber,
+                    title: day.title || '',
+                    description: day.description || '',
+                    activities: Array.isArray(day.activities) ? day.activities : [],
+                    accommodation: day.accommodation || '',
+                    meals: Array.isArray(day.meals) ? day.meals : [],
+                    transportation: day.transportation || '',
+                    travelTime: day.travelTime || '',
+                    overnightStay: day.overnightStay || '',
+                    image: day.image || ''
+                  }
+                })
+            
+            console.log('Raw itinerary from API:', JSON.stringify(rawItinerary, null, 2))
+            console.log('Raw itinerary count:', rawItinerary.length)
+            console.log('Normalized itinerary when loading:', JSON.stringify(normalizedItinerary, null, 2))
+            console.log('Normalized itinerary count when loading:', normalizedItinerary.length)
+            console.log('Each day when loading:', normalizedItinerary.map((d, i) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
+            
+            // Warn if days were lost during normalization
+            if (normalizedItinerary.length < rawItinerary.length) {
+              console.warn(`WARNING: Lost ${rawItinerary.length - normalizedItinerary.length} days during normalization!`)
+            }
             const normalizedTour = {
               ...found,
+              // Ensure all string fields are never null
+              name: found.name || '',
+              duration: found.duration || '',
+              price: found.price || '',
+              style: found.style || '',
+              description: found.description || '',
+              transportation: found.transportation || '',
+              groupSize: found.groupSize || '',
+              bestTime: found.bestTime || '',
+              status: found.status || 'draft',
+              itinerary: normalizedItinerary,
+              images: Array.isArray(found.images) ? found.images : [], // Ensure images array is always present
               importantInfo: {
                 requirements: Array.isArray(found.importantInfo?.requirements)
                   ? found.importantInfo.requirements.map((req: any) => ({
@@ -218,6 +287,9 @@ export default function TourEditor() {
                   : []
               }
             }
+            console.log('Normalized tour itinerary:', normalizedTour.itinerary)
+            console.log('Normalized tour images:', normalizedTour.images)
+            console.log('Normalized tour images count:', normalizedTour.images?.length || 0)
             setTour(normalizedTour as TourPackage)
           } else {
             console.log('Tour not found with ID:', tourId)
@@ -294,7 +366,7 @@ export default function TourEditor() {
     console.log('Tour destinations updated:', tour.destinations)
   }, [tour.destinations])
 
-  const handleSave = async () => {
+  const handleSave = async (saveAsDraft = false) => {
     try {
       // Client-side validation for required fields
       if (!tour.name?.trim()) {
@@ -310,8 +382,65 @@ export default function TourEditor() {
         return
       }
 
-      const payload = { ...tour }
+      // Ensure itinerary includes ALL days and ALL fields - don't filter anything out
+      const currentItinerary = tour.itinerary || []
+      console.log('Current itinerary before normalization:', JSON.stringify(currentItinerary, null, 2))
+      console.log('Current itinerary count:', currentItinerary.length)
+      
+      // Ensure we preserve ALL days, even if they're empty or undefined
+      const normalizedItinerary = currentItinerary
+        .filter(day => day !== null && day !== undefined) // Remove null/undefined entries
+        .map((day, index) => {
+          // Ensure day number is set correctly (use index + 1 if day.day is missing or 0)
+          const dayNumber = (day && typeof day === 'object' && day.day && day.day > 0) ? day.day : (index + 1)
+          return {
+            day: dayNumber,
+            title: (day && day.title) ? String(day.title) : '',
+            description: (day && day.description) ? String(day.description) : '',
+            activities: Array.isArray(day?.activities) ? day.activities : [],
+            accommodation: (day && day.accommodation) ? String(day.accommodation) : '',
+            meals: Array.isArray(day?.meals) ? day.meals : [],
+            transportation: (day && day.transportation) ? String(day.transportation) : '',
+            travelTime: (day && day.travelTime) ? String(day.travelTime) : '',
+            overnightStay: (day && day.overnightStay) ? String(day.overnightStay) : '',
+            image: (day && day.image) ? String(day.image) : ''
+          }
+        })
+      
+      // Ensure we have at least the days that were in the current itinerary
+      if (normalizedItinerary.length !== currentItinerary.length) {
+        console.warn(`WARNING: Itinerary count mismatch! Current: ${currentItinerary.length}, Normalized: ${normalizedItinerary.length}`)
+      }
+      
+      console.log('Normalized itinerary before save:', JSON.stringify(normalizedItinerary, null, 2))
+      console.log('Normalized itinerary count:', normalizedItinerary.length)
+      console.log('Each day in normalized itinerary:', normalizedItinerary.map((d, i) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
+      
+      const payload = { 
+        ...tour,
+        id: isNew ? tour.id : tourId, // Use route id for updates so backend always finds the record
+        itinerary: normalizedItinerary,
+        images: Array.isArray(tour.images) ? tour.images : [] // Ensure images array is always present
+      }
+      // Set status based on save type
+      if (saveAsDraft) {
+        payload.status = 'draft'
+      } else {
+        payload.status = 'active'
+      }
+      
+      // Debug: Log itinerary and images to verify they're included
       console.log('Full tour payload before processing:', payload)
+      console.log('Tour images in payload:', payload.images)
+      console.log('Tour images count:', payload.images?.length || 0)
+      console.log('Itinerary data:', JSON.stringify(payload.itinerary, null, 2))
+      if (payload.itinerary && payload.itinerary.length > 0) {
+        console.log('First day itinerary:', payload.itinerary[0])
+        console.log('First day overnightStay:', payload.itinerary[0]?.overnightStay)
+        // Verify overnightStay is actually in the object
+        console.log('First day has overnightStay key:', 'overnightStay' in payload.itinerary[0])
+        console.log('First day keys:', Object.keys(payload.itinerary[0]))
+      }
       
       if (isNew) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -320,14 +449,26 @@ export default function TourEditor() {
         console.log('Required fields check:', {
           name: createData.name,
           duration: createData.duration,
-          price: createData.price
+          price: createData.price,
+          status: createData.status
         })
         
         try {
+          console.log('Sending createData to API:', JSON.stringify(createData, null, 2))
+          console.log('Itinerary in createData:', createData.itinerary)
+          if (createData.itinerary && Array.isArray(createData.itinerary) && createData.itinerary.length > 0) {
+            console.log('First day in createData:', createData.itinerary[0])
+            console.log('First day overnightStay in createData:', createData.itinerary[0]?.overnightStay)
+          }
           const created = await dataSync.createTour(createData as Omit<TourPackage, 'id'>)
           if (created) {
             console.log('Tour created successfully:', created)
-            alert('Tour created successfully!')
+            console.log('Created tour itinerary:', created.itinerary)
+            if (created.itinerary && created.itinerary.length > 0) {
+              console.log('First day in created tour:', created.itinerary[0])
+              console.log('First day overnightStay in created tour:', created.itinerary[0]?.overnightStay)
+            }
+            alert(saveAsDraft ? 'Tour saved as draft successfully!' : 'Tour created successfully!')
             router.push('/admin/tours')
           } else {
             console.error('Failed to create tour - dataSync returned null')
@@ -344,28 +485,156 @@ export default function TourEditor() {
         }
       } else {
         try {
+          console.log('Sending payload to API for update:', JSON.stringify(payload, null, 2))
+          console.log('Itinerary in payload:', payload.itinerary)
+          if (payload.itinerary && Array.isArray(payload.itinerary) && payload.itinerary.length > 0) {
+            console.log('First day in payload:', payload.itinerary[0])
+            console.log('First day overnightStay in payload:', payload.itinerary[0]?.overnightStay)
+          }
+          console.log('========== SAVING TOUR ==========')
+          console.log('Tour ID:', tourId)
+          console.log('Payload being sent:', JSON.stringify(payload, null, 2))
+          console.log('Payload itinerary count:', payload.itinerary?.length || 0)
+          
           const updated = await dataSync.updateTour(payload as TourData)
+          
           if (updated) {
-            console.log('Tour updated successfully:', updated)
-            alert('Tour updated successfully!')
-            router.push('/admin/tours')
+            console.log('========== TOUR UPDATE SUCCESS ==========')
+            console.log('Updated tour received from API:', updated)
+            console.log('Updated tour ID:', updated.id)
+            console.log('Updated tour name:', updated.name)
+            console.log('Updated tour itinerary:', updated.itinerary)
+            console.log('Updated tour itinerary count:', updated.itinerary?.length || 0)
+            
+            if (updated.itinerary && updated.itinerary.length > 0) {
+              console.log('First day in updated tour:', updated.itinerary[0])
+              console.log('First day overnightStay in updated tour:', updated.itinerary[0]?.overnightStay)
+              console.log('First day activities in updated tour:', updated.itinerary[0]?.activities)
+              console.log('First day meals in updated tour:', updated.itinerary[0]?.meals)
+              console.log('First day image in updated tour:', updated.itinerary[0]?.image)
+            }
+            console.log('Updated tour images:', updated.images)
+            console.log('Updated tour images count:', updated.images?.length || 0)
+            
+            // Verify the saved data matches what we sent
+            const itineraryMatch = JSON.stringify(payload.itinerary) === JSON.stringify(updated.itinerary)
+            const imagesMatch = JSON.stringify(payload.images) === JSON.stringify(updated.images)
+            console.log('Itinerary matches saved data:', itineraryMatch)
+            console.log('Images match saved data:', imagesMatch)
+            
+            if (!itineraryMatch) {
+              console.warn('WARNING: Saved itinerary does not match sent itinerary!')
+              console.warn('Sent itinerary:', JSON.stringify(payload.itinerary, null, 2))
+              console.warn('Received itinerary:', JSON.stringify(updated.itinerary, null, 2))
+            }
+            
+            // Normalize the updated tour data - preserve ALL days
+            const normalizedItinerary = Array.isArray(updated.itinerary) 
+              ? updated.itinerary.map((day: any, index: number) => {
+                  // Ensure day number is set correctly (use index + 1 if day.day is missing or 0)
+                  const dayNumber = day.day && day.day > 0 ? day.day : (index + 1)
+                  return {
+                    day: dayNumber,
+                    title: day.title || '',
+                    description: day.description || '',
+                    activities: Array.isArray(day.activities) ? day.activities : [],
+                    accommodation: day.accommodation || '',
+                    meals: Array.isArray(day.meals) ? day.meals : [],
+                    transportation: day.transportation || '',
+                    travelTime: day.travelTime || '',
+                    overnightStay: day.overnightStay || '',
+                    image: day.image || ''
+                  }
+                })
+              : []
+            
+            console.log('Normalized itinerary after update:', JSON.stringify(normalizedItinerary, null, 2))
+            console.log('Normalized itinerary count after update:', normalizedItinerary.length)
+            console.log('Each day after update:', normalizedItinerary.map((d, i) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
+            
+            const normalizedUpdatedTour = {
+              ...updated,
+              name: updated.name || '',
+              duration: updated.duration || '',
+              price: updated.price || '',
+              style: updated.style || '',
+              description: updated.description || '',
+              transportation: updated.transportation || '',
+              groupSize: updated.groupSize || '',
+              bestTime: updated.bestTime || '',
+              status: updated.status || 'draft',
+              itinerary: normalizedItinerary,
+              images: Array.isArray(updated.images) ? updated.images : [],
+              importantInfo: {
+                requirements: Array.isArray(updated.importantInfo?.requirements)
+                  ? updated.importantInfo.requirements.map((req: any) => ({
+                      activity: req.activity || '',
+                      requirements: Array.isArray(req.requirements) ? req.requirements : []
+                    }))
+                  : [],
+                whatToBring: Array.isArray(updated.importantInfo?.whatToBring) 
+                  ? updated.importantInfo.whatToBring 
+                  : []
+              }
+            }
+            
+            // Update the tour state with the normalized data
+            setTour(normalizedUpdatedTour as TourPackage)
+            console.log('Tour state updated with normalized data')
+            console.log('Tour itinerary after state update:', normalizedUpdatedTour.itinerary)
+            console.log('Tour images after state update:', normalizedUpdatedTour.images)
+            
+            // Save was successful - update state and show success message
+            console.log('========== SAVE SUCCESSFUL ==========')
+            console.log('Tour has been saved to the database.')
+            console.log('Itinerary count saved:', normalizedItinerary.length)
+            console.log('Images count saved:', normalizedUpdatedTour.images?.length || 0)
+            
+            // Show success message
+            alert(saveAsDraft ? 'Tour saved as draft successfully!' : 'Tour updated successfully!')
+            
+            // Optionally verify the save in the background (non-blocking)
+            setTimeout(async () => {
+              try {
+                console.log('Verifying save in background...')
+                const allTours = await dataSync.fetchTours(true) // Force refresh
+                const reloadedTour = allTours.find((t: any) => t.id === tourId)
+                if (reloadedTour) {
+                  const reloadedCount = Array.isArray(reloadedTour.itinerary) ? reloadedTour.itinerary.length : 0
+                  const savedCount = normalizedItinerary.length
+                  if (reloadedCount === savedCount) {
+                    console.log('✓ Verification: Itinerary count matches - save confirmed!')
+                  } else {
+                    console.warn('⚠ Verification: Itinerary count mismatch - saved:', savedCount, 'reloaded:', reloadedCount)
+                  }
+                }
+              } catch (verifyError) {
+                console.warn('Verification check failed (non-critical):', verifyError)
+              }
+            }, 1000)
+            // Don't redirect - stay on the page so user can see the updated data
           } else {
+            console.error('========== TOUR UPDATE FAILED ==========')
             console.error('Failed to update tour - returned null')
+            console.error('This usually means the API returned an error or the response was invalid')
             alert('Failed to update tour. Please check the console for errors.')
           }
         } catch (error) {
-          console.error('Error updating tour:', error)
-          const errorMessage = error instanceof Error 
-            ? error.message 
-            : 'Unknown error occurred'
-          alert(`Failed to update tour: ${errorMessage}`)
-          return // Don't navigate away on error
+          const msg = error instanceof Error ? error.message : String(error ?? 'Unknown error')
+          console.error('[Tour editor] Update failed:', msg)
+          alert(`Failed to update tour: ${msg}`)
+          return
         }
       }
     } catch (error) {
-      console.error('Error saving tour:', error)
-      alert('Error saving tour. Please check the console for details.')
+      const msg = error instanceof Error ? error.message : String(error ?? 'Unknown error')
+      console.error('[Tour editor] Save failed:', msg)
+      alert(`Error saving tour: ${msg}`)
     }
+  }
+
+  const handleSaveDraft = async () => {
+    await handleSave(true)
   }
 
   const addInclusion = () => {
@@ -397,14 +666,22 @@ export default function TourEditor() {
   }
 
   const handleTourImageSelect = (imageUrl: string) => {
+    console.log('Tour image selected:', imageUrl)
+    console.log('Current tour images:', tour.images)
+    console.log('Selected index:', selectedTourImageIndex)
+    
     if (selectedTourImageIndex !== null) {
       // Replace existing image
-      const newImages = [...tour.images]
+      const newImages = [...(tour.images || [])]
       newImages[selectedTourImageIndex] = imageUrl
+      console.log('Replacing image at index', selectedTourImageIndex, 'New images:', newImages)
       setTour({ ...tour, images: newImages })
     } else {
       // Add new image
-      setTour({ ...tour, images: [...tour.images, imageUrl] })
+      const currentImages = tour.images || []
+      const newImages = [...currentImages, imageUrl]
+      console.log('Adding new image. Current images:', currentImages, 'New images:', newImages)
+      setTour({ ...tour, images: newImages })
     }
     setTourImageSelectorOpen(false)
     setSelectedTourImageIndex(null)
@@ -460,9 +737,14 @@ export default function TourEditor() {
       meals: [],
       transportation: '',
       travelTime: '',
+      overnightStay: '',
       image: ''
     }
-    setTour({ ...tour, itinerary: [...currentItinerary, newDay] })
+    const newItinerary = [...currentItinerary, newDay]
+    console.log('Adding new day. Current itinerary length:', currentItinerary.length, 'New length:', newItinerary.length)
+    console.log('New day object:', newDay)
+    console.log('Full itinerary after adding:', newItinerary)
+    setTour({ ...tour, itinerary: newItinerary })
   }
 
   const removeDay = (dayIndex: number) => {
@@ -479,17 +761,56 @@ export default function TourEditor() {
   const updateDay = (dayIndex: number, field: keyof Day, value: string) => {
     const currentItinerary = tour.itinerary || []
     const newItinerary = [...currentItinerary]
-    newItinerary[dayIndex] = { ...newItinerary[dayIndex], [field]: value }
+    // Ensure all day fields are preserved, including overnightStay and image
+    const currentDay = newItinerary[dayIndex] || {
+      day: dayIndex + 1,
+      title: '',
+      description: '',
+      activities: [],
+      accommodation: '',
+      meals: [],
+      transportation: '',
+      travelTime: '',
+      overnightStay: '',
+      image: ''
+    }
+    const updatedDay = { 
+      ...currentDay, 
+      [field]: value,
+      // Explicitly ensure overnightStay is always included
+      overnightStay: field === 'overnightStay' ? value : (currentDay.overnightStay || ''),
+      // Explicitly ensure image is always included
+      image: field === 'image' ? value : (currentDay.image || '')
+    }
+    newItinerary[dayIndex] = updatedDay
+    console.log(`Updating day ${dayIndex}, field: ${field}, value:`, value)
+    console.log('Updated day object:', updatedDay)
+    console.log('Updated day overnightStay:', updatedDay.overnightStay)
+    console.log('Updated day image:', updatedDay.image)
     setTour({ ...tour, itinerary: newItinerary })
   }
 
   const addDayActivity = (dayIndex: number) => {
     const currentItinerary = tour.itinerary || []
     const newItinerary = [...currentItinerary]
-    if (!newItinerary[dayIndex].activities) {
-      newItinerary[dayIndex].activities = []
+    const currentDay = newItinerary[dayIndex] || {
+      day: dayIndex + 1,
+      title: '',
+      description: '',
+      activities: [],
+      accommodation: '',
+      meals: [],
+      transportation: '',
+      travelTime: '',
+      overnightStay: '',
+      image: ''
     }
-    newItinerary[dayIndex].activities.push('')
+    if (!currentDay.activities) {
+      currentDay.activities = []
+    }
+    currentDay.activities.push('')
+    newItinerary[dayIndex] = { ...currentDay }
+    console.log('Added activity to day', dayIndex, 'Activities:', currentDay.activities)
     setTour({ ...tour, itinerary: newItinerary })
   }
 
@@ -505,19 +826,48 @@ export default function TourEditor() {
   const updateDayActivity = (dayIndex: number, activityIndex: number, value: string) => {
     const currentItinerary = tour.itinerary || []
     const newItinerary = [...currentItinerary]
-    if (newItinerary[dayIndex].activities) {
-      newItinerary[dayIndex].activities[activityIndex] = value
+    const currentDay = newItinerary[dayIndex] || {
+      day: dayIndex + 1,
+      title: '',
+      description: '',
+      activities: [],
+      accommodation: '',
+      meals: [],
+      transportation: '',
+      travelTime: '',
+      overnightStay: '',
+      image: ''
     }
+    if (!currentDay.activities) {
+      currentDay.activities = []
+    }
+    currentDay.activities[activityIndex] = value
+    newItinerary[dayIndex] = { ...currentDay }
+    console.log('Updated activity', activityIndex, 'for day', dayIndex, 'Value:', value, 'All activities:', currentDay.activities)
     setTour({ ...tour, itinerary: newItinerary })
   }
 
   const addDayMeal = (dayIndex: number) => {
     const currentItinerary = tour.itinerary || []
     const newItinerary = [...currentItinerary]
-    if (!newItinerary[dayIndex].meals) {
-      newItinerary[dayIndex].meals = []
+    const currentDay = newItinerary[dayIndex] || {
+      day: dayIndex + 1,
+      title: '',
+      description: '',
+      activities: [],
+      accommodation: '',
+      meals: [],
+      transportation: '',
+      travelTime: '',
+      overnightStay: '',
+      image: ''
     }
-    newItinerary[dayIndex].meals.push('')
+    if (!currentDay.meals) {
+      currentDay.meals = []
+    }
+    currentDay.meals.push('')
+    newItinerary[dayIndex] = { ...currentDay }
+    console.log('Added meal to day', dayIndex, 'Meals:', currentDay.meals)
     setTour({ ...tour, itinerary: newItinerary })
   }
 
@@ -690,14 +1040,21 @@ export default function TourEditor() {
         </div>
         <div className="flex space-x-3">
           <button
-            onClick={() => setTour({ ...tour, status: 'draft' })}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            onClick={(e) => {
+              e.preventDefault()
+              handleSaveDraft()
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 active:bg-blue-800 flex items-center transition-colors"
           >
+            <Save className="h-4 w-4 mr-2" />
             Save as Draft
           </button>
           <button
-            onClick={handleSave}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+            onClick={(e) => {
+              e.preventDefault()
+              handleSave(false)
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 active:bg-blue-800 flex items-center transition-colors"
           >
             <Save className="h-4 w-4 mr-2" />
             Save & Publish
@@ -718,7 +1075,7 @@ export default function TourEditor() {
                 </label>
                 <input
                   type="text"
-                  value={tour.name}
+                  value={tour.name ?? ''}
                   onChange={(e) => setTour({ ...tour, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter tour name"
@@ -731,7 +1088,7 @@ export default function TourEditor() {
                 </label>
                 <input
                   type="text"
-                  value={tour.duration}
+                  value={tour.duration ?? ''}
                   onChange={(e) => setTour({ ...tour, duration: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., 5 Days / 4 Nights"
@@ -744,7 +1101,7 @@ export default function TourEditor() {
                 </label>
                 <input
                   type="text"
-                  value={tour.price}
+                  value={tour.price || ''}
                   onChange={(e) => setTour({ ...tour, price: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., $899"
@@ -754,7 +1111,7 @@ export default function TourEditor() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Style</label>
                 <select
-                  value={tour.style}
+                  value={tour.style ?? ''}
                   onChange={(e) => setTour({ ...tour, style: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
@@ -773,7 +1130,7 @@ export default function TourEditor() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Group Size</label>
                 <input
                   type="text"
-                  value={tour.groupSize}
+                  value={tour.groupSize || ''}
                   onChange={(e) => setTour({ ...tour, groupSize: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., 2-12 people"
@@ -783,7 +1140,7 @@ export default function TourEditor() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Best Time</label>
                 <input
                   type="text"
-                  value={tour.bestTime}
+                  value={tour.bestTime ?? ''}
                   onChange={(e) => setTour({ ...tour, bestTime: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., January to April"
@@ -793,7 +1150,7 @@ export default function TourEditor() {
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
               <textarea
-                value={tour.description}
+                value={tour.description ?? ''}
                 onChange={(e) => setTour({ ...tour, description: e.target.value })}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -931,9 +1288,9 @@ export default function TourEditor() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                <span>Select Image from Uploaded Images</span>
+                <span>Upload or Select Image</span>
               </button>
-              <p className="text-xs text-gray-500 mt-2">Only images uploaded through the Images tab can be used</p>
+              <p className="text-xs text-gray-500 mt-2">Upload new images or select from existing uploaded images</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {(tour.images || []).map((image, index) => (
@@ -979,7 +1336,7 @@ export default function TourEditor() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Day Title</label>
                       <input
                         type="text"
-                        value={day.title}
+                        value={day.title || ''}
                         onChange={(e) => updateDay(dayIndex, 'title', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="Day title"
@@ -989,7 +1346,7 @@ export default function TourEditor() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Accommodation</label>
                       <input
                         type="text"
-                        value={day.accommodation}
+                        value={day.accommodation || ''}
                         onChange={(e) => updateDay(dayIndex, 'accommodation', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="Accommodation"
@@ -1000,7 +1357,7 @@ export default function TourEditor() {
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                     <textarea
-                      value={day.description}
+                      value={day.description || ''}
                       onChange={(e) => updateDay(dayIndex, 'description', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       rows={3}
@@ -1029,6 +1386,17 @@ export default function TourEditor() {
                         placeholder="Travel time"
                       />
                     </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Overnight Stay</label>
+                    <input
+                      type="text"
+                      value={day.overnightStay || ''}
+                      onChange={(e) => updateDay(dayIndex, 'overnightStay', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Overnight stay location"
+                    />
                   </div>
 
                   <div className="mb-4">
@@ -1068,7 +1436,7 @@ export default function TourEditor() {
                         className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-gray-700"
                       >
                         <Plus className="w-5 h-5" />
-                        <span>{day.image ? 'Change Image' : 'Select Image'}</span>
+                        <span>{day.image ? 'Change Image' : 'Upload or Select Image'}</span>
                       </button>
                     </div>
                   </div>
@@ -1266,7 +1634,7 @@ export default function TourEditor() {
             <h3 className="text-lg font-semibold mb-4">Transportation</h3>
             <input
               type="text"
-              value={tour.transportation}
+              value={tour.transportation ?? ''}
               onChange={(e) => setTour({ ...tour, transportation: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="e.g., Air-conditioned van with professional driver"
@@ -1286,7 +1654,7 @@ export default function TourEditor() {
                     <div className="flex items-center justify-between mb-3">
                       <input
                         type="text"
-                        value={req.activity}
+                        value={req.activity ?? ''}
                         onChange={(e) => updateRequirementActivity(reqIndex, e.target.value)}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium"
                         placeholder="Activity name"
@@ -1303,7 +1671,7 @@ export default function TourEditor() {
                         <div key={requirementIndex} className="flex items-center space-x-2">
                           <input
                             type="text"
-                            value={requirement}
+                            value={requirement ?? ''}
                             onChange={(e) => updateRequirement(reqIndex, requirementIndex, e.target.value)}
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                             placeholder="Requirement"
@@ -1410,8 +1778,10 @@ export default function TourEditor() {
           setSelectedDayIndex(null)
         }}
         onSelect={(imageUrl) => {
+          console.log('Day image selected:', imageUrl, 'for day index:', selectedDayIndex)
           if (selectedDayIndex !== null) {
             updateDay(selectedDayIndex, 'image', imageUrl)
+            console.log('Updated day image. Current itinerary:', tour.itinerary)
           }
           setImageSelectorOpen(false)
           setSelectedDayIndex(null)

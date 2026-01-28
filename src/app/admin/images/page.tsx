@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import {
   Upload,
@@ -45,7 +45,6 @@ export default function ImagesManagement() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [imageUsage, setImageUsage] = useState<{ [key: string]: string[] }>({})
   const [migrating, setMigrating] = useState(false)
-  const [cleaning, setCleaning] = useState(false)
   
   // Check if user has access (admin or staff only)
   const hasAccess = user?.role === 'admin' || user?.role === 'staff'
@@ -64,16 +63,61 @@ export default function ImagesManagement() {
     }
   }
 
-  // Fetch images from API
-  const fetchImages = useCallback(async () => {
+  // Fetch images from API (limit for faster load; use limit=200 for full list if needed)
+  const fetchImages = useCallback(async (limit = 120) => {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch('/api/images')
+      const response = await fetch(`/api/images?limit=${limit}`)
       const result = await response.json()
       
       if (result.success) {
-        setImages(result.data)
+        // Deduplicate images by ID, URL, and fileName to prevent duplicates
+        const imageMap = new Map<string, ImageItem>()
+        const seenUrls = new Set<string>()
+        const seenFileNames = new Set<string>()
+        const imagesData = result.data || []
+        
+        imagesData.forEach((img: ImageItem) => {
+          // Use multiple keys to ensure no duplicates
+          const key = img.id || img.fileName || img.url
+          const url = img.url
+          const fileName = img.fileName || img.name
+          
+          // Skip if we've already seen this URL (prevents duplicates even with different IDs)
+          if (seenUrls.has(url)) {
+            console.warn(`Skipping duplicate image with URL: ${url}`)
+            return
+          }
+          
+          // Skip if we've already seen this fileName
+          if (fileName && seenFileNames.has(fileName)) {
+            console.warn(`Skipping duplicate image with fileName: ${fileName}`)
+            return
+          }
+          
+          // Skip if we've already seen this key
+          if (imageMap.has(key)) {
+            console.warn(`Skipping duplicate image with key: ${key}`)
+            return
+          }
+          
+          imageMap.set(key, img)
+          seenUrls.add(url)
+          if (fileName) {
+            seenFileNames.add(fileName)
+          }
+        })
+        
+        // Convert map back to array and sort by upload date (newest first)
+        const uniqueImages = Array.from(imageMap.values()).sort((a, b) => {
+          const dateA = new Date(a.uploadedAt || 0).getTime()
+          const dateB = new Date(b.uploadedAt || 0).getTime()
+          return dateB - dateA
+        })
+        
+        console.log(`Fetched ${imagesData.length} images from API, ${uniqueImages.length} unique after deduplication`)
+        setImages(uniqueImages)
         // Also fetch usage information
         await fetchImageUsage()
       } else {
@@ -111,12 +155,50 @@ export default function ImagesManagement() {
     }
   }
 
-  // Handle upload success
-  const handleUploadSuccess = (newImage: ImageItem) => {
-    setImages(prev => [newImage, ...prev])
+  // Track if uploads are in progress
+  const uploadsInProgressRef = useRef(false)
+  const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Handle upload success - don't refetch immediately, wait for all uploads
+  const handleUploadSuccess = async (newImage: ImageItem) => {
+    // Mark that uploads are in progress
+    uploadsInProgressRef.current = true
+    
+    // Clear any pending refetch
+    if (refetchTimeoutRef.current) {
+      clearTimeout(refetchTimeoutRef.current)
+    }
+    
+    // Debounce refetch - wait 1 second after last upload success
+    // This ensures we only refetch once even if multiple files are uploaded
+    refetchTimeoutRef.current = setTimeout(async () => {
+      if (uploadsInProgressRef.current) {
+        console.log('Refetching images after uploads complete...')
+        await fetchImages()
+        fetchImageUsage()
+        uploadsInProgressRef.current = false
+        refetchTimeoutRef.current = null
+      }
+    }, 1000)
+  }
+  
+  // Handle modal close - refetch images when upload modal closes
+  const handleUploadModalClose = () => {
     setUploadModalOpen(false)
-    // Refresh usage data
-    fetchImageUsage()
+    
+    // Clear any pending timeout
+    if (refetchTimeoutRef.current) {
+      clearTimeout(refetchTimeoutRef.current)
+      refetchTimeoutRef.current = null
+    }
+    
+    // If uploads were in progress, refetch now
+    if (uploadsInProgressRef.current) {
+      console.log('Modal closed, refetching images...')
+      fetchImages()
+      fetchImageUsage()
+      uploadsInProgressRef.current = false
+    }
   }
 
   // Migrate local images to Supabase
@@ -148,42 +230,6 @@ export default function ImagesManagement() {
     }
   }
 
-  // Clean up external image URLs
-  const cleanupExternalImages = async () => {
-    if (!confirm('This will remove all external image URLs from tours and destinations, keeping only uploaded images. This action cannot be undone. Continue?')) {
-      return
-    }
-    
-    try {
-      setCleaning(true)
-      setError(null)
-      const response = await fetch('/api/images/cleanup', {
-        method: 'POST'
-      })
-      
-      const result = await response.json()
-      
-      if (result.success) {
-        const { results } = result
-        alert(
-          `Cleanup complete!\n\n` +
-          `Tours: ${results.tours.updated} updated, ${results.tours.imagesRemoved} images removed\n` +
-          `Destinations: ${results.destinations.updated} updated, ${results.destinations.imagesRemoved} images removed\n` +
-          `Itinerary: ${results.itinerary.updated} updated, ${results.itinerary.imagesRemoved} images removed\n\n` +
-          `Total: ${results.totalImagesRemoved} external images removed`
-        )
-        // Refresh the images list and usage
-        await fetchImages()
-        await fetchImageUsage()
-      } else {
-        setError(result.error || 'Cleanup failed')
-      }
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to clean up images')
-    } finally {
-      setCleaning(false)
-    }
-  }
 
   // Load images on component mount
   useEffect(() => {
@@ -269,7 +315,7 @@ export default function ImagesManagement() {
             Upload Images
           </button>
           <button 
-            onClick={fetchImages}
+            onClick={() => fetchImages()}
             disabled={loading}
             className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
           >
@@ -290,24 +336,6 @@ export default function ImagesManagement() {
               <>
                 <Upload className="h-4 w-4 mr-2" />
                 Migrate Local Images
-              </>
-            )}
-          </button>
-          <button 
-            onClick={cleanupExternalImages}
-            disabled={cleaning || loading}
-            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center disabled:opacity-50"
-            title="Remove all external image URLs from tours and destinations"
-          >
-            {cleaning ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Cleaning...
-              </>
-            ) : (
-              <>
-                <AlertCircle className="h-4 w-4 mr-2" />
-                Remove External Images
               </>
             )}
           </button>
@@ -463,6 +491,8 @@ export default function ImagesManagement() {
                       fill
                       className="object-cover"
                       sizes="48px"
+                      loading="lazy"
+                      unoptimized={image.url.includes('supabase.co')}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src = '/placeholder-image.svg';
@@ -694,7 +724,7 @@ export default function ImagesManagement() {
       {/* Upload Modal */}
       <ImageUploadModal
         isOpen={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
+        onClose={handleUploadModalClose}
         onUploadSuccess={handleUploadSuccess}
       />
     </div>

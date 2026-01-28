@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, Save, Plus, X } from 'lucide-react'
+import ImageSelector from '@/components/ImageSelector'
 
 export default function NewDestination() {
   const router = useRouter()
@@ -17,6 +19,7 @@ export default function NewDestination() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -207,18 +210,64 @@ export default function NewDestination() {
               />
             </div>
 
-            {/* Image URL */}
+            {/* Destination Image – upload or paste URL */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Image URL
+                Destination Image
               </label>
-              <input
-                type="url"
-                name="image"
-                value={formData.image}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://example.com/image.jpg"
+              <div className="space-y-3">
+                {formData.image ? (
+                  <div className="relative w-full h-40 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
+                    <Image
+                      src={formData.image}
+                      alt="Destination preview"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 400px"
+                      unoptimized
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                      className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                      title="Remove image"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setImageSelectorOpen(true)}
+                  className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-gray-700"
+                >
+                  <Plus className="w-5 h-5" />
+                  {formData.image ? 'Change Image (upload or select)' : 'Upload or select from library'}
+                </button>
+                <div className="relative">
+                  <span className="block text-xs text-gray-500 mb-1">Or paste image URL</span>
+                  <input
+                    type="url"
+                    name="image"
+                    value={formData.image}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+              </div>
+              <ImageSelector
+                isOpen={imageSelectorOpen}
+                onClose={() => setImageSelectorOpen(false)}
+                onSelect={(url) => {
+                  setFormData(prev => ({ ...prev, image: url }))
+                  setImageSelectorOpen(false)
+                }}
+                currentImageUrl={formData.image}
               />
             </div>
           </div>

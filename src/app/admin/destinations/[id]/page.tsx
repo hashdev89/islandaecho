@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Trash2 } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, Save, Trash2, Plus, X } from 'lucide-react'
+import ImageSelector from '@/components/ImageSelector'
 
 interface Destination {
   id: string
@@ -36,6 +38,7 @@ export default function EditDestination() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
 
   useEffect(() => {
     if (destinationId) {
@@ -49,13 +52,13 @@ export default function EditDestination() {
             if (dest) {
               setDestination(dest)
               setFormData({
-                name: dest.name,
-                region: dest.region,
-                lat: dest.lat.toString(),
-                lng: dest.lng.toString(),
+                name: dest.name || '',
+                region: dest.region || '',
+                lat: dest.lat?.toString() || '',
+                lng: dest.lng?.toString() || '',
                 description: dest.description || '',
                 image: dest.image || '',
-                status: dest.status
+                status: dest.status || 'active'
               })
             } else {
               setError('Destination not found')
@@ -124,19 +127,28 @@ export default function EditDestination() {
         })
       })
 
-      const result = await response.json()
-      console.log('Destination update response:', result)
+      let result: { success?: boolean; message?: string } = {}
+      const contentType = response.headers.get('content-type')
+      try {
+        const text = await response.text()
+        if (text && contentType?.includes('application/json')) {
+          result = JSON.parse(text)
+        }
+      } catch (_) {
+        result = {}
+      }
 
       if (result.success) {
-        // Redirect to destinations list
         router.push('/admin/destinations')
       } else {
-        console.error('Destination update failed:', result)
-        setError(result.message || 'Failed to update destination')
+        const msg = result.message || (response.ok ? 'Update failed' : `Server error ${response.status}`)
+        console.error('Destination update failed:', msg, result)
+        setError(msg)
       }
     } catch (error) {
       console.error('Error updating destination:', error)
-      setError('Failed to update destination. Please try again.')
+      const msg = error instanceof Error ? error.message : 'Failed to update destination. Please try again.'
+      setError(msg)
     } finally {
       setSaving(false)
     }
@@ -241,7 +253,7 @@ export default function EditDestination() {
               <input
                 type="text"
                 name="name"
-                value={formData.name}
+                value={formData.name || ''}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="e.g., Sigiriya"
@@ -256,7 +268,7 @@ export default function EditDestination() {
               </label>
               <select
                 name="region"
-                value={formData.region}
+                value={formData.region || ''}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
@@ -280,7 +292,7 @@ export default function EditDestination() {
               <input
                 type="number"
                 name="lat"
-                value={formData.lat}
+                value={formData.lat || ''}
                 onChange={handleInputChange}
                 step="any"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -295,7 +307,7 @@ export default function EditDestination() {
               <input
                 type="number"
                 name="lng"
-                value={formData.lng}
+                value={formData.lng || ''}
                 onChange={handleInputChange}
                 step="any"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -311,7 +323,7 @@ export default function EditDestination() {
               </label>
               <select
                 name="status"
-                value={formData.status}
+                value={formData.status || 'active'}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
@@ -327,7 +339,7 @@ export default function EditDestination() {
               </label>
               <textarea
                 name="description"
-                value={formData.description}
+                value={formData.description || ''}
                 onChange={handleInputChange}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -335,18 +347,64 @@ export default function EditDestination() {
               />
             </div>
 
-            {/* Image URL */}
+            {/* Destination Image – upload or paste URL */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Image URL
+                Destination Image
               </label>
-              <input
-                type="url"
-                name="image"
-                value={formData.image}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://example.com/image.jpg"
+              <div className="space-y-3">
+                {formData.image ? (
+                  <div className="relative w-full h-40 rounded-lg overflow-hidden border border-gray-300 bg-gray-100">
+                    <Image
+                      src={formData.image}
+                      alt="Destination preview"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 400px"
+                      unoptimized
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                      className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                      title="Remove image"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setImageSelectorOpen(true)}
+                  className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-gray-700"
+                >
+                  <Plus className="w-5 h-5" />
+                  {formData.image ? 'Change Image (upload or select)' : 'Upload or select from library'}
+                </button>
+                <div className="relative">
+                  <span className="block text-xs text-gray-500 mb-1">Or paste image URL</span>
+                  <input
+                    type="url"
+                    name="image"
+                    value={formData.image || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+              </div>
+              <ImageSelector
+                isOpen={imageSelectorOpen}
+                onClose={() => setImageSelectorOpen(false)}
+                onSelect={(url) => {
+                  setFormData(prev => ({ ...prev, image: url }))
+                  setImageSelectorOpen(false)
+                }}
+                currentImageUrl={formData.image}
               />
             </div>
           </div>

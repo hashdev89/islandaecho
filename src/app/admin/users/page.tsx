@@ -666,9 +666,8 @@ export default function UsersPage() {
                       </button>
                       <button 
                         onClick={() => handleDeleteUser(user)}
-                        className={`${user.role === 'admin' ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900'}`}
-                        title={user.role === 'admin' ? 'Cannot delete admin users' : 'Delete User'}
-                        disabled={user.role === 'admin'}
+                        className="text-red-600 hover:text-red-900"
+                        title={user.role === 'admin' ? 'Delete admin (only if another admin exists)' : 'Delete User'}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

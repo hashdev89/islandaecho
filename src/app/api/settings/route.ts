@@ -220,8 +220,13 @@ export async function PUT(request: NextRequest) {
       if (error) {
         console.error('Supabase update error:', error)
         console.error('Error details:', JSON.stringify(error, null, 2))
-        // Fall through to file storage
-      } else if (data) {
+        // When Supabase is configured, return the real error so the client knows the update failed.
+        return NextResponse.json(
+          { success: false, error: `Settings update failed: ${error.message}` },
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+      if (data) {
         console.log('Settings saved successfully, payment methods:', data.payment_methods)
         const mappedSettings = mapSupabaseToFrontend(data)
         return NextResponse.json({ 

@@ -371,10 +371,28 @@ export async function PUT(req: Request) {
     body = await req.json()
     console.log('PUT /api/destinations - Received destination update:', body)
     
-    const updatedDestination: Destination = {
-      ...body as unknown as Destination,
-      updated_at: new Date().toISOString()
+    const id = body.id != null ? String(body.id) : undefined
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'Destination ID is required' }, { status: 400 })
     }
+
+    const lat = typeof body.lat === 'number' ? body.lat : parseFloat(String(body.lat ?? 0))
+    const lng = typeof body.lng === 'number' ? body.lng : parseFloat(String(body.lng ?? 0))
+    const updated_at = new Date().toISOString()
+
+    // Payload for Supabase: only columns that exist (destinations may not have updated_at)
+    const supabaseUpdatePayload = {
+      name: (body.name as string) ?? '',
+      region: (body.region as string) ?? '',
+      lat: Number.isFinite(lat) ? lat : 0,
+      lng: Number.isFinite(lng) ? lng : 0,
+      description: (body.description as string) ?? '',
+      image: (body.image as string) ?? '',
+      status: ((body.status as 'active' | 'inactive') || 'active') as 'active' | 'inactive'
+    }
+
+    // Full payload for fallback (includes updated_at)
+    const updatePayload = { ...supabaseUpdatePayload, updated_at }
     
     // Check if Supabase is configured
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -388,8 +406,13 @@ export async function PUT(req: Request) {
     if (!isSupabaseConfigured) {
       console.log('Supabase not configured, updating fallback storage')
       const fallbackDestinations = loadFallbackDestinations()
+      const updatedDestination: Destination = {
+        id,
+        ...updatePayload,
+        created_at: fallbackDestinations.find(d => String(d.id) === id)?.created_at ?? updated_at
+      }
       const updatedDestinations = fallbackDestinations.map(dest => 
-        dest.id === body.id ? updatedDestination : dest
+        String(dest.id) === id ? { ...dest, ...updatePayload } : dest
       )
       saveFallbackDestinations(updatedDestinations)
       
@@ -400,46 +423,76 @@ export async function PUT(req: Request) {
       })
     }
     
+    // Upsert: update if row exists, insert if not (handles id format or source mismatch)
+    const row = { id, ...supabaseUpdatePayload }
     const { data, error } = await supabaseAdmin
       .from('destinations')
-      .update(updatedDestination)
-      .eq('id', body.id)
+      .upsert([row], { onConflict: 'id' })
       .select()
-      .single()
     
     if (error) {
-      console.error('Supabase error:', error)
+      console.error('Supabase destinations upsert error:', error)
       throw error
     }
+
+    const saved = Array.isArray(data) && data.length > 0 ? data[0] : null
+    if (!saved) {
+      console.error('Supabase destinations upsert: no row returned')
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Could not save destination' 
+      }, { status: 500 })
+    }
     
-    return NextResponse.json({ success: true, data: data })
+    return NextResponse.json({ success: true, data: saved })
   } catch (error: unknown) {
-    console.error('Destination update error:', error)
-    console.log('Falling back to persistent storage')
+    const msg = error && typeof error === 'object' && 'message' in error ? String((error as { message: unknown }).message) : 'Unknown error'
+    console.error('Destination update error:', msg, error)
     
-    if (body && body.id) {
-      const updatedDestination: Destination = {
-        ...body as unknown as Destination,
+    // When Supabase is configured, do not claim success from fallback — client would read from Supabase and see old data
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const isSupabaseConfigured = supabaseUrl && supabaseKey && supabaseUrl.includes('supabase.co') && supabaseKey.length > 50
+
+    if (isSupabaseConfigured) {
+      return NextResponse.json({ 
+        success: false, 
+        message: `Update failed: ${msg}` 
+      }, { status: 500 })
+    }
+    
+    // Supabase not configured: update fallback file
+    if (body && body.id != null) {
+      const id = String(body.id)
+      const lat = typeof body.lat === 'number' ? body.lat : parseFloat(String(body.lat ?? 0))
+      const lng = typeof body.lng === 'number' ? body.lng : parseFloat(String(body.lng ?? 0))
+      const updatePayload = {
+        name: (body.name as string) ?? '',
+        region: (body.region as string) ?? '',
+        lat: Number.isFinite(lat) ? lat : 0,
+        lng: Number.isFinite(lng) ? lng : 0,
+        description: (body.description as string) ?? '',
+        image: (body.image as string) ?? '',
+        status: ((body.status as 'active' | 'inactive') || 'active') as 'active' | 'inactive',
         updated_at: new Date().toISOString()
       }
-      
       const fallbackDestinations = loadFallbackDestinations()
       const updatedDestinations = fallbackDestinations.map(dest => 
-        dest.id === body.id ? updatedDestination : dest
+        String(dest.id) === id ? { ...dest, ...updatePayload } : dest
       )
       saveFallbackDestinations(updatedDestinations)
       
       return NextResponse.json({ 
         success: true, 
-        data: updatedDestination,
+        data: { id, ...updatePayload, created_at: fallbackDestinations.find(d => String(d.id) === id)?.created_at },
         message: 'Destination updated in fallback storage due to error' 
       })
-    } else {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Invalid destination data provided' 
-      }, { status: 400 })
     }
+    
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Invalid destination data or missing id' 
+    }, { status: 400 })
   }
 }
 

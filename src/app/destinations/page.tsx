@@ -197,6 +197,7 @@ export default function DestinationsPage() {
                         width={400}
                         height={192}
                         className="w-full h-48 object-cover"
+                        unoptimized={!!destination.image}
                       />
                       <div style={{ background: `linear-gradient(90deg, ${colors.secondary[400]}, ${colors.secondary[500]})` }} className="absolute top-3 left-3 text-white px-3 py-1 rounded-full text-xs font-bold">
                         {badge}

@@ -401,14 +401,39 @@ export async function GET() {
     }
     
           // Transform database field names to frontend format
-          const transformedData = (toursData || []).map((tour: Tour) => ({
+          const transformedData = (toursData || []).map((tour: Tour) => {
+      // Ensure itinerary preserves all fields including overnightStay and image
+      // Normalize itinerary to ensure ALL fields are preserved when loading - preserve ALL days including empty ones
+      const normalizedItinerary = Array.isArray(tour.itinerary) 
+        ? tour.itinerary.map((day: any, index: number) => {
+            // Ensure day number is set correctly (use index + 1 if day.day is missing or 0)
+            const dayNumber = day.day && day.day > 0 ? day.day : (index + 1)
+            return {
+              day: dayNumber,
+              title: day.title || '',
+              description: day.description || '',
+              activities: Array.isArray(day.activities) ? day.activities : [],
+              accommodation: day.accommodation || '',
+              meals: Array.isArray(day.meals) ? day.meals : [],
+              transportation: day.transportation || '',
+              travelTime: day.travelTime || '',
+              overnightStay: day.overnightStay || '',
+              image: day.image || '' // Ensure image field is preserved when loading
+            }
+          })
+        : []
+      
+      console.log('Itinerary count when loading:', normalizedItinerary.length)
+      console.log('Each day when loading:', normalizedItinerary.map((d, i) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
+      
+      return {
       ...tour,
       keyExperiences: tour.key_experiences || tour.keyexperiences || [],
       createdAt: tour.createdat || tour.createdAt,
       updatedAt: tour.updatedat || tour.updatedAt,
       destinations: tour.destinations || [],
       highlights: tour.highlights || [],
-      itinerary: tour.itinerary || [],
+      itinerary: normalizedItinerary,
       inclusions: tour.inclusions || [],
       exclusions: tour.exclusions || [],
       accommodation: tour.accommodation || [],
@@ -419,7 +444,8 @@ export async function GET() {
       reviews: tour.reviews || 0,
       destinationsRoute: tour.destinations_route || '',
       includingAll: tour.including_all || ''
-    }))
+    }
+    })
     
     const responseTime = Date.now() - startTime
     console.log(`Retrieved ${transformedData.length} tours from Supabase in ${responseTime}ms`)
@@ -598,16 +624,39 @@ export async function POST(request: NextRequest) {
 
     // Handle JSONB fields
     if (newTour.itinerary) {
-      dbTour.itinerary = Array.isArray(newTour.itinerary) 
-        ? newTour.itinerary 
+      console.log('Received itinerary for create:', JSON.stringify(newTour.itinerary, null, 2))
+      if (Array.isArray(newTour.itinerary) && newTour.itinerary.length > 0) {
+        console.log('First day in received itinerary:', newTour.itinerary[0])
+        console.log('First day overnightStay:', newTour.itinerary[0]?.overnightStay)
+      }
+      // Normalize itinerary to ensure all fields are present
+      const normalizedItineraryCreate = Array.isArray(newTour.itinerary)
+        ? newTour.itinerary.map((day: { day?: number; title?: string; description?: string; activities?: unknown[]; accommodation?: string; meals?: unknown[]; transportation?: string; travelTime?: string; overnightStay?: string; image?: string }) => ({
+            day: day.day || 0,
+            title: day.title || '',
+            description: day.description || '',
+            activities: Array.isArray(day.activities) ? day.activities : [],
+            accommodation: day.accommodation || '',
+            meals: Array.isArray(day.meals) ? day.meals : [],
+            transportation: day.transportation || '',
+            travelTime: day.travelTime || '',
+            overnightStay: day.overnightStay || '',
+            image: day.image || ''
+          }))
         : []
+      dbTour.itinerary = normalizedItineraryCreate
+      console.log('Itinerary being saved to database:', JSON.stringify(normalizedItineraryCreate, null, 2))
+      if (normalizedItineraryCreate.length > 0) {
+        console.log('First day activities:', normalizedItineraryCreate[0]?.activities)
+        console.log('First day meals:', normalizedItineraryCreate[0]?.meals)
+      }
     } else {
       dbTour.itinerary = []
     }
     
-    // Handle importantInfo JSONB field
+    // Handle important_info JSONB field (snake_case for Supabase)
     if (newTour.importantInfo !== undefined) {
-      dbTour.importantInfo = newTour.importantInfo || {}
+      dbTour.important_info = newTour.importantInfo || {}
     }
 
     console.log('Prepared tour data for database:', JSON.stringify(dbTour, null, 2))
@@ -708,6 +757,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  console.log('========== PUT /api/tours - UPDATE REQUEST STARTED ==========')
   try {
     let body
     try {
@@ -721,8 +771,15 @@ export async function PUT(request: NextRequest) {
     }
     const { id, ...updateData } = body
     console.log('PUT /api/tours - Received update data:', { id, updateData })
+    console.log('PUT /api/tours - Itinerary in updateData:', updateData.itinerary)
+    if (updateData.itinerary && Array.isArray(updateData.itinerary) && updateData.itinerary.length > 0) {
+      console.log('PUT /api/tours - First day of itinerary:', updateData.itinerary[0])
+      console.log('PUT /api/tours - First day overnightStay value:', updateData.itinerary[0]?.overnightStay)
+      console.log('PUT /api/tours - First day has overnightStay key?', 'overnightStay' in (updateData.itinerary[0] || {}))
+    }
 
-    if (!id) {
+    const idStr = id == null ? '' : String(id)
+    if (!idStr) {
       console.log('Validation failed - missing tour ID')
       return NextResponse.json(
         { success: false, message: 'Tour ID is required' },
@@ -730,10 +787,10 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Prepare the updated tour data
+    // Prepare the updated tour data (use string id for Supabase .eq())
     const updatedTour = {
       ...updateData,
-      id,
+      id: idStr,
       updatedAt: new Date().toISOString()
     }
     console.log('Prepared updated tour data:', updatedTour)
@@ -747,9 +804,9 @@ export async function PUT(request: NextRequest) {
     if (!isSupabaseConfigured) {
       console.log('Supabase not configured, using fallback storage for update')
       const fallbackTours = loadFallbackTours()
-      const tourIndex = fallbackTours.findIndex(tour => tour.id === id)
+      const tourIndex = fallbackTours.findIndex(tour => String(tour.id) === idStr)
       if (tourIndex === -1) {
-        console.log('Tour not found in fallback storage:', id)
+        console.log('Tour not found in fallback storage:', idStr)
         return NextResponse.json(
           { success: false, message: 'Tour not found' },
           { status: 404 }
@@ -768,83 +825,127 @@ export async function PUT(request: NextRequest) {
     }
 
     // Try Supabase first - transform data to match database schema
-    // Only include columns that exist in the database
+    // Include ALL fields from updateData to ensure nothing is lost
     const dbUpdateData: Record<string, unknown> = {
-      name: updateData.name,
-      duration: updateData.duration,
-      price: updateData.price
+      name: updateData.name || '',
+      duration: updateData.duration || '',
+      price: updateData.price || '',
+      style: updateData.style || '',
+      description: updateData.description || '',
+      transportation: updateData.transportation || '',
+      status: updateData.status || 'draft',
+      featured: updateData.featured !== undefined ? updateData.featured : false
     }
 
-    // Always include status and featured (they're important for updates)
-    if (updateData.status !== undefined) {
-      dbUpdateData.status = updateData.status
-    } else {
-      dbUpdateData.status = 'draft'
-    }
-    
-    if (updateData.featured !== undefined) {
-      dbUpdateData.featured = updateData.featured
-    } else {
-      dbUpdateData.featured = false
-    }
-
-    // Add optional fields only if they have values
-    if (updateData.style !== undefined) dbUpdateData.style = updateData.style
-    if (updateData.description !== undefined) dbUpdateData.description = updateData.description
-    if (updateData.transportation !== undefined) dbUpdateData.transportation = updateData.transportation
+    console.log('========== BUILDING UPDATE DATA ==========')
+    console.log('Update data received:', Object.keys(updateData))
+    console.log('Name:', updateData.name)
+    console.log('Duration:', updateData.duration)
+    console.log('Price:', updateData.price)
+    console.log('Itinerary present:', updateData.itinerary !== undefined)
+    console.log('Images present:', updateData.images !== undefined)
     if (updateData.difficulty !== undefined) dbUpdateData.difficulty = updateData.difficulty
     
     // Skip timestamp columns (updated_at) - database likely has triggers
     // Skip best_time and group_size - they don't exist in this schema
 
-    // Handle array fields - always include them if they exist in updateData
-    if (updateData.destinations !== undefined) {
-      dbUpdateData.destinations = Array.isArray(updateData.destinations) 
-        ? updateData.destinations 
-        : []
-    }
-    if (updateData.highlights !== undefined) {
-      dbUpdateData.highlights = Array.isArray(updateData.highlights) 
-        ? updateData.highlights 
-        : []
-    }
-    if (updateData.keyExperiences !== undefined || updateData.key_experiences !== undefined) {
-      dbUpdateData.key_experiences = Array.isArray(updateData.keyExperiences || updateData.key_experiences) 
-        ? (updateData.keyExperiences || updateData.key_experiences) 
-        : []
-    }
-    if (updateData.inclusions !== undefined) {
-      dbUpdateData.inclusions = Array.isArray(updateData.inclusions) 
-        ? updateData.inclusions 
-        : []
-    }
-    if (updateData.exclusions !== undefined) {
-      dbUpdateData.exclusions = Array.isArray(updateData.exclusions) 
-        ? updateData.exclusions 
-        : []
-    }
-    if (updateData.accommodation !== undefined) {
-      dbUpdateData.accommodation = Array.isArray(updateData.accommodation) 
-        ? updateData.accommodation 
-        : []
-    }
-    if (updateData.images !== undefined) {
-      dbUpdateData.images = Array.isArray(updateData.images) 
-        ? updateData.images 
-        : []
-    }
+    // Handle array fields - ALWAYS include them (even if empty) to ensure updates work correctly
+    // This is critical - if we only include when undefined, empty arrays won't clear existing data
+    dbUpdateData.destinations = Array.isArray(updateData.destinations) 
+      ? updateData.destinations 
+      : []
+    dbUpdateData.highlights = Array.isArray(updateData.highlights) 
+      ? updateData.highlights 
+      : []
+    dbUpdateData.key_experiences = Array.isArray(updateData.keyExperiences || updateData.key_experiences) 
+      ? (updateData.keyExperiences || updateData.key_experiences) 
+      : []
+    dbUpdateData.inclusions = Array.isArray(updateData.inclusions) 
+      ? updateData.inclusions 
+      : []
+    dbUpdateData.exclusions = Array.isArray(updateData.exclusions) 
+      ? updateData.exclusions 
+      : []
+    dbUpdateData.accommodation = Array.isArray(updateData.accommodation) 
+      ? updateData.accommodation 
+      : []
+    dbUpdateData.images = Array.isArray(updateData.images) 
+      ? updateData.images 
+      : []
+    
+    console.log('Array fields being saved:')
+    console.log('  Destinations count:', (dbUpdateData.destinations as any[]).length)
+    console.log('  Highlights count:', (dbUpdateData.highlights as any[]).length)
+    console.log('  Key experiences count:', (dbUpdateData.key_experiences as any[]).length)
+    console.log('  Inclusions count:', (dbUpdateData.inclusions as any[]).length)
+    console.log('  Exclusions count:', (dbUpdateData.exclusions as any[]).length)
+    console.log('  Accommodation count:', (dbUpdateData.accommodation as any[]).length)
+    console.log('  Images count:', (dbUpdateData.images as any[]).length)
+    console.log('  Images:', dbUpdateData.images)
 
-    // Handle JSONB fields
+    // Handle JSONB fields - ALWAYS include itinerary if present (even if empty array)
+    // This ensures itinerary updates work correctly
     if (updateData.itinerary !== undefined) {
-      dbUpdateData.itinerary = Array.isArray(updateData.itinerary) 
-        ? updateData.itinerary 
+      console.log('========== PROCESSING ITINERARY FOR UPDATE ==========')
+      console.log('Received itinerary for update:', JSON.stringify(updateData.itinerary, null, 2))
+      if (Array.isArray(updateData.itinerary) && updateData.itinerary.length > 0) {
+        console.log('First day in received itinerary:', updateData.itinerary[0])
+        console.log('First day overnightStay:', updateData.itinerary[0]?.overnightStay)
+        console.log('First day all keys:', Object.keys(updateData.itinerary[0] || {}))
+      }
+      // Ensure ALL fields are preserved in each day - preserve everything, including empty days
+      const normalizedItinerary = Array.isArray(updateData.itinerary)
+        ? updateData.itinerary.map((day: any, index: number) => {
+            // Ensure day number is set correctly (use index + 1 if day.day is missing or 0)
+            const dayNumber = day.day && day.day > 0 ? day.day : (index + 1)
+            return {
+              day: dayNumber,
+              title: day.title || '',
+              description: day.description || '',
+              activities: Array.isArray(day.activities) ? day.activities : [],
+              accommodation: day.accommodation || '',
+              meals: Array.isArray(day.meals) ? day.meals : [],
+              transportation: day.transportation || '',
+              travelTime: day.travelTime || '',
+              overnightStay: day.overnightStay || '',
+              image: day.image || ''
+            }
+          })
         : []
+      
+      console.log('Itinerary count being saved:', normalizedItinerary.length)
+      console.log('Each day being saved:', normalizedItinerary.map((d: { day: number; title: string }, i: number) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
+      dbUpdateData.itinerary = normalizedItinerary
+      console.log('Itinerary being saved to database (normalized):', JSON.stringify(normalizedItinerary, null, 2))
+      if (normalizedItinerary.length > 0) {
+        console.log('First day in normalized itinerary:', normalizedItinerary[0])
+        console.log('First day overnightStay in normalized:', normalizedItinerary[0]?.overnightStay)
+        console.log('First day image in normalized:', normalizedItinerary[0]?.image)
+        console.log('First day activities in normalized:', normalizedItinerary[0]?.activities)
+        console.log('First day meals in normalized:', normalizedItinerary[0]?.meals)
+        console.log('First day all keys:', Object.keys(normalizedItinerary[0] || {}))
+      }
+      console.log('========== ITINERARY PROCESSING COMPLETE ==========')
+    } else {
+      // If itinerary is not provided, log a warning but don't fail
+      console.warn('WARNING: Itinerary not in updateData - will preserve existing itinerary')
+      console.warn('This might cause issues if you intended to update the itinerary')
     }
     
-    // Handle importantInfo JSONB field
+    // Handle important_info JSONB field (snake_case for Supabase) - ALWAYS include if present
     if (updateData.importantInfo !== undefined) {
-      dbUpdateData.importantInfo = updateData.importantInfo || {}
+      dbUpdateData.important_info = updateData.importantInfo || {}
+    } else {
+      // If not provided, ensure we have a default structure
+      dbUpdateData.important_info = {
+        requirements: [],
+        whatToBring: []
+      }
     }
+    
+    console.log('Final dbUpdateData keys:', Object.keys(dbUpdateData))
+    console.log('Final dbUpdateData has itinerary:', 'itinerary' in dbUpdateData)
+    console.log('Final dbUpdateData has images:', 'images' in dbUpdateData)
 
     // Remove frontend-only fields
     delete dbUpdateData.keyExperiences
@@ -857,15 +958,60 @@ export async function PUT(request: NextRequest) {
     delete dbUpdateData.besttime
 
     console.log('Prepared tour data for database update:', dbUpdateData)
+    console.log('Itinerary in dbUpdateData:', dbUpdateData.itinerary)
+    if (dbUpdateData.itinerary && Array.isArray(dbUpdateData.itinerary) && dbUpdateData.itinerary.length > 0) {
+      console.log('Final check - First day overnightStay before Supabase update:', dbUpdateData.itinerary[0]?.overnightStay)
+    }
 
-    const { data, error } = await supabaseAdmin
-      .from('tours')
-      .update(dbUpdateData)
-      .eq('id', id)
-      .select('*')
-      .single()
+    let updatePayload: Record<string, unknown> = { ...dbUpdateData }
+    let data: unknown = null
+    let error: { code?: string; message?: string; details?: unknown; hint?: string } | null = null
+    const maxRetries = 5
+    let attempt = 0
 
-    console.log('Supabase update result:', { data, error })
+    while (attempt <= maxRetries) {
+      const result = await supabaseAdmin
+        .from('tours')
+        .update(updatePayload)
+        .eq('id', idStr)
+        .select('*')
+        .single()
+      data = result.data
+      error = result.error
+
+      // On PGRST204 (column not in schema), strip that column and retry
+      if (error?.code === 'PGRST204' && error.message && attempt < maxRetries) {
+        const match = error.message.match(/Could not find the '([^']+)' column/)
+        if (match) {
+          const columnName = match[1]
+          console.warn(`Supabase: column "${columnName}" not in schema, retrying without it (attempt ${attempt + 1})`)
+          delete updatePayload[columnName]
+          attempt++
+          continue
+        }
+      }
+      break
+    }
+
+    const dataRow = data as Record<string, unknown> | null
+    console.log('========== SUPABASE UPDATE RESULT ==========')
+    console.log('Supabase update error:', error)
+    console.log('Supabase update data received:', data)
+    if (dataRow?.itinerary) {
+      console.log('Itinerary in Supabase response:', JSON.stringify(dataRow.itinerary, null, 2))
+      console.log('Itinerary count in Supabase response:', Array.isArray(dataRow.itinerary) ? dataRow.itinerary.length : 'not an array')
+      if (Array.isArray(dataRow.itinerary) && dataRow.itinerary.length > 0) {
+        console.log('First day in Supabase response:', dataRow.itinerary[0])
+        console.log('First day keys:', Object.keys((dataRow.itinerary as object[])[0] || {}))
+      }
+    }
+    if (dataRow?.itinerary) {
+      console.log('Data returned from Supabase - itinerary:', (data as any).itinerary)
+      if (Array.isArray((data as any).itinerary) && (data as any).itinerary.length > 0) {
+        console.log('Data returned - First day overnightStay:', (data as any).itinerary[0]?.overnightStay)
+      }
+    }
+    console.log('========== PUT /api/tours - UPDATE REQUEST COMPLETE ==========')
 
     if (error) {
       console.error('Supabase update error details:', {
@@ -874,40 +1020,54 @@ export async function PUT(request: NextRequest) {
         details: error.details,
         hint: error.hint
       })
-      console.log('Falling back to persistent storage for update')
-      
-      const fallbackTours = loadFallbackTours()
-      const tourIndex = fallbackTours.findIndex(tour => tour.id === id)
-    if (tourIndex === -1) {
+      const hint = (error.message || '').toLowerCase().includes('does not exist') || (error.message || '').includes('PGRST204')
+        ? ' Ensure the tours table in Supabase has required columns (e.g. itinerary, images, important_info).'
+        : ''
       return NextResponse.json(
-          { 
-            success: false, 
-            message: `Tour not found. Supabase error: ${error.message}` 
-          },
-        { status: 404 }
+        {
+          success: false,
+          message: `Tour update failed: ${error.message}.${hint}`,
+          error: { code: error.code, message: error.message, details: error.details, hint: error.hint }
+        },
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
-      fallbackTours[tourIndex] = { ...fallbackTours[tourIndex], ...updatedTour }
-      saveFallbackTours(fallbackTours)
-      console.log('Tour updated in fallback storage (error case):', fallbackTours[tourIndex])
-      console.log('Total tours in fallback storage after update (error case):', fallbackTours.length)
-      return NextResponse.json({ 
-        success: true, 
-        data: fallbackTours[tourIndex], 
-        message: `Tour updated successfully (fallback storage). Supabase error: ${error.message}` 
-      })
-    }
-
+    // Normalize itinerary in the response - preserve ALL days including empty ones
+    type DayShape = { day: number; title: string; description?: string; activities?: unknown[]; accommodation?: string; meals?: unknown[]; transportation?: string; travelTime?: string; overnightStay?: string; image?: string }
+    const normalizedResponseItinerary: DayShape[] = Array.isArray(dataRow?.itinerary)
+      ? (dataRow!.itinerary as unknown[]).map((day: unknown, index: number) => {
+          const d = day as DayShape
+          const dayNumber = (d.day && d.day > 0) ? d.day : (index + 1)
+          return {
+            day: dayNumber,
+            title: d.title || '',
+            description: d.description || '',
+            activities: Array.isArray(d.activities) ? d.activities : [],
+            accommodation: d.accommodation || '',
+            meals: Array.isArray(d.meals) ? d.meals : [],
+            transportation: d.transportation || '',
+            travelTime: d.travelTime || '',
+            overnightStay: d.overnightStay || '',
+            image: d.image || ''
+          }
+        })
+      : []
+    
+    console.log('Itinerary count in PUT response:', normalizedResponseItinerary.length)
+    console.log('Each day in PUT response:', normalizedResponseItinerary.map((d, i) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
+    
     // Transform back to frontend format
     const transformedData = {
-      ...data,
-      keyExperiences: (data as any).key_experiences || [],
-      createdAt: (data as any).created_at || (data as any).createdat || new Date().toISOString(),
-      updatedAt: (data as any).updated_at || (data as any).updatedat || new Date().toISOString(),
-      groupSize: (data as any).group_size || (data as any).groupsize || updateData.groupSize || '',
-      bestTime: (data as any).best_time || (data as any).besttime || updateData.bestTime || '',
-      importantInfo: (data as any).important_info || (data as any).importantInfo || updateData.importantInfo || {}
+      ...(dataRow || {}),
+      keyExperiences: dataRow?.key_experiences ?? [],
+      createdAt: dataRow?.created_at ?? dataRow?.createdat ?? new Date().toISOString(),
+      updatedAt: dataRow?.updated_at ?? dataRow?.updatedat ?? new Date().toISOString(),
+      groupSize: dataRow?.group_size ?? dataRow?.groupsize ?? updateData.groupSize ?? '',
+      bestTime: dataRow?.best_time ?? dataRow?.besttime ?? updateData.bestTime ?? '',
+      importantInfo: dataRow?.important_info ?? dataRow?.importantInfo ?? updateData.importantInfo ?? {},
+      itinerary: normalizedResponseItinerary,
+      images: Array.isArray(dataRow?.images) ? dataRow.images : []
     }
 
     console.log('Tour updated successfully in Supabase:', transformedData)
@@ -917,16 +1077,33 @@ export async function PUT(request: NextRequest) {
       message: 'Tour updated successfully' 
     })
   } catch (error) {
+    console.error('========== PUT /api/tours - ERROR ==========')
     console.error('Update tour error:', error)
+    console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
+    console.error('Error message:', error instanceof Error ? error.message : String(error))
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'Unknown error occurred'
+    
+    // Always return JSON, never HTML
     return NextResponse.json(
       { 
         success: false, 
-        message: `Failed to update tour: ${errorMessage}` 
+        message: `Failed to update tour: ${errorMessage}`,
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        } : String(error)
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     )
   }
 }

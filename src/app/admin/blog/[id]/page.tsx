@@ -243,7 +243,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
             </label>
             <input
               type="text"
-              value={post.title}
+              value={post.title || ''}
               onChange={(e) => setPost({ ...post, title: e.target.value })}
               placeholder="Enter post title..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -256,7 +256,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
               Description *
             </label>
             <textarea
-              value={post.description}
+              value={post.description || ''}
               onChange={(e) => setPost({ ...post, description: e.target.value })}
               placeholder="Enter post description..."
               rows={4}
@@ -270,7 +270,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
               Excerpt *
             </label>
             <textarea
-              value={post.excerpt}
+              value={post.excerpt || ''}
               onChange={(e) => setPost({ ...post, excerpt: e.target.value })}
               placeholder="Enter post excerpt..."
               rows={3}
@@ -284,7 +284,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
               Full Content *
             </label>
             <textarea
-              value={post.content}
+              value={post.content || ''}
               onChange={(e) => setPost({ ...post, content: e.target.value })}
               placeholder="Enter the full blog post content..."
               rows={12}
@@ -305,7 +305,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
                 </label>
                 <input
                   type="text"
-                  value={post.author}
+                  value={post.author || ''}
                   onChange={(e) => setPost({ ...post, author: e.target.value })}
                   placeholder="Enter author name..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -317,7 +317,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
                 </label>
                 <input
                   type="date"
-                  value={post.date}
+                  value={post.date || ''}
                   onChange={(e) => setPost({ ...post, date: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -328,7 +328,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
                 </label>
                 <input
                   type="text"
-                  value={post.readTime}
+                  value={post.readTime || ''}
                   onChange={(e) => setPost({ ...post, readTime: e.target.value })}
                   placeholder="e.g., 8 min read"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -346,7 +346,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
                   Category *
                 </label>
                 <select
-                  value={post.category}
+                  value={post.category || ''}
                   onChange={(e) => setPost({ ...post, category: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
@@ -360,7 +360,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
                   Status *
                 </label>
                 <select
-                  value={post.status}
+                  value={post.status || 'Draft'}
                   onChange={(e) => setPost({ ...post, status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
@@ -421,7 +421,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
                 </label>
                 <input
                   type="url"
-                  value={post.image}
+                  value={post.image || ''}
                   onChange={(e) => setPost({ ...post, image: e.target.value })}
                   placeholder="Enter image URL..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -433,7 +433,7 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
                 </label>
                 <input
                   type="url"
-                  value={post.video}
+                  value={post.video || ''}
                   onChange={(e) => setPost({ ...post, video: e.target.value })}
                   placeholder="Enter YouTube embed URL..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

@@ -151,6 +151,7 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
           fill
           className="object-cover"
           priority
+          unoptimized={!!destination.image}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/40"></div>
         <div className="relative h-full flex items-center justify-center">
@@ -220,6 +221,7 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
                   fill
                   className="object-cover"
                   priority
+                  unoptimized
                 />
               </div>
             </div>

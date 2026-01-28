@@ -156,9 +156,52 @@ export default function AdminSettingsPage() {
           
           console.log('Loaded payment methods:', paymentMethods)
           
-          const loadedSettings = {
+          // Normalize all settings to ensure no null values
+          const loadedSettings: SettingsData = {
+            ...defaultSettings,
             ...result.data,
-            paymentMethods: paymentMethods
+            // Ensure all string fields are never null
+            siteName: result.data.siteName || defaultSettings.siteName,
+            siteDescription: result.data.siteDescription || defaultSettings.siteDescription,
+            siteUrl: result.data.siteUrl || defaultSettings.siteUrl,
+            adminEmail: result.data.adminEmail || defaultSettings.adminEmail,
+            timezone: result.data.timezone || defaultSettings.timezone,
+            language: result.data.language || defaultSettings.language,
+            contactEmail: result.data.contactEmail || defaultSettings.contactEmail,
+            contactPhone: result.data.contactPhone || defaultSettings.contactPhone,
+            contactAddress: result.data.contactAddress || defaultSettings.contactAddress,
+            businessHours: result.data.businessHours || defaultSettings.businessHours,
+            whatsappPhone: result.data.whatsappPhone || defaultSettings.whatsappPhone,
+            smtpHost: result.data.smtpHost || defaultSettings.smtpHost,
+            smtpPort: result.data.smtpPort || defaultSettings.smtpPort,
+            smtpUsername: result.data.smtpUsername || defaultSettings.smtpUsername,
+            smtpPassword: result.data.smtpPassword || defaultSettings.smtpPassword,
+            fromEmail: result.data.fromEmail || defaultSettings.fromEmail,
+            fromName: result.data.fromName || defaultSettings.fromName,
+            currency: result.data.currency || defaultSettings.currency,
+            payhereMerchantId: result.data.payhereMerchantId || defaultSettings.payhereMerchantId,
+            payhereMerchantSecret: result.data.payhereMerchantSecret || defaultSettings.payhereMerchantSecret,
+            payhereBaseUrl: result.data.payhereBaseUrl || defaultSettings.payhereBaseUrl,
+            primaryColor: result.data.primaryColor || defaultSettings.primaryColor,
+            secondaryColor: result.data.secondaryColor || defaultSettings.secondaryColor,
+            logoUrl: result.data.logoUrl || defaultSettings.logoUrl,
+            faviconUrl: result.data.faviconUrl || defaultSettings.faviconUrl,
+            theme: result.data.theme || defaultSettings.theme,
+            paymentMethods: paymentMethods,
+            // Ensure number fields are never null
+            sessionTimeout: result.data.sessionTimeout ?? defaultSettings.sessionTimeout,
+            passwordMinLength: result.data.passwordMinLength ?? defaultSettings.passwordMinLength,
+            taxRate: result.data.taxRate ?? defaultSettings.taxRate,
+            bookingDeposit: result.data.bookingDeposit ?? defaultSettings.bookingDeposit,
+            // Ensure boolean fields are never null
+            emailNotifications: result.data.emailNotifications ?? defaultSettings.emailNotifications,
+            bookingNotifications: result.data.bookingNotifications ?? defaultSettings.bookingNotifications,
+            paymentNotifications: result.data.paymentNotifications ?? defaultSettings.paymentNotifications,
+            maintenanceNotifications: result.data.maintenanceNotifications ?? defaultSettings.maintenanceNotifications,
+            requireTwoFactor: result.data.requireTwoFactor ?? defaultSettings.requireTwoFactor,
+            payhereSandbox: result.data.payhereSandbox ?? defaultSettings.payhereSandbox,
+            // Ensure array fields are never null
+            allowedFileTypes: Array.isArray(result.data.allowedFileTypes) ? result.data.allowedFileTypes : defaultSettings.allowedFileTypes
           }
           setSettings(loadedSettings)
         } else {

@@ -18,6 +18,7 @@ import {
   Pause,
   Award,
   Camera,
+
   ArrowRight,
   ChevronLeft,
   ChevronRight
@@ -1510,6 +1511,7 @@ export default function HomePage() {
                         width={400}
                         height={192}
                         className="w-full h-48 object-cover"
+                        unoptimized={!!destination.image}
                       />
                       <div style={{ background: 'linear-gradient(90deg, #ADFF29, #A0FF07)' }} className="absolute top-3 left-3 text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
                         {badge}

@@ -163,7 +163,7 @@ export async function PUT(request: NextRequest) {
     console.log('PUT /api/blog - Updating blog post:', id)
     
     const fallbackPosts = loadFallbackBlogPosts()
-    const postIndex = fallbackPosts.findIndex(post => post.id === id)
+    const postIndex = fallbackPosts.findIndex(post => String(post.id) === String(id))
     
     if (postIndex === -1) {
       return NextResponse.json(

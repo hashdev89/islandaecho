@@ -77,6 +77,7 @@ interface Day {
   meals: string[]
   transportation?: string
   travelTime?: string
+  overnightStay?: string
   image?: string
 }
 
@@ -1191,7 +1192,7 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                           />
                         </div>
                       )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-2">Highlights</h4>
                           <ul className="space-y-1">
@@ -1227,6 +1228,10 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                               <span className="font-medium">Travel Time:</span> {day.travelTime}
                             </p>
                           )}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-2">Overnight Stay</h4>
+                          <p className="text-sm text-gray-600">{day.overnightStay || 'N/A'}</p>
                         </div>
                       </div>
                     </div>

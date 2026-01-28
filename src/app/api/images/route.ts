@@ -28,9 +28,14 @@ const getFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    console.log('GET /api/images - Fetching images...')
+    const { searchParams } = new URL(request.url)
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '80', 10), 1), 200)
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10), 0)
+    const verify = searchParams.get('verify') === '1' // skip slow HEAD checks by default
+
+    console.log('GET /api/images - Fetching images...', { limit, offset })
     
     const images: ImageMetadata[] = []
     
@@ -42,83 +47,59 @@ export async function GET() {
         supabaseUrl !== 'https://placeholder.supabase.co' && 
         supabaseServiceKey !== 'placeholder-service-key') {
       
-      console.log('Attempting to fetch from Supabase...')
-      
       // Ensure bucket exists
       const bucketCheck = await ensureBucketExists()
       if (!bucketCheck.success && bucketCheck.error) {
         console.error('Bucket check failed:', bucketCheck.error)
       }
 
-      // Fetch images from Supabase storage
+      // Fetch images from Supabase storage with pagination
       const { data: files, error: listError } = await supabaseAdmin.storage
         .from(BUCKET_NAME)
         .list('main/images', {
-          limit: 1000,
-          offset: 0,
+          limit,
+          offset,
           sortBy: { column: 'created_at', order: 'desc' }
         })
 
       if (!listError && files && files.length > 0) {
-        console.log('Found files in Supabase storage:', files.length)
-        
         for (const file of files) {
           try {
-            // Validate file has valid metadata (size > 0 indicates file exists)
-            if (!file.metadata?.size || file.metadata.size === 0) {
-              console.warn(`Skipping file ${file.name} - invalid or missing metadata`)
-              continue
-            }
-
             const filePath = `main/images/${file.name}`
-            
-            // Get public URL first
             const { data: urlData } = supabaseAdmin.storage
               .from(BUCKET_NAME)
               .getPublicUrl(filePath)
 
-            if (!urlData?.publicUrl) {
-              console.warn(`Skipping file ${file.name} - could not generate public URL`)
-              continue
-            }
+            if (!urlData?.publicUrl) continue
 
-            // Verify file is accessible by making a HEAD request (non-blocking - log warning but don't skip)
-            // This helps identify broken images but doesn't prevent valid images from showing
-            try {
-              const controller = new AbortController()
-              const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
-              
-              const headResponse = await fetch(urlData.publicUrl, { 
-                method: 'HEAD',
-                signal: controller.signal
-              })
-              
-              clearTimeout(timeoutId)
-              
-              if (!headResponse.ok) {
-                console.warn(`Warning: File ${file.name} returned HTTP ${headResponse.status} - may not be accessible`)
-                // Don't skip - still include it, let the frontend handle broken images
+            const consistentId = file.name || file.id || uuidv4()
+            const fileSize = file.metadata?.size || 0
+
+            // Skip per-file HEAD requests unless ?verify=1 (major perf win locally)
+            if (verify) {
+              try {
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 2000)
+                await fetch(urlData.publicUrl, { method: 'HEAD', signal: controller.signal })
+                clearTimeout(timeoutId)
+              } catch {
+                // still include image
               }
-            } catch (fetchError) {
-              // Log warning but don't skip - network issues shouldn't prevent images from showing
-              console.warn(`Warning: Could not verify accessibility for ${file.name}: ${(fetchError as Error).message}`)
             }
 
-            const imageData: ImageMetadata = {
-              id: file.id || uuidv4(),
+            images.push({
+              id: consistentId,
               name: file.name,
               originalName: file.name,
               fileName: file.name,
               url: urlData.publicUrl,
-              size: getFileSize(file.metadata.size),
-              sizeBytes: file.metadata.size,
+              size: fileSize > 0 ? getFileSize(fileSize) : 'Unknown',
+              sizeBytes: fileSize,
               dimensions: 'Unknown',
               category: 'General',
               uploadedAt: file.created_at || new Date().toISOString(),
               usedIn: []
-            }
-
-            images.push(imageData)
+            })
           } catch (error) {
             console.error(`Error processing file ${file.name}:`, error)
           }
@@ -181,13 +162,36 @@ export async function GET() {
       console.log('Serverless environment detected, skipping local file reading')
     }
     
-    console.log('Total images found:', images.length)
+    console.log('Total images found before deduplication:', images.length)
     
-    return NextResponse.json({ 
-      success: true, 
-      data: images,
-      message: `Retrieved ${images.length} images` 
+    // Final deduplication by URL and fileName to ensure no duplicates
+    const finalImagesMap = new Map<string, ImageMetadata>()
+    const seenFileNames = new Set<string>()
+    
+    images.forEach(img => {
+      // Use URL as primary key for deduplication
+      if (!finalImagesMap.has(img.url)) {
+        // Also check fileName to catch duplicates with different URLs
+        const fileName = img.fileName || img.name
+        if (!fileName || !seenFileNames.has(fileName)) {
+          finalImagesMap.set(img.url, img)
+          if (fileName) {
+            seenFileNames.add(fileName)
+          }
+        } else {
+          console.log(`Skipping duplicate image with fileName: ${fileName}`)
+        }
+      } else {
+        console.log(`Skipping duplicate image with URL: ${img.url}`)
+      }
     })
+    
+    const finalImages = Array.from(finalImagesMap.values())
+    const hasMore = finalImages.length === limit
+    return NextResponse.json(
+      { success: true, data: finalImages, limit, offset, hasMore, message: `Retrieved ${finalImages.length} images` },
+      { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } }
+    )
   } catch (error: unknown) {
     console.error('Images API error:', error)
     return NextResponse.json({ 
@@ -284,22 +288,18 @@ export async function POST(request: Request) {
           }
         } else {
           const supabasePath = `main/images/${fileName}`
-          
-          // Upload to Supabase
           const { error: uploadError } = await supabaseAdmin.storage
             .from(BUCKET_NAME)
             .upload(supabasePath, buffer, {
               contentType: file.type,
-              upsert: true // Allow overwriting
+              upsert: false
             })
 
           if (!uploadError) {
-            // Get Supabase URL
             const { data: urlData } = supabaseAdmin.storage
               .from(BUCKET_NAME)
               .getPublicUrl(supabasePath)
             supabaseUrl_final = urlData.publicUrl
-            console.log('Image uploaded to Supabase storage')
           } else {
             console.error('Supabase upload failed:', uploadError.message)
             if (isServerless) {

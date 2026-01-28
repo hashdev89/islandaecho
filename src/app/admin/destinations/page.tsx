@@ -199,6 +199,7 @@ export default function DestinationsManagement() {
                 width={400}
                 height={192}
                 className="w-full h-48 object-cover"
+                unoptimized={!!destination.image}
               />
               <div className="absolute top-2 right-2">
                 {getStatusBadge(destination.status)}

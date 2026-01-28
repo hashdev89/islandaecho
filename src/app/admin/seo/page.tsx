@@ -362,6 +362,93 @@ export default function SEOManagement() {
         </button>
       </div>
 
+      {/* Website SEO setup confirmation */}
+      <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Website SEO setup status</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Core SEO is always enabled. Tracking and verification tags are loaded from the Analytics tab and shown on the live site when configured below.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          <div className="flex items-center p-3 rounded-lg bg-green-50 border border-green-100">
+            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Core metadata</p>
+              <p className="text-xs text-gray-600">Title, description, OG, Twitter, robots</p>
+            </div>
+          </div>
+          <div className="flex items-center p-3 rounded-lg bg-green-50 border border-green-100">
+            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Sitemap</p>
+              <p className="text-xs text-gray-600">/sitemap.xml</p>
+            </div>
+          </div>
+          <div className="flex items-center p-3 rounded-lg bg-green-50 border border-green-100">
+            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Robots.txt</p>
+              <p className="text-xs text-gray-600">Crawl rules, sitemap ref</p>
+            </div>
+          </div>
+          <div className={`flex items-center p-3 rounded-lg border ${analyticsSettings.googleAnalyticsId ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'}`}>
+            {analyticsSettings.googleAnalyticsId ? <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" /> : <AlertCircle className="h-5 w-5 text-gray-400 flex-shrink-0 mr-2" />}
+            <div>
+              <p className="text-sm font-medium text-gray-900">Google Analytics</p>
+              <p className="text-xs text-gray-600">{analyticsSettings.googleAnalyticsId ? 'Configured' : 'Set in Analytics tab'}</p>
+            </div>
+          </div>
+          <div className={`flex items-center p-3 rounded-lg border ${analyticsSettings.googleTagManagerId ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'}`}>
+            {analyticsSettings.googleTagManagerId ? <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" /> : <AlertCircle className="h-5 w-5 text-gray-400 flex-shrink-0 mr-2" />}
+            <div>
+              <p className="text-sm font-medium text-gray-900">Google Tag Manager</p>
+              <p className="text-xs text-gray-600">{analyticsSettings.googleTagManagerId ? 'Configured' : 'Set in Analytics tab'}</p>
+            </div>
+          </div>
+          <div className={`flex items-center p-3 rounded-lg border ${analyticsSettings.googleSearchConsoleId ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'}`}>
+            {analyticsSettings.googleSearchConsoleId ? <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" /> : <AlertCircle className="h-5 w-5 text-gray-400 flex-shrink-0 mr-2" />}
+            <div>
+              <p className="text-sm font-medium text-gray-900">Search Console</p>
+              <p className="text-xs text-gray-600">{analyticsSettings.googleSearchConsoleId ? 'Verification meta added' : 'Add verification code in Analytics'}</p>
+            </div>
+          </div>
+          <div className={`flex items-center p-3 rounded-lg border ${analyticsSettings.facebookPixelId ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'}`}>
+            {analyticsSettings.facebookPixelId ? <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" /> : <AlertCircle className="h-5 w-5 text-gray-400 flex-shrink-0 mr-2" />}
+            <div>
+              <p className="text-sm font-medium text-gray-900">Facebook Pixel</p>
+              <p className="text-xs text-gray-600">{analyticsSettings.facebookPixelId ? 'Configured' : 'Set in Analytics tab'}</p>
+            </div>
+          </div>
+          <div className={`flex items-center p-3 rounded-lg border ${analyticsSettings.googleAdsId ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'}`}>
+            {analyticsSettings.googleAdsId ? <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" /> : <AlertCircle className="h-5 w-5 text-gray-400 flex-shrink-0 mr-2" />}
+            <div>
+              <p className="text-sm font-medium text-gray-900">Google Ads</p>
+              <p className="text-xs text-gray-600">{analyticsSettings.googleAdsId ? 'Configured' : 'Set in Analytics tab'}</p>
+            </div>
+          </div>
+          <div className={`flex items-center p-3 rounded-lg border ${analyticsSettings.bingWebmasterId ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'}`}>
+            {analyticsSettings.bingWebmasterId ? <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mr-2" /> : <AlertCircle className="h-5 w-5 text-gray-400 flex-shrink-0 mr-2" />}
+            <div>
+              <p className="text-sm font-medium text-gray-900">Bing Webmaster</p>
+              <p className="text-xs text-gray-600">{analyticsSettings.bingWebmasterId ? 'Verification meta added' : 'Add verification in Analytics'}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-200">
+          <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center">
+            <ExternalLink className="h-4 w-4 mr-1" /> Sitemap
+          </a>
+          <a href="/robots.txt" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center">
+            <ExternalLink className="h-4 w-4 mr-1" /> Robots.txt
+          </a>
+          <a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center">
+            <ExternalLink className="h-4 w-4 mr-1" /> Google Search Console
+          </a>
+          <a href="https://www.bing.com/webmasters" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center">
+            <ExternalLink className="h-4 w-4 mr-1" /> Bing Webmaster
+          </a>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
