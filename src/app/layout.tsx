@@ -6,7 +6,9 @@ import GoogleAnalytics from "../components/GoogleAnalytics";
 import MobileBottomNav from "../components/MobileBottomNav";
 import WhatsAppChat from "../components/WhatsAppChat";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://isleandecho.com'
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "ISLE & ECHO - Feel the Isle, Hear The Echo",
     template: "%s | ISLE & ECHO"

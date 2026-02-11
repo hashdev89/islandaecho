@@ -261,18 +261,19 @@ export default function TourEditor() {
             if (normalizedItinerary.length < rawItinerary.length) {
               console.warn(`WARNING: Lost ${rawItinerary.length - normalizedItinerary.length} days during normalization!`)
             }
-            const importantInfo = found.importantInfo as { requirements?: { activity: string; requirements: string[] }[]; whatToBring?: string[]; groupSize?: string; bestTime?: string } | undefined
+            const importantInfo = (found.importantInfo ?? (found as { important_info?: Record<string, unknown> }).important_info) as { requirements?: { activity: string; requirements: string[] }[]; whatToBring?: string[]; groupSize?: string; bestTime?: string } | undefined
+            const groupSizeStr = String(found.groupSize ?? importantInfo?.groupSize ?? '').trim()
+            const bestTimeStr = String(found.bestTime ?? importantInfo?.bestTime ?? '').trim()
             const normalizedTour = {
               ...found,
-              // Ensure all string fields are never null; read groupSize/bestTime from importantInfo if stored there (API persistence)
               name: found.name || '',
               duration: found.duration || '',
               price: found.price || '',
               style: found.style || '',
               description: found.description || '',
               transportation: found.transportation || '',
-              groupSize: (found.groupSize ?? importantInfo?.groupSize ?? '') || '',
-              bestTime: (found.bestTime ?? importantInfo?.bestTime ?? '') || '',
+              groupSize: groupSizeStr,
+              bestTime: bestTimeStr,
               status: found.status || 'draft',
               itinerary: normalizedItinerary,
               images: Array.isArray(found.images) ? found.images : [], // Ensure images array is always present

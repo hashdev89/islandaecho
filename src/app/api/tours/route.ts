@@ -35,6 +35,7 @@ interface Tour {
   accommodation?: string[]
   importantInfo?: Record<string, unknown>
   importantinfo?: Record<string, unknown>
+  important_info?: Record<string, unknown>
   style?: string
   featured?: boolean
   status?: string
@@ -429,6 +430,18 @@ export async function GET() {
       console.log('Itinerary count when loading:', normalizedItinerary.length)
       console.log('Each day when loading:', normalizedItinerary.map((d, i) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
       
+      const importantRaw = tour.important_info ?? tour.importantinfo ?? tour.importantInfo ?? {}
+      let importantObj: Record<string, unknown> = {}
+      if (typeof importantRaw === 'object' && importantRaw !== null) {
+        importantObj = importantRaw as Record<string, unknown>
+      } else if (typeof importantRaw === 'string') {
+        try {
+          const parsed = JSON.parse(importantRaw) as Record<string, unknown>
+          if (parsed && typeof parsed === 'object') importantObj = parsed
+        } catch {
+          // ignore
+        }
+      }
       return {
       ...tour,
       keyExperiences: tour.key_experiences || tour.keyexperiences || [],
@@ -441,14 +454,14 @@ export async function GET() {
       exclusions: tour.exclusions || [],
       accommodation: tour.accommodation || [],
       images: tour.images || [],
-      importantInfo: tour.importantinfo || tour.importantInfo || {},
+      importantInfo: importantObj,
       style: tour.style || 'Adventure',
       rating: tour.rating || 0,
       reviews: tour.reviews || 0,
       destinationsRoute: tour.destinations_route || '',
       includingAll: tour.including_all || '',
-      groupSize: String(tour.group_size ?? tour.groupsize ?? tour.groupSize ?? (tour.importantinfo as Record<string, unknown>)?.groupSize ?? (tour.importantInfo as Record<string, unknown>)?.groupSize ?? ''),
-      bestTime: String(tour.best_time ?? tour.besttime ?? tour.bestTime ?? (tour.importantinfo as Record<string, unknown>)?.bestTime ?? (tour.importantInfo as Record<string, unknown>)?.bestTime ?? '')
+      groupSize: String(tour.group_size ?? tour.groupsize ?? tour.groupSize ?? importantObj.groupSize ?? ''),
+      bestTime: String(tour.best_time ?? tour.besttime ?? tour.bestTime ?? importantObj.bestTime ?? '')
     }
     })
     
@@ -566,9 +579,6 @@ export async function POST(request: NextRequest) {
     if (newTour.description) dbTour.description = newTour.description
     if (newTour.transportation) dbTour.transportation = newTour.transportation
     if (newTour.difficulty) dbTour.difficulty = newTour.difficulty
-    
-    // Skip timestamp columns (created_at, updated_at) - database likely has defaults or triggers
-    // Skip best_time and group_size - they don't exist in this schema
 
     // Handle array fields - ensure they're arrays
     if (newTour.destinations) {
@@ -659,13 +669,15 @@ export async function POST(request: NextRequest) {
       dbTour.itinerary = []
     }
     
-    // Handle important_info JSONB field (snake_case for Supabase)
-    // Persist groupSize and bestTime inside important_info so they save without needing separate columns
-    const importantInfo = (newTour.importantInfo && typeof newTour.importantInfo === 'object') ? newTour.importantInfo as Record<string, unknown> : {}
+    const importantInfoCreate = (newTour.importantInfo && typeof newTour.importantInfo === 'object') ? newTour.importantInfo as Record<string, unknown> : {}
+    const groupSizeCreate = String(newTour.groupSize ?? importantInfoCreate.groupSize ?? '').trim()
+    const bestTimeCreate = String(newTour.bestTime ?? importantInfoCreate.bestTime ?? '').trim()
+    dbTour.group_size = groupSizeCreate
+    dbTour.best_time = bestTimeCreate
     dbTour.important_info = {
-      ...importantInfo,
-      groupSize: newTour.groupSize ?? importantInfo.groupSize ?? '',
-      bestTime: newTour.bestTime ?? importantInfo.bestTime ?? ''
+      ...importantInfoCreate,
+      groupSize: groupSizeCreate,
+      bestTime: bestTimeCreate
     }
 
     console.log('Prepared tour data for database:', JSON.stringify(dbTour, null, 2))
@@ -779,7 +791,12 @@ export async function PUT(request: NextRequest) {
       )
     }
     const { id, ...updateData } = body
-    console.log('PUT /api/tours - Received update data:', { id, updateData })
+    // Ensure groupSize and bestTime are read from top-level body (admin sends them there)
+    const groupSize = updateData.groupSize ?? (updateData.importantInfo as Record<string, unknown>)?.groupSize ?? ''
+    const bestTime = updateData.bestTime ?? (updateData.importantInfo as Record<string, unknown>)?.bestTime ?? ''
+    updateData.groupSize = typeof groupSize === 'string' ? groupSize : String(groupSize ?? '')
+    updateData.bestTime = typeof bestTime === 'string' ? bestTime : String(bestTime ?? '')
+    console.log('PUT /api/tours - Received update data:', { id, groupSize: updateData.groupSize, bestTime: updateData.bestTime })
     console.log('PUT /api/tours - Itinerary in updateData:', updateData.itinerary)
     if (updateData.itinerary && Array.isArray(updateData.itinerary) && updateData.itinerary.length > 0) {
       console.log('PUT /api/tours - First day of itinerary:', updateData.itinerary[0])
@@ -854,9 +871,12 @@ export async function PUT(request: NextRequest) {
     console.log('Itinerary present:', updateData.itinerary !== undefined)
     console.log('Images present:', updateData.images !== undefined)
     if (updateData.difficulty !== undefined) dbUpdateData.difficulty = updateData.difficulty
-    
-    // Skip timestamp columns (updated_at) - database likely has triggers
-    // Skip best_time and group_size - they don't exist in this schema
+
+    // Sync group size and best time: write to both table columns (group_size, best_time) and important_info
+    const groupSizeVal = String(updateData.groupSize ?? (updateData.importantInfo as Record<string, unknown>)?.groupSize ?? '').trim()
+    const bestTimeVal = String(updateData.bestTime ?? (updateData.importantInfo as Record<string, unknown>)?.bestTime ?? '').trim()
+    dbUpdateData.group_size = groupSizeVal
+    dbUpdateData.best_time = bestTimeVal
 
     // Handle array fields - ALWAYS include them (even if empty) to ensure updates work correctly
     // This is critical - if we only include when undefined, empty arrays won't clear existing data
@@ -941,14 +961,14 @@ export async function PUT(request: NextRequest) {
       console.warn('This might cause issues if you intended to update the itinerary')
     }
     
-    // Handle important_info JSONB field (snake_case for Supabase)
-    // Always merge groupSize and bestTime into important_info so they persist without separate columns
+    // important_info JSONB: always include groupSize/bestTime (same values as table columns for sync)
     const existingImportant = (updateData.importantInfo && typeof updateData.importantInfo === 'object') ? updateData.importantInfo as Record<string, unknown> : { requirements: [], whatToBring: [] }
     dbUpdateData.important_info = {
       ...existingImportant,
-      groupSize: updateData.groupSize ?? existingImportant.groupSize ?? '',
-      bestTime: updateData.bestTime ?? existingImportant.bestTime ?? ''
+      groupSize: groupSizeVal,
+      bestTime: bestTimeVal
     }
+    console.log('PUT important_info and group_size/best_time being saved:', { group_size: groupSizeVal, best_time: bestTimeVal, important_info: dbUpdateData.important_info })
     
     console.log('Final dbUpdateData keys:', Object.keys(dbUpdateData))
     console.log('Final dbUpdateData has itinerary:', 'itinerary' in dbUpdateData)
@@ -963,7 +983,7 @@ export async function PUT(request: NextRequest) {
     delete dbUpdateData.groupsize
     delete dbUpdateData.bestTime
     delete dbUpdateData.besttime
-    // group_size and best_time are already in dbUpdateData and sent to DB
+    // group_size and best_time stay in dbUpdateData for the table
 
     console.log('Prepared tour data for database update:', dbUpdateData)
     console.log('Itinerary in dbUpdateData:', dbUpdateData.itinerary)
@@ -1065,15 +1085,17 @@ export async function PUT(request: NextRequest) {
     console.log('Itinerary count in PUT response:', normalizedResponseItinerary.length)
     console.log('Each day in PUT response:', normalizedResponseItinerary.map((d, i) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
     
-    // Transform back to frontend format
+    const putImportant = (dataRow?.important_info ?? dataRow?.importantInfo ?? updateData.importantInfo ?? {}) as Record<string, unknown>
+    const putGroupSize = String(dataRow?.group_size ?? dataRow?.groupsize ?? putImportant?.groupSize ?? updateData.groupSize ?? '')
+    const putBestTime = String(dataRow?.best_time ?? dataRow?.besttime ?? putImportant?.bestTime ?? updateData.bestTime ?? '')
     const transformedData = {
       ...(dataRow || {}),
       keyExperiences: dataRow?.key_experiences ?? [],
       createdAt: dataRow?.created_at ?? dataRow?.createdat ?? new Date().toISOString(),
       updatedAt: dataRow?.updated_at ?? dataRow?.updatedat ?? new Date().toISOString(),
-      groupSize: dataRow?.group_size ?? dataRow?.groupsize ?? (dataRow?.important_info as Record<string, unknown>)?.groupSize ?? updateData.groupSize ?? '',
-      bestTime: dataRow?.best_time ?? dataRow?.besttime ?? (dataRow?.important_info as Record<string, unknown>)?.bestTime ?? updateData.bestTime ?? '',
-      importantInfo: dataRow?.important_info ?? dataRow?.importantInfo ?? updateData.importantInfo ?? {},
+      groupSize: putGroupSize,
+      bestTime: putBestTime,
+      importantInfo: putImportant,
       itinerary: normalizedResponseItinerary,
       images: Array.isArray(dataRow?.images) ? dataRow.images : []
     }
