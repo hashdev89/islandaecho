@@ -35,10 +35,12 @@ export default function EditDestination() {
     image: '',
     status: 'active' as 'active' | 'inactive'
   })
+  const PRESET_REGIONS = ['Cultural Triangle', 'Hill Country', 'Southern Coast', 'Wildlife', 'Beach', 'Adventure', 'Other', 'Western Province', 'Central Province', 'Southern Province', 'Uva Province', 'North Central Province', 'Eastern Province', 'Northern Province']
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
+  const isCustomRegion = !formData.region || !PRESET_REGIONS.includes(formData.region)
 
   useEffect(() => {
     if (destinationId) {
@@ -91,9 +93,10 @@ export default function EditDestination() {
     setError('')
 
     try {
-      // Validate required fields
-      if (!formData.name || !formData.region || !formData.lat || !formData.lng) {
-        setError('Please fill in all required fields')
+      // Validate required fields (region can be preset or custom)
+      const regionValue = (formData.region || '').trim()
+      if (!formData.name || !regionValue || !formData.lat || !formData.lng) {
+        setError('Please fill in all required fields (including region)')
         setSaving(false)
         return
       }
@@ -268,20 +271,34 @@ export default function EditDestination() {
               </label>
               <select
                 name="region"
-                value={formData.region || ''}
-                onChange={handleInputChange}
+                value={PRESET_REGIONS.includes(formData.region || '') ? formData.region : '__custom__'}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v === '__custom__') {
+                    setFormData(prev => ({ ...prev, region: prev.region || '' }))
+                  } else {
+                    setFormData(prev => ({ ...prev, region: v }))
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
+                required={!isCustomRegion}
               >
                 <option value="">Select a region</option>
-                <option value="Cultural Triangle">Cultural Triangle</option>
-                <option value="Hill Country">Hill Country</option>
-                <option value="Southern Coast">Southern Coast</option>
-                <option value="Wildlife">Wildlife</option>
-                <option value="Beach">Beach</option>
-                <option value="Adventure">Adventure</option>
-                <option value="Other">Other</option>
+                {PRESET_REGIONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+                <option value="__custom__">+ Add new region...</option>
               </select>
+              {isCustomRegion && (
+                <input
+                  type="text"
+                  name="region"
+                  value={formData.region || ''}
+                  onChange={handleInputChange}
+                  placeholder="Type your new region name"
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              )}
             </div>
 
             {/* Coordinates */}

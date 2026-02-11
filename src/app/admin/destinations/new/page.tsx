@@ -7,6 +7,8 @@ import Image from 'next/image'
 import { ArrowLeft, Save, Plus, X } from 'lucide-react'
 import ImageSelector from '@/components/ImageSelector'
 
+const PRESET_REGIONS = ['Western Province', 'Central Province', 'Southern Province', 'Cultural Triangle', 'Uva Province', 'North Central Province', 'Wildlife', 'Eastern Province', 'Northern Province', 'Hill Country', 'Southern Coast', 'Beach', 'Adventure', 'Other']
+
 export default function NewDestination() {
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -20,6 +22,7 @@ export default function NewDestination() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
+  const isCustomRegion = !formData.region || !PRESET_REGIONS.includes(formData.region)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -35,9 +38,10 @@ export default function NewDestination() {
     setError('')
 
     try {
-      // Validate required fields
-      if (!formData.name || !formData.region || !formData.lat || !formData.lng) {
-        setError('Please fill in all required fields')
+      const regionValue = (formData.region || '').trim()
+      // Validate required fields (region can be preset or custom)
+      if (!formData.name || !regionValue || !formData.lat || !formData.lng) {
+        setError('Please fill in all required fields (including region)')
         setLoading(false)
         return
       }
@@ -65,6 +69,7 @@ export default function NewDestination() {
         },
         body: JSON.stringify({
           ...formData,
+          region: regionValue,
           lat: lat,
           lng: lng,
           status: 'active'
@@ -145,22 +150,34 @@ export default function NewDestination() {
               </label>
               <select
                 name="region"
-                value={formData.region}
-                onChange={handleInputChange}
+                value={PRESET_REGIONS.includes(formData.region) ? formData.region : '__custom__'}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v === '__custom__') {
+                    setFormData(prev => ({ ...prev, region: '' }))
+                  } else {
+                    setFormData(prev => ({ ...prev, region: v }))
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
+                required={!isCustomRegion}
               >
                 <option value="">Select a region</option>
-                <option value="Western Province">Western Province</option>
-                <option value="Central Province">Central Province</option>
-                <option value="Southern Province">Southern Province</option>
-                <option value="Cultural Triangle">Cultural Triangle</option>
-                <option value="Uva Province">Uva Province</option>
-                <option value="North Central Province">North Central Province</option>
-                <option value="Wildlife">Wildlife</option>
-                <option value="Eastern Province">Eastern Province</option>
-                <option value="Northern Province">Northern Province</option>
+                {PRESET_REGIONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+                <option value="__custom__">+ Add new region...</option>
               </select>
+              {isCustomRegion && (
+                <input
+                  type="text"
+                  name="region"
+                  value={formData.region}
+                  onChange={handleInputChange}
+                  placeholder="Type your new region name"
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              )}
             </div>
 
             {/* Coordinates */}

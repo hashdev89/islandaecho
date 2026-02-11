@@ -65,7 +65,7 @@ export default function DestinationSelector({
     return matchesSearch && matchesRegion && dest.status === 'active'
   })
 
-  const regions = [...new Set(destinations.map(dest => dest.region))]
+  const regions = [...new Set([...destinations.map(dest => dest.region), 'Customize'])]
 
   const handleDestinationToggle = (destinationName: string) => {
     if (selectedDestinations.includes(destinationName)) {

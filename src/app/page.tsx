@@ -1496,6 +1496,7 @@ export default function HomePage() {
                 <option value="Southern Coast">Beach Destinations</option>
                 <option value="Wildlife">Wildlife & Nature</option>
                 <option value="Northern">Northern Region</option>
+                <option value="Customize">Customize</option>
               </select>
             </div>
           </div>

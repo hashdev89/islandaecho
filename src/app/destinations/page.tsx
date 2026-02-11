@@ -47,7 +47,8 @@ export default function DestinationsPage() {
     { id: 'Hill Country', name: 'Hill Country' },
     { id: 'Southern Coast', name: 'Beach Destinations' },
     { id: 'Wildlife', name: 'Wildlife & Nature' },
-    { id: 'Northern', name: 'Northern Region' }
+    { id: 'Northern', name: 'Northern Region' },
+    { id: 'Customize', name: 'Customize' }
   ]
 
   const [destinations, setDestinations] = useState<any[]>([])
