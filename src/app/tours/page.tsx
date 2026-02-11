@@ -77,7 +77,7 @@ export default function ToursPage() {
   })
 
   return (
-    <div style={{ background: colors.primary[50] }} className="min-h-screen">
+    <div className="min-h-screen bg-white">
       <Header />
       
       {/* Header */}
@@ -176,9 +176,9 @@ export default function ToursPage() {
                       height={192}
                       className="w-full h-48 object-cover"
                     />
-                    {/* Style Tag */}
+                    {/* Style / Category Tag – left aligned */}
                     {tour.style && (
-                      <div style={{ background: 'rgb(160, 255, 7)' }} className="absolute top-3 left-20 text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
+                      <div className="absolute top-3 left-3 bg-black text-[#ADFF29] px-3 py-1 rounded-full text-xs font-bold">
                         {tour.style}
                       </div>
                     )}

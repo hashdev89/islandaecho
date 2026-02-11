@@ -843,8 +843,8 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
       importantInfo: tour.importantInfo || tour.important_info || undefined,
       accommodation: Array.isArray(tour.accommodation) ? tour.accommodation : [],
       transportation: tour.transportation || '',
-      groupSize: tour.groupSize || tour.group_size || '',
-      bestTime: tour.bestTime || tour.best_time || '',
+      groupSize: tour.groupSize || tour.group_size || (tour.importantInfo as Record<string, string>)?.groupSize || (tour.important_info as Record<string, string>)?.groupSize || '',
+      bestTime: tour.bestTime || tour.best_time || (tour.importantInfo as Record<string, string>)?.bestTime || (tour.important_info as Record<string, string>)?.bestTime || '',
       images: Array.isArray(tour.images) ? tour.images : []
     }
   }
@@ -1186,9 +1186,10 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                           />
                         </div>
                       )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 sm:gap-5 mt-6">
-                        {/* Highlights */}
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
+                      {/* Bento: large = top row Highlights full width, bottom row 4 columns. Mobile = stacked grid. */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mt-6">
+                        {/* Highlights - full width top row on xl */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0 xl:col-span-4">
                           <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
                             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 shrink-0" />
                             Highlights
@@ -1206,8 +1207,8 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                             )}
                           </ul>
                         </div>
-                        {/* Accommodation */}
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
+                        {/* Accommodation - bottom row, 1 of 4 columns on xl */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0 xl:col-span-1">
                           <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
                             <Hotel className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 shrink-0" />
                             Accommodation
@@ -1216,8 +1217,8 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                             {day.accommodation || '—'}
                           </p>
                         </div>
-                        {/* Meals */}
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
+                        {/* Meals - bottom row, 1 of 4 columns on xl */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0 xl:col-span-1">
                           <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
                             <UtensilsCrossed className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
                             Meals
@@ -1232,8 +1233,8 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                             )}
                           </ul>
                         </div>
-                        {/* Transport */}
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0">
+                        {/* Transport - bottom row, 1 of 4 columns on xl */}
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0 xl:col-span-1">
                           <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
                             <Car className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400 shrink-0" />
                             Transport
@@ -1248,11 +1249,11 @@ export default function TourPackagePage({ params }: { params: Promise<{ packageI
                             {!day.transportation && !day.travelTime && <p className="text-gray-400 dark:text-gray-500">—</p>}
                           </div>
                         </div>
-                        {/* Overnight Stay */}
+                        {/* Stay - bottom row, 1 of 4 columns on xl */}
                         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 p-4 sm:p-5 flex flex-col min-h-0 sm:col-span-2 xl:col-span-1">
                           <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm sm:text-base mb-3">
                             <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 shrink-0" />
-                            Overnight Stay
+                            Stay
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-400 flex-1">
                             {day.overnightStay || '—'}

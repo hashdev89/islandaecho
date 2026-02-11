@@ -35,6 +35,7 @@ export default function ToursManagement() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [tours, setTours] = useState<TourPackage[]>([])
   const [loading, setLoading] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const loadTours = async () => {
     try {
@@ -97,32 +98,61 @@ export default function ToursManagement() {
   }
 
   const handleDeleteTour = async (tourId: string) => {
-    if (confirm('Are you sure you want to delete this tour?')) {
-      try {
-        setLoading(true)
-        console.log('Deleting tour:', tourId)
-        
-        const response = await fetch(`/api/tours?id=${tourId}`, {
-          method: 'DELETE',
-        })
-        
-        const result = await response.json()
-        console.log('Delete response:', result)
-        
-        if (result.success) {
-          // Remove the tour from local state
-          setTours(tours.filter(tour => tour.id !== tourId))
-          alert('Tour deleted successfully!')
-        } else {
-          alert(`Failed to delete tour: ${result.message}`)
-        }
-      } catch (error) {
-        console.error('Error deleting tour:', error)
-        alert('Error deleting tour. Please try again.')
-      } finally {
-        setLoading(false)
+    if (!confirm('Are you sure you want to delete this tour?')) return
+    setLoading(true)
+    await doDeleteTour(tourId)
+    setLoading(false)
+  }
+
+  const doDeleteTour = async (tourId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/tours?id=${encodeURIComponent(tourId)}`, { method: 'DELETE' })
+      const result = await response.json()
+      if (result.success) {
+        setTours(prev => prev.filter(tour => tour.id !== tourId))
+        setSelectedIds(prev => { const next = new Set(prev); next.delete(tourId); return next })
+        return true
       }
+      alert(result.message || 'Failed to delete tour')
+      return false
+    } catch (error) {
+      console.error('Error deleting tour:', error)
+      alert('Error deleting tour. Please try again.')
+      return false
     }
+  }
+
+  const toggleSelect = (tourId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(tourId)) next.delete(tourId)
+      else next.add(tourId)
+      return next
+    })
+  }
+
+  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(new Set(filteredTours.map(t => t.id)))
+    } else {
+      setSelectedIds(new Set())
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return
+    const count = selectedIds.size
+    if (!confirm(`Delete ${count} selected tour(s)? This cannot be undone.`)) return
+    setLoading(true)
+    const ids = Array.from(selectedIds)
+    let ok = 0
+    for (const id of ids) {
+      const success = await doDeleteTour(id)
+      if (success) ok++
+    }
+    setSelectedIds(new Set())
+    setLoading(false)
+    alert(ok === count ? 'Selected tours deleted.' : `Deleted ${ok} of ${count} tours.`)
   }
 
   return (
@@ -134,6 +164,16 @@ export default function ToursManagement() {
           <p className="text-gray-600">Manage your tour packages and itineraries</p>
         </div>
         <div className="flex items-center space-x-3">
+          {user?.role === 'admin' && selectedIds.size > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              disabled={loading}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete selected ({selectedIds.size})
+            </button>
+          )}
           <button
             onClick={loadTours}
             disabled={loading}
@@ -197,6 +237,17 @@ export default function ToursManagement() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                {user?.role === 'admin' && (
+                  <th className="px-4 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={filteredTours.length > 0 && filteredTours.every(t => selectedIds.has(t.id))}
+                      onChange={toggleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      title="Select all"
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tour Package
                 </th>
@@ -223,14 +274,14 @@ export default function ToursManagement() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={user?.role === 'admin' ? 8 : 7} className="px-6 py-8 text-center text-gray-500">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
                     Loading tours...
                   </td>
                 </tr>
               ) : filteredTours.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={user?.role === 'admin' ? 8 : 7} className="px-6 py-8 text-center text-gray-500">
                     No tours found. <Link href="/admin/tours/new" className="text-blue-600 hover:text-blue-800">Create your first tour</Link>
                   </td>
                 </tr>
@@ -241,6 +292,16 @@ export default function ToursManagement() {
                   className="hover:bg-gray-50 cursor-pointer group transition-colors"
                   onClick={() => window.location.href = `/admin/tours/${tour.id}`}
                 >
+                  {user?.role === 'admin' && (
+                    <td className="px-4 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(tour.id)}
+                        onChange={() => toggleSelect(tour.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">

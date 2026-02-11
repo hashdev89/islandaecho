@@ -68,6 +68,7 @@ export default function HomePage() {
   const [loadingDestinations, setLoadingDestinations] = useState(true)
   const [selectedRegion, setSelectedRegion] = useState('all')
   const [destinationSearchQuery, setDestinationSearchQuery] = useState('')
+  const [destinationsDisplayLimit, setDestinationsDisplayLimit] = useState(10)
   const [isVideoPlaying, setIsVideoPlaying] = useState(false) // Video does not autoplay; carousel shows by default
   const [videoError, setVideoError] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
@@ -75,6 +76,8 @@ export default function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [siteContent, setSiteContent] = useState<Record<string, unknown> | null>(null)
+  const [blogPosts, setBlogPosts] = useState<Array<{ id: number; title: string; description?: string; excerpt?: string; image?: string; date?: string; readTime?: string; category?: string }>>([])
+  const [blogCarouselIndex, setBlogCarouselIndex] = useState(0)
   
   // Hero carousel images - from Site Content CMS when available, else defaults
   const defaultHeroImages = [
@@ -355,6 +358,19 @@ export default function HomePage() {
     return () => { isMounted = false }
   }, [])
 
+  useEffect(() => {
+    let isMounted = true
+    fetch('/api/blog', { cache: 'no-store' })
+      .then(res => (res.ok ? res.json() : []))
+      .then((posts: Array<{ id: number; title: string; description?: string; excerpt?: string; image?: string; date?: string; readTime?: string; category?: string; status?: string }>) => {
+        if (!isMounted || !Array.isArray(posts)) return
+        const published = posts.filter(p => p.status === 'Published')
+        setBlogPosts(published)
+      })
+      .catch(() => {})
+    return () => { isMounted = false }
+  }, [])
+
   // Filter destinations with useMemo for performance
   const filteredDestinations = useMemo(() => {
     return (destinations || []).filter(destination => {
@@ -364,6 +380,16 @@ export default function HomePage() {
       return regionMatch && searchMatch
     })
   }, [destinations, selectedRegion, destinationSearchQuery])
+
+  const displayedDestinations = useMemo(
+    () => filteredDestinations.slice(0, destinationsDisplayLimit),
+    [filteredDestinations, destinationsDisplayLimit]
+  )
+  const hasMoreDestinations = filteredDestinations.length > destinationsDisplayLimit
+
+  useEffect(() => {
+    setDestinationsDisplayLimit(10)
+  }, [selectedRegion, destinationSearchQuery])
 
   // Handle YouTube video initialization and state tracking
   useEffect(() => {
@@ -461,28 +487,6 @@ export default function HomePage() {
       title: 'Memorable Experiences',
       description: 'Create unforgettable memories with our carefully curated tour experiences.',
       color: 'text-orange-600'
-    }
-  ]
-
-  // Solutions sections inspired by Swimlane's approach
-  const solutions = [
-    {
-      title: 'Cultural Heritage Tours',
-      description: 'Explore ancient temples, UNESCO World Heritage sites, and rich cultural traditions.',
-      image: 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?w=400&h=300&fit=crop',
-      highlights: ['Sigiriya Rock Fortress', 'Temple of the Tooth', 'Ancient Cities']
-    },
-    {
-      title: 'Wildlife Safari Adventures',
-      description: 'Discover Sri Lanka\'s incredible biodiversity with expert-guided wildlife safaris.',
-      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
-      highlights: ['Yala National Park', 'Elephant Watching', 'Bird Watching']
-    },
-    {
-      title: 'Beach & Coastal Escapes',
-      description: 'Relax on pristine beaches and enjoy water sports along Sri Lanka\'s beautiful coastline.',
-      image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
-      highlights: ['Mirissa Beach', 'Whale Watching', 'Water Sports']
     }
   ]
 
@@ -1457,7 +1461,7 @@ export default function HomePage() {
       </section>
       
       {/* Destinations & Activities Section */}
-      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-900">
+      <section className="py-12 sm:py-16 md:py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12 md:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 px-2">
@@ -1511,48 +1515,44 @@ export default function HomePage() {
               </div>
             </div>
           ) : filteredDestinations.length > 0 ? (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              {filteredDestinations.map((destination) => {
-                // Generate default values for missing properties
+              {displayedDestinations.map((destination) => {
                 const badge = destination.region === 'Cultural Triangle' ? 'Heritage' : 
                              destination.region === 'Wildlife' ? 'Nature' :
                              destination.region.includes('Province') ? 'Cultural' : 'Explore'
-                
-                const rating = 4.5 + Math.random() * 0.5 // Random rating between 4.5-5.0
-                const reviews = Math.floor(Math.random() * 200) + 50 // Random reviews 50-250
+                const rating = 4.5 + (destination.id?.length ?? 0) % 5 * 0.1
+                const reviews = 50 + (destination.id?.length ?? 0) % 200
 
                 return (
-                  <div key={destination.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100 dark:border-gray-700">
-                    <div className="relative">
+                  <div key={destination.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100 dark:border-gray-700 flex flex-col h-[420px]">
+                    <div className="relative shrink-0 h-44">
                       <Image
                         src={destination.image || 'https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=400&h=300&fit=crop'}
                         alt={destination.name}
                         width={400}
-                        height={192}
-                        className="w-full h-48 object-cover"
+                        height={176}
+                        className="w-full h-full object-cover"
                         unoptimized={!!destination.image}
                       />
-                      <div style={{ background: 'linear-gradient(90deg, #ADFF29, #A0FF07)' }} className="absolute top-3 left-3 text-gray-900 px-3 py-1 rounded-full text-xs font-bold">
+                      <div className="absolute top-3 left-3 bg-black px-3 py-1 rounded-full text-xs font-bold text-[#ADFF29]">
                         {badge}
                       </div>
-                      <button className="absolute top-3 right-3 w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 active:bg-white/80 dark:active:bg-gray-700/80 transition-colors touch-manipulation min-w-[44px] min-h-[44px]">
+                      <button className="absolute top-3 right-3 w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 active:bg-white/80 dark:active:bg-gray-700/80 transition-colors touch-manipulation min-w-[44px] min-h-[44px]" aria-label="Save">
                         <Heart className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                       </button>
                     </div>
-                    
-                    <div className="p-6">
-                      <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">{destination.name}</h3>
-                      
-                      <div className="flex items-center mb-3">
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-sm text-gray-600 dark:text-gray-400">{rating.toFixed(1)} ({reviews})</span>
-                        </div>
+                    <div className="p-4 sm:p-5 flex flex-col flex-1 min-h-0">
+                      <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white line-clamp-2">{destination.name}</h3>
+                      <div className="flex items-center mb-2">
+                        <Star className="w-4 h-4 text-yellow-400 fill-current shrink-0" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">{rating.toFixed(1)} ({reviews})</span>
                       </div>
-                      
-                      <p className="text-sm mb-4 text-gray-600 dark:text-gray-400">{destination.description}</p>
-                      
-                      <Link href={`/destinations`}>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-[10] flex-1 min-h-0">
+                        {destination.description || 'Explore this destination.'}
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">… more</p>
+                      <Link href={`/destinations/${destination.id}`} className="mt-3 shrink-0">
                         <button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation">
                           <span>Explore</span>
                           <ArrowRight className="w-4 h-4" />
@@ -1563,6 +1563,18 @@ export default function HomePage() {
                 )
               })}
             </div>
+            {hasMoreDestinations && (
+              <div className="flex justify-center mt-8 sm:mt-10">
+                <button
+                  type="button"
+                  onClick={() => setDestinationsDisplayLimit((prev) => prev + 10)}
+                  className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold rounded-lg hover:opacity-90 active:opacity-80 transition-opacity"
+                >
+                  More
+                </button>
+              </div>
+            )}
+            </>
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg mb-2">No destinations found</p>
@@ -1572,44 +1584,112 @@ export default function HomePage() {
         </div>  
       </section>
 
-      {/* Solutions Section - Inspired by Swimlane's solutions */}
+      {/* Discover Sri Lanka – Blog short view */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Discover Sri Lanka
             </h2>
             <p className="text-xl text-gray-800 max-w-3xl mx-auto">
               From ancient temples to pristine beaches, explore the diverse beauty of Sri Lanka.
             </p>
-            </div>
+          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {solutions.map((solution, index) => (
-              <div key={index} className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-                <div className="relative h-48">
-                  <Image
-                    src={solution.image}
-                    alt={solution.title}
-                    fill
-                    className="object-cover"
-                  />
+          {blogPosts.length > 0 ? (
+            <>
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label="Previous blog posts"
+                  onClick={() => setBlogCarouselIndex(i => Math.max(0, i - 1))}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-100 -translate-x-2 sm:translate-x-0"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next blog posts"
+                  onClick={() => setBlogCarouselIndex(i => Math.min(Math.max(0, Math.ceil(blogPosts.length / 3) - 1), i + 1))}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-100 translate-x-2 sm:translate-x-0"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+                <div className="overflow-hidden px-1">
+                  <div
+                    className="flex transition-transform duration-300 ease-out"
+                    style={{ transform: `translateX(-${blogCarouselIndex * 100}%)` }}
+                  >
+                    {blogPosts.map((post) => (
+                      <div
+                        key={post.id}
+                        className="flex-shrink-0 w-full sm:w-1/2 lg:w-1/3 px-2"
+                      >
+                        <Link href={`/blog/${post.id}`} className="block bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow h-full">
+                          <div className="relative h-56">
+                            <Image
+                              src={post.image || '/sigiriya.jpeg'}
+                              alt={post.title}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            />
+                          </div>
+                          <div className="p-6">
+                            {post.category && (
+                              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm mb-3">
+                                {post.category}
+                              </span>
+                            )}
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">{post.title}</h3>
+                            <p className="text-gray-600 text-sm line-clamp-4 mb-3">
+                              {post.description || post.excerpt || ''}
+                            </p>
+                            <div className="flex items-center gap-3 text-gray-500 text-xs">
+                              {post.date && <span>{post.date}</span>}
+                              {post.readTime && <span>{post.readTime}</span>}
+                            </div>
+                          </div>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-            <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{solution.title}</h3>
-                  <p className="text-gray-800 mb-4">{solution.description}</p>
-                <div className="flex flex-wrap gap-2">
-                    {solution.highlights.map((highlight, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                      {highlight}
-                    </span>
+                <div className="flex justify-center gap-2 mt-6">
+                  {Array.from({ length: Math.ceil(blogPosts.length / 3) }).map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      aria-label={`Go to blog slide ${i + 1}`}
+                      onClick={() => setBlogCarouselIndex(i)}
+                      className={`w-2 h-2 rounded-full transition-colors ${i === blogCarouselIndex ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    />
                   ))}
                 </div>
               </div>
-                </div>
-                              ))}
-                            </div>
-                          </div>
+              <div className="text-center mt-10">
+                <Link
+                  href="/blog"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  More
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-600 mb-4">Explore stories and travel tips on our blog.</p>
+              <Link
+                href="/blog"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
+              >
+                View Blog
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* CTA Section - Inspired by Swimlane's CTA */}

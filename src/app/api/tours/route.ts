@@ -47,8 +47,11 @@ interface Tour {
   description?: string
   transportation?: string
   groupSize?: string
+  group_size?: string
   groupsize?: string
   difficulty?: string
+  bestTime?: string
+  best_time?: string
   besttime?: string
   destinationsRoute?: string
   destinations_route?: string
@@ -443,7 +446,9 @@ export async function GET() {
       rating: tour.rating || 0,
       reviews: tour.reviews || 0,
       destinationsRoute: tour.destinations_route || '',
-      includingAll: tour.including_all || ''
+      includingAll: tour.including_all || '',
+      groupSize: String(tour.group_size ?? tour.groupsize ?? tour.groupSize ?? (tour.importantinfo as Record<string, unknown>)?.groupSize ?? (tour.importantInfo as Record<string, unknown>)?.groupSize ?? ''),
+      bestTime: String(tour.best_time ?? tour.besttime ?? tour.bestTime ?? (tour.importantinfo as Record<string, unknown>)?.bestTime ?? (tour.importantInfo as Record<string, unknown>)?.bestTime ?? '')
     }
     })
     
@@ -474,11 +479,13 @@ export async function GET() {
     
     return NextResponse.json({ 
       success: true, 
-      data: fallbackTours.map(tour => ({
+      data: fallbackTours.map((tour: Tour) => ({
         ...tour,
         keyExperiences: tour.keyExperiences || [],
         createdAt: tour.createdAt || new Date().toISOString(),
-        updatedAt: tour.updatedAt || new Date().toISOString()
+        updatedAt: tour.updatedAt || new Date().toISOString(),
+        groupSize: String(tour.groupSize ?? tour.group_size ?? tour.groupsize ?? (tour.importantInfo as Record<string, unknown>)?.groupSize ?? ''),
+        bestTime: String(tour.bestTime ?? tour.best_time ?? tour.besttime ?? (tour.importantInfo as Record<string, unknown>)?.bestTime ?? '')
       })), 
       message: 'Tours retrieved from fallback storage due to error',
       responseTime: `${responseTime}ms`
@@ -545,8 +552,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Try Supabase first - transform data to match database schema
-    // Only include fields that exist in the database
-    // Note: created_at, updated_at, best_time, group_size may not exist - skip them
     const dbTour: Record<string, unknown> = {
       id: id,
       name: newTour.name,
@@ -655,8 +660,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Handle important_info JSONB field (snake_case for Supabase)
-    if (newTour.importantInfo !== undefined) {
-      dbTour.important_info = newTour.importantInfo || {}
+    // Persist groupSize and bestTime inside important_info so they save without needing separate columns
+    const importantInfo = (newTour.importantInfo && typeof newTour.importantInfo === 'object') ? newTour.importantInfo as Record<string, unknown> : {}
+    dbTour.important_info = {
+      ...importantInfo,
+      groupSize: newTour.groupSize ?? importantInfo.groupSize ?? '',
+      bestTime: newTour.bestTime ?? importantInfo.bestTime ?? ''
     }
 
     console.log('Prepared tour data for database:', JSON.stringify(dbTour, null, 2))
@@ -681,41 +690,41 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Attempting to insert tour with ID:', dbTour.id)
-    const { data, error } = await supabaseAdmin.from('tours').insert(dbTour).select().single()
-    
-    console.log('Supabase insert result:', { 
-      success: !error, 
-      data: data ? 'Tour created' : null,
-      error: error ? {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      } : null
-    })
-    
-    if (error) {
-      console.error('Supabase insert error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        fullError: JSON.stringify(error, null, 2)
-      })
-      
-      // Return error instead of falling back silently
-      return NextResponse.json({ 
-        success: false, 
-        message: `Failed to create tour in database: ${error.message}. Details: ${error.details || 'No details'}. Hint: ${error.hint || 'No hint'}`,
-        error: {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
+    let insertPayload: Record<string, unknown> = { ...dbTour }
+    const maxInsertRetries = 5
+    let insertAttempt = 0
+    let data: unknown = null
+    let error: { code?: string; message?: string; details?: unknown; hint?: string } | null = null
+
+    while (insertAttempt <= maxInsertRetries) {
+      const result = await supabaseAdmin.from('tours').insert(insertPayload).select().single()
+      data = result.data
+      error = result.error
+
+      console.log('Supabase insert result:', { success: !error, data: data ? 'Tour created' : null, error: error?.message })
+
+      if (error?.code === 'PGRST204' && error.message && insertAttempt < maxInsertRetries) {
+        const match = error.message.match(/Could not find the '([^']+)' column/)
+        if (match) {
+          const columnName = match[1]
+          console.warn(`Supabase: column "${columnName}" not in schema, retrying without it (attempt ${insertAttempt + 1})`)
+          delete insertPayload[columnName]
+          insertAttempt++
+          continue
         }
+      }
+      break
+    }
+
+    if (error) {
+      console.error('Supabase insert error details:', { message: error.message, code: error.code })
+      return NextResponse.json({
+        success: false,
+        message: `Failed to create tour in database: ${error.message}`,
+        error: { code: error.code, message: error.message, details: error.details, hint: error.hint }
       }, { status: 500 })
     }
-    
+
     if (!data) {
       console.error('No data returned from Supabase insert')
       return NextResponse.json({ 
@@ -730,8 +739,8 @@ export async function POST(request: NextRequest) {
       keyExperiences: (data as any).key_experiences || [],
       createdAt: (data as any).created_at || (data as any).createdat || newTour.createdAt || new Date().toISOString(),
       updatedAt: (data as any).updated_at || (data as any).updatedat || newTour.updatedAt || new Date().toISOString(),
-      groupSize: (data as any).group_size || (data as any).groupsize || newTour.groupSize || '',
-      bestTime: (data as any).best_time || (data as any).besttime || newTour.bestTime || '',
+      groupSize: (data as any).group_size ?? (data as any).groupsize ?? ((data as any).important_info as Record<string, unknown>)?.groupSize ?? newTour.groupSize ?? '',
+      bestTime: (data as any).best_time ?? (data as any).besttime ?? ((data as any).important_info as Record<string, unknown>)?.bestTime ?? newTour.bestTime ?? '',
       importantInfo: (data as any).important_info || (data as any).importantInfo || {}
     }
     
@@ -932,22 +941,20 @@ export async function PUT(request: NextRequest) {
       console.warn('This might cause issues if you intended to update the itinerary')
     }
     
-    // Handle important_info JSONB field (snake_case for Supabase) - ALWAYS include if present
-    if (updateData.importantInfo !== undefined) {
-      dbUpdateData.important_info = updateData.importantInfo || {}
-    } else {
-      // If not provided, ensure we have a default structure
-      dbUpdateData.important_info = {
-        requirements: [],
-        whatToBring: []
-      }
+    // Handle important_info JSONB field (snake_case for Supabase)
+    // Always merge groupSize and bestTime into important_info so they persist without separate columns
+    const existingImportant = (updateData.importantInfo && typeof updateData.importantInfo === 'object') ? updateData.importantInfo as Record<string, unknown> : { requirements: [], whatToBring: [] }
+    dbUpdateData.important_info = {
+      ...existingImportant,
+      groupSize: updateData.groupSize ?? existingImportant.groupSize ?? '',
+      bestTime: updateData.bestTime ?? existingImportant.bestTime ?? ''
     }
     
     console.log('Final dbUpdateData keys:', Object.keys(dbUpdateData))
     console.log('Final dbUpdateData has itinerary:', 'itinerary' in dbUpdateData)
     console.log('Final dbUpdateData has images:', 'images' in dbUpdateData)
 
-    // Remove frontend-only fields
+    // Remove frontend-only fields (camelCase not used by DB)
     delete dbUpdateData.keyExperiences
     delete dbUpdateData.createdAt
     delete dbUpdateData.updatedAt
@@ -956,6 +963,7 @@ export async function PUT(request: NextRequest) {
     delete dbUpdateData.groupsize
     delete dbUpdateData.bestTime
     delete dbUpdateData.besttime
+    // group_size and best_time are already in dbUpdateData and sent to DB
 
     console.log('Prepared tour data for database update:', dbUpdateData)
     console.log('Itinerary in dbUpdateData:', dbUpdateData.itinerary)
@@ -1063,8 +1071,8 @@ export async function PUT(request: NextRequest) {
       keyExperiences: dataRow?.key_experiences ?? [],
       createdAt: dataRow?.created_at ?? dataRow?.createdat ?? new Date().toISOString(),
       updatedAt: dataRow?.updated_at ?? dataRow?.updatedat ?? new Date().toISOString(),
-      groupSize: dataRow?.group_size ?? dataRow?.groupsize ?? updateData.groupSize ?? '',
-      bestTime: dataRow?.best_time ?? dataRow?.besttime ?? updateData.bestTime ?? '',
+      groupSize: dataRow?.group_size ?? dataRow?.groupsize ?? (dataRow?.important_info as Record<string, unknown>)?.groupSize ?? updateData.groupSize ?? '',
+      bestTime: dataRow?.best_time ?? dataRow?.besttime ?? (dataRow?.important_info as Record<string, unknown>)?.bestTime ?? updateData.bestTime ?? '',
       importantInfo: dataRow?.important_info ?? dataRow?.importantInfo ?? updateData.importantInfo ?? {},
       itinerary: normalizedResponseItinerary,
       images: Array.isArray(dataRow?.images) ? dataRow.images : []

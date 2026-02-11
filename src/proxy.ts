@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Check if the request is for an admin route
   if (request.nextUrl.pathname.startsWith('/admin')) {
     // For now, we'll allow access to admin routes
     // In a real application, you would check for authentication here
     // For example, check for a valid JWT token or session
-    
+
     // This is a simplified version - in production you'd want proper authentication
     return NextResponse.next()
   }

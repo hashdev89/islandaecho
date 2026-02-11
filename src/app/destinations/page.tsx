@@ -3,14 +3,13 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   Search,
   Star,
   Heart,
   Filter,
   ArrowRight,
-  Calendar,
-  Users
 } from 'lucide-react'
 import Header from '../../components/Header'
 
@@ -85,18 +84,18 @@ export default function DestinationsPage() {
   })
 
   return (
-    <div style={{ background: colors.primary[50] }} className="min-h-screen">
+    <div className="min-h-screen bg-white">
       <Header />
       
-      {/* Header */}
-      <div style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="text-white py-16">
+      {/* Header – same as tours page */}
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 sm:py-16 md:py-20 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Explore Sri Lanka Destinations</h1>
             <p className="text-xl max-w-2xl mx-auto">Discover amazing places in Sri Lanka</p>
           </div>
         </div>
-      </div>
+      </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Search Bar */}
@@ -180,49 +179,46 @@ export default function DestinationsPage() {
             {!loading && !error && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredDestinations.map((destination) => {
-                // Generate default values for missing properties
                 const badge = destination.region === 'Cultural Triangle' ? 'Heritage' : 
                              destination.region === 'Wildlife' ? 'Nature' :
                              destination.region.includes('Province') ? 'Cultural' : 'Explore'
-                
-                const rating = 4.5 + Math.random() * 0.5 // Random rating between 4.5-5.0
-                const reviews = Math.floor(Math.random() * 200) + 50 // Random reviews 50-250
+                const rating = 4.5 + (destination.id?.length ?? 0) % 5 * 0.1
+                const reviews = 50 + (destination.id?.length ?? 0) % 200
 
                 return (
-                  <div key={destination.id} style={{ border: `1px solid ${colors.primary[100]}` }} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                    <div className="relative">
+                  <div key={destination.id} style={{ border: `1px solid ${colors.primary[100]}` }} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow flex flex-col h-[420px]">
+                    <div className="relative shrink-0 h-44">
                       <Image
                         src={destination.image || 'https://images.unsplash.com/photo-1506905925346-14b1e0dbb51e?w=400&h=300&fit=crop'}
                         alt={destination.name}
                         width={400}
-                        height={192}
-                        className="w-full h-48 object-cover"
+                        height={176}
+                        className="w-full h-full object-cover"
                         unoptimized={!!destination.image}
                       />
-                      <div style={{ background: `linear-gradient(90deg, ${colors.secondary[400]}, ${colors.secondary[500]})` }} className="absolute top-3 left-3 text-white px-3 py-1 rounded-full text-xs font-bold">
+                      <div className="absolute top-3 left-3 bg-black text-[#ADFF29] px-3 py-1 rounded-full text-xs font-bold">
                         {badge}
                       </div>
-                      <button style={{ background: colors.primary[50] }} className="absolute top-3 right-3 p-2.5 rounded-full shadow-md hover:bg-[#DBEAFE] active:bg-[#DBEAFE]/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation">
+                      <button style={{ background: colors.primary[50] }} className="absolute top-3 right-3 p-2.5 rounded-full shadow-md hover:bg-[#DBEAFE] active:bg-[#DBEAFE]/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation" aria-label="Save">
                         <Heart className="w-5 h-5" style={{ color: colors.primary[500] }} />
                       </button>
                     </div>
-                    
-                    <div className="p-6">
-                      <h3 style={{ color: colors.text.base }} className="text-xl font-semibold mb-2">{destination.name}</h3>
-                      
-                      <div className="flex items-center mb-3">
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4" style={{ color: colors.secondary[400] }} />
-                          <span style={{ color: colors.text.muted }} className="text-sm">{rating.toFixed(1)} ({reviews})</span>
-                        </div>
+                    <div className="p-4 sm:p-5 flex flex-col flex-1 min-h-0">
+                      <h3 style={{ color: colors.text.base }} className="text-lg font-semibold mb-2 line-clamp-2">{destination.name}</h3>
+                      <div className="flex items-center mb-2">
+                        <Star className="w-4 h-4 shrink-0" style={{ color: colors.secondary[400] }} />
+                        <span style={{ color: colors.text.muted }} className="text-sm ml-1">{rating.toFixed(1)} ({reviews})</span>
                       </div>
-                      
-                      <p style={{ color: colors.text.muted }} className="text-sm mb-4">{destination.description}</p>
-                      
-                      <button style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="w-full text-white py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation">
-                        <span>Explore</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
+                      <p style={{ color: colors.text.muted }} className="text-sm line-clamp-[10] flex-1 min-h-0">
+                        {destination.description || 'Explore this destination.'}
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: colors.primary[500] }}>… more</p>
+                      <Link href={`/destinations/${destination.id}`} className="mt-3 shrink-0">
+                        <button style={{ background: `linear-gradient(90deg, ${colors.primary[400]}, ${colors.primary[500]})` }} className="w-full text-white py-3 rounded-lg font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center space-x-2 min-h-[44px] touch-manipulation">
+                          <span>Explore</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </Link>
                     </div>
                   </div>
                 )

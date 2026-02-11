@@ -130,7 +130,9 @@ export async function GET() {
       keyExperiences: (tour as any).key_experiences || [],
       createdAt: (tour as any).created_at || (tour as any).createdat || new Date().toISOString(),
       updatedAt: (tour as any).updated_at || (tour as any).updatedat || new Date().toISOString(),
-      importantInfo: (tour as any).important_info || (tour as any).importantInfo || {}
+      importantInfo: (tour as any).important_info || (tour as any).importantInfo || {},
+      groupSize: (tour as any).group_size ?? (tour as any).groupsize ?? (tour as any).groupSize ?? ((tour as any).important_info as Record<string, unknown>)?.groupSize ?? '',
+      bestTime: (tour as any).best_time ?? (tour as any).besttime ?? (tour as any).bestTime ?? ((tour as any).important_info as Record<string, unknown>)?.bestTime ?? ''
     }))
     
     // Update cache

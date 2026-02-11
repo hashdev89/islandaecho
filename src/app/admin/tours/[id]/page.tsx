@@ -261,30 +261,29 @@ export default function TourEditor() {
             if (normalizedItinerary.length < rawItinerary.length) {
               console.warn(`WARNING: Lost ${rawItinerary.length - normalizedItinerary.length} days during normalization!`)
             }
+            const importantInfo = found.importantInfo as { requirements?: { activity: string; requirements: string[] }[]; whatToBring?: string[]; groupSize?: string; bestTime?: string } | undefined
             const normalizedTour = {
               ...found,
-              // Ensure all string fields are never null
+              // Ensure all string fields are never null; read groupSize/bestTime from importantInfo if stored there (API persistence)
               name: found.name || '',
               duration: found.duration || '',
               price: found.price || '',
               style: found.style || '',
               description: found.description || '',
               transportation: found.transportation || '',
-              groupSize: found.groupSize || '',
-              bestTime: found.bestTime || '',
+              groupSize: (found.groupSize ?? importantInfo?.groupSize ?? '') || '',
+              bestTime: (found.bestTime ?? importantInfo?.bestTime ?? '') || '',
               status: found.status || 'draft',
               itinerary: normalizedItinerary,
               images: Array.isArray(found.images) ? found.images : [], // Ensure images array is always present
               importantInfo: {
-                requirements: Array.isArray(found.importantInfo?.requirements)
-                  ? found.importantInfo.requirements.map((req: any) => ({
+                requirements: Array.isArray(importantInfo?.requirements)
+                  ? importantInfo.requirements.map((req: any) => ({
                       activity: req.activity || '',
                       requirements: Array.isArray(req.requirements) ? req.requirements : []
                     }))
                   : [],
-                whatToBring: Array.isArray(found.importantInfo?.whatToBring) 
-                  ? found.importantInfo.whatToBring 
-                  : []
+                whatToBring: Array.isArray(importantInfo?.whatToBring) ? importantInfo.whatToBring : []
               }
             }
             console.log('Normalized tour itinerary:', normalizedTour.itinerary)
@@ -420,7 +419,15 @@ export default function TourEditor() {
         ...tour,
         id: isNew ? tour.id : tourId, // Use route id for updates so backend always finds the record
         itinerary: normalizedItinerary,
-        images: Array.isArray(tour.images) ? tour.images : [] // Ensure images array is always present
+        images: Array.isArray(tour.images) ? tour.images : [], // Ensure images array is always present
+        // Ensure groupSize and bestTime are always sent (API persists them in important_info)
+        groupSize: tour.groupSize ?? '',
+        bestTime: tour.bestTime ?? '',
+        importantInfo: {
+          ...(tour.importantInfo || { requirements: [], whatToBring: [] }),
+          groupSize: tour.groupSize ?? '',
+          bestTime: tour.bestTime ?? ''
+        }
       }
       // Set status based on save type
       if (saveAsDraft) {
@@ -552,6 +559,7 @@ export default function TourEditor() {
             console.log('Normalized itinerary count after update:', normalizedItinerary.length)
             console.log('Each day after update:', normalizedItinerary.map((d, i) => `Day ${i + 1}: day=${d.day}, title="${d.title}"`))
             
+            const updatedImportant = updated.importantInfo as { requirements?: { activity: string; requirements: string[] }[]; whatToBring?: string[]; groupSize?: string; bestTime?: string } | undefined
             const normalizedUpdatedTour = {
               ...updated,
               name: updated.name || '',
@@ -560,21 +568,19 @@ export default function TourEditor() {
               style: updated.style || '',
               description: updated.description || '',
               transportation: updated.transportation || '',
-              groupSize: updated.groupSize || '',
-              bestTime: updated.bestTime || '',
+              groupSize: (updated.groupSize ?? updatedImportant?.groupSize ?? '') || '',
+              bestTime: (updated.bestTime ?? updatedImportant?.bestTime ?? '') || '',
               status: updated.status || 'draft',
               itinerary: normalizedItinerary,
               images: Array.isArray(updated.images) ? updated.images : [],
               importantInfo: {
-                requirements: Array.isArray(updated.importantInfo?.requirements)
-                  ? updated.importantInfo.requirements.map((req: any) => ({
+                requirements: Array.isArray(updatedImportant?.requirements)
+                  ? updatedImportant.requirements.map((req: any) => ({
                       activity: req.activity || '',
                       requirements: Array.isArray(req.requirements) ? req.requirements : []
                     }))
                   : [],
-                whatToBring: Array.isArray(updated.importantInfo?.whatToBring) 
-                  ? updated.importantInfo.whatToBring 
-                  : []
+                whatToBring: Array.isArray(updatedImportant?.whatToBring) ? updatedImportant.whatToBring : []
               }
             }
             
