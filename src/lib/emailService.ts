@@ -66,6 +66,133 @@ async function createTransporter() {
   })
 }
 
+// Get admin email(s) from settings (comma-separated supported)
+export async function getAdminEmails(): Promise<string[]> {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const { data } = await supabaseAdmin
+        .from('settings')
+        .select('admin_email')
+        .eq('id', 'main')
+        .single()
+      const raw = (data?.admin_email as string) || process.env.ADMIN_EMAIL || ''
+      return raw.split(',').map((e) => e.trim()).filter(Boolean)
+    } catch (error) {
+      console.error('Error fetching admin emails:', error)
+    }
+  }
+  const env = process.env.ADMIN_EMAIL || ''
+  return env ? env.split(',').map((e) => e.trim()).filter(Boolean) : []
+}
+
+// Format booking details as plain text (exact format for both customer and admin)
+function formatBookingDetailsText(booking: BookingForEmail): string {
+  const fmt = (v: unknown) => (v == null || v === '' ? '—' : String(v))
+  return [
+    'BOOKING DETAILS',
+    '----------------',
+    `Booking reference:  ${fmt(booking.id)}`,
+    `Tour package:       ${fmt(booking.tour_package_name)}`,
+    `Status:             ${fmt(booking.status)}`,
+    `Payment status:     ${fmt(booking.payment_status)}`,
+    '',
+    'CUSTOMER',
+    '--------',
+    `Name:               ${fmt(booking.customer_name)}`,
+    `Email:              ${fmt(booking.customer_email)}`,
+    `Phone:              ${fmt(booking.customer_phone)}`,
+    '',
+    'DATES & GUESTS',
+    '--------------',
+    `Start date:         ${fmt(booking.start_date)}`,
+    `End date:           ${fmt(booking.end_date)}`,
+    `Number of guests:   ${fmt(booking.guests)}`,
+    '',
+    'PAYMENT',
+    '-------',
+    `Total price:        ${booking.total_price != null ? `${booking.total_price} LKR` : '—'}`,
+    `Payment method:     ${fmt(booking.payment_method)}`,
+    `Payment ID:         ${fmt(booking.payment_id)}`,
+    '',
+    'SPECIAL REQUESTS',
+    '-----------------',
+    fmt(booking.special_requests),
+    '',
+    `Created:            ${fmt(booking.created_at)}`,
+  ].join('\n')
+}
+
+// Format booking details as HTML (exact same structure for customer and admin)
+function formatBookingDetailsHtml(booking: BookingForEmail): string {
+  const row = (label: string, value: unknown) => {
+    const v = value == null || value === '' ? '—' : String(value)
+    return `<tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600;width:180px;">${label}</td><td style="padding:8px 12px;border:1px solid #e5e7eb;">${v}</td></tr>`
+  }
+  const section = (title: string, rows: string) =>
+    `<h3 style="margin:16px 0 8px;font-size:14px;color:#374151;">${title}</h3><table style="width:100%;border-collapse:collapse;">${rows}</table>`
+  const body = [
+    section('Booking', [
+      row('Booking reference', booking.id),
+      row('Tour package', booking.tour_package_name),
+      row('Status', booking.status),
+      row('Payment status', booking.payment_status),
+    ].join('')),
+    section('Customer', [
+      row('Name', booking.customer_name),
+      row('Email', booking.customer_email),
+      row('Phone', booking.customer_phone),
+    ].join('')),
+    section('Dates & guests', [
+      row('Start date', booking.start_date),
+      row('End date', booking.end_date),
+      row('Number of guests', booking.guests),
+    ].join('')),
+    section('Payment', [
+      row('Total price', booking.total_price != null ? `${booking.total_price} LKR` : null),
+      row('Payment method', booking.payment_method),
+      row('Payment ID', booking.payment_id),
+    ].join('')),
+    section('Special requests', [row('', booking.special_requests || '—')].join('')),
+    `<p style="margin-top:16px;color:#6b7280;font-size:12px;">Created: ${booking.created_at || '—'}</p>`,
+  ].join('')
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
+      <div style="background:#3B82F6;color:white;padding:16px;text-align:center;border-radius:8px 8px 0 0;">
+        <h1 style="margin:0;font-size:20px;">Booking confirmation</h1>
+      </div>
+      <div style="background:#f9fafb;padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
+        ${body}
+      </div>
+      <p style="text-align:center;margin-top:24px;color:#6b7280;font-size:12px;">Isle & Echo Travel</p>
+    </body>
+    </html>
+  `
+}
+
+// Booking record shape for confirmation emails
+export interface BookingForEmail {
+  id: string
+  tour_package_id?: string
+  tour_package_name?: string
+  customer_name: string
+  customer_email: string
+  customer_phone?: string
+  start_date: string
+  end_date: string
+  guests?: number
+  total_price?: number | null
+  status?: string
+  special_requests?: string | null
+  payment_status?: string
+  payment_method?: string | null
+  payment_id?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
 interface SendEmailOptions {
   to: string
   subject: string
@@ -191,5 +318,51 @@ export async function sendInvoiceEmail(
       }
     ]
   })
+}
+
+// Send exact-format booking details to the customer (on confirmation)
+export async function sendBookingConfirmationToCustomer(booking: BookingForEmail): Promise<boolean> {
+  const html = formatBookingDetailsHtml(booking)
+  const text = formatBookingDetailsText(booking)
+  return await sendEmail({
+    to: booking.customer_email,
+    subject: `Booking confirmed – ${booking.id} – Isle & Echo Travel`,
+    html,
+    text,
+  })
+}
+
+// Send exact-format booking details to admin email(s). Respects booking_notifications.
+export async function sendBookingConfirmationToAdmin(booking: BookingForEmail): Promise<void> {
+  let notificationsEnabled = true
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const { data } = await supabaseAdmin
+        .from('settings')
+        .select('booking_notifications')
+        .eq('id', 'main')
+        .single()
+      notificationsEnabled = (data?.booking_notifications ?? true) as boolean
+    } catch {
+      // keep true
+    }
+  }
+  if (!notificationsEnabled) return
+
+  const adminEmails = await getAdminEmails()
+  if (adminEmails.length === 0) return
+
+  const html = formatBookingDetailsHtml(booking)
+  const text = formatBookingDetailsText(booking)
+  const subject = `New booking confirmed – ${booking.id} – ${booking.customer_name}`
+
+  for (const to of adminEmails) {
+    try {
+      await sendEmail({ to, subject, html, text })
+      console.log('Booking confirmation sent to admin:', to)
+    } catch (err) {
+      console.error('Failed to send booking confirmation to admin', to, err)
+    }
+  }
 }
 

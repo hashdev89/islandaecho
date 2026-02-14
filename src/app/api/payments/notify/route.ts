@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { verifyPayHerePayment, mapPayHereStatusToPaymentStatus, PayHereStatus } from '@/lib/payhere'
 import { supabaseAdmin } from '@/lib/supabaseClient'
 import { generateInvoicePDF } from '@/lib/invoiceGenerator'
-import { sendInvoiceEmail } from '@/lib/emailService'
+import { sendInvoiceEmail, sendBookingConfirmationToCustomer, sendBookingConfirmationToAdmin } from '@/lib/emailService'
 
 export async function POST(req: Request) {
   try {
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       }
     }
     
-    // Generate and send invoice if payment is successful
+    // Generate and send emails if payment is successful
     if (statusCode === PayHereStatus.SUCCESS && bookingData) {
       try {
         console.log('Generating invoice for booking:', orderId)
@@ -99,9 +99,22 @@ export async function POST(req: Request) {
         )
         console.log('Invoice sent successfully to customer')
       } catch (invoiceError) {
-        // Log error but don't fail the payment notification
-        // Payment is already processed, invoice can be sent manually later
         console.error('Error generating/sending invoice:', invoiceError)
+      }
+
+      // Send exact-format booking details to customer
+      try {
+        await sendBookingConfirmationToCustomer(bookingData)
+        console.log('Booking confirmation (details) sent to customer')
+      } catch (confirmationError) {
+        console.error('Error sending booking confirmation to customer:', confirmationError)
+      }
+
+      // Send same format to admin email(s)
+      try {
+        await sendBookingConfirmationToAdmin(bookingData)
+      } catch (adminError) {
+        console.error('Error sending booking confirmation to admin:', adminError)
       }
     }
     

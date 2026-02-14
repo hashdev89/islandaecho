@@ -435,13 +435,16 @@ export default function AdminSettingsPage() {
 
   const renderEmailSettings = () => (
     <div className="space-y-6">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
         <div className="flex items-center">
-          <Info className="h-5 w-5 text-blue-600 mr-2" />
-          <p className="text-sm text-blue-800">
-            Configure SMTP settings for sending emails. Contact your hosting provider for SMTP details.
-          </p>
+          <Info className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
+          <p className="text-sm text-blue-800 font-medium">How to set up SMTP for sending emails</p>
         </div>
+        <ul className="text-sm text-blue-800 list-disc list-inside space-y-1 ml-7">
+          <li>Fill in the fields below and click Save. Settings are stored in the database and used for all outgoing emails (invoices, booking confirmations).</li>
+          <li>Or use environment variables: <code className="bg-blue-100 px-1 rounded">SMTP_HOST</code>, <code className="bg-blue-100 px-1 rounded">SMTP_PORT</code>, <code className="bg-blue-100 px-1 rounded">SMTP_USERNAME</code>, <code className="bg-blue-100 px-1 rounded">SMTP_PASSWORD</code>, <code className="bg-blue-100 px-1 rounded">FROM_EMAIL</code>, <code className="bg-blue-100 px-1 rounded">FROM_NAME</code>. Env is used only if no SMTP host/username is set here.</li>
+          <li>Port 587 = TLS (recommended), 465 = SSL. Gmail: use <code className="bg-blue-100 px-1 rounded">smtp.gmail.com</code> and port 587; enable &quot;App passwords&quot; in your Google account and use that as SMTP Password, not your normal password.</li>
+        </ul>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -451,6 +454,7 @@ export default function AdminSettingsPage() {
             type="text"
             value={settings.smtpHost}
             onChange={(e) => updateSetting('smtpHost', e.target.value)}
+            placeholder="e.g. smtp.gmail.com"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -461,8 +465,10 @@ export default function AdminSettingsPage() {
             type="number"
             value={settings.smtpPort}
             onChange={(e) => updateSetting('smtpPort', e.target.value)}
+            placeholder="587 or 465"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
+          <p className="mt-1 text-xs text-gray-500">587 (TLS) or 465 (SSL)</p>
         </div>
       </div>
       
@@ -473,6 +479,7 @@ export default function AdminSettingsPage() {
             type="text"
             value={settings.smtpUsername}
             onChange={(e) => updateSetting('smtpUsername', e.target.value)}
+            placeholder="Usually your full email"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -485,6 +492,7 @@ export default function AdminSettingsPage() {
             onChange={(e) => updateSetting('smtpPassword', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
+          <p className="mt-1 text-xs text-gray-500">For Gmail: use an App Password, not your account password.</p>
         </div>
       </div>
       
