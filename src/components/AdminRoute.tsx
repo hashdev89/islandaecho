@@ -13,12 +13,11 @@ export default function AdminRoute({ children }: AdminRouteProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
-  // Allow access in development mode or if user is admin, staff, or customer
-  const isDevelopment = process.env.NODE_ENV === 'development'
+  // Require logged-in user with admin, staff, or customer role (no bypass in development)
   const isAdmin = user?.role === 'admin'
   const isStaff = user?.role === 'staff'
   const isCustomer = user?.role === 'customer'
-  const hasAccess = isDevelopment || isAdmin || isStaff || isCustomer
+  const hasAccess = !!(user && (isAdmin || isStaff || isCustomer))
 
   useEffect(() => {
     if (!isLoading && !hasAccess) {

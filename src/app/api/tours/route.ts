@@ -76,170 +76,27 @@ const ensureDataDir = () => {
   }
 }
 
-// Embedded fallback tours data for production (Vercel)
-const EMBEDDED_FALLBACK_TOURS: Tour[] = [
-  {
-    "id": "adventure-fun-10-days",
-    "name": "Adventure & Fun Tour – 10 Days",
-    "duration": "10 Days / 9 Nights",
-    "price": "0",
-    "destinations": [
-      "Colombo",
-      "Weligama",
-      "Mirissa",
-      "Yala National Park",
-      "Nuwara Eliya",
-      "Kithulgala",
-      "Negombo"
-    ],
-    "highlights": [
-      "Jeep safari in Yala National Park",
-      "Visit a tea plantation and factory"
-    ],
-    "keyExperiences": [
-      "Visit Galle Face Green",
-      "Explore the Lotus Tower",
-      "Surfing session (Beginners Welcome)",
-      "Visit Coconut Tree Hill",
-      "Relaxing at Weligama Beach",
-      "Whale watching tour",
-      "Bonfire and BBQ night",
-      "Visit Rawana Waterfall",
-      "Visit Nine Arch Bridge",
-      "Little Adam's Peak",
-      "Flying Ravana zipline",
-      "Scenic train from Ella to Nanu Oya",
-      "Jet Ski ride on Lake Gregory"
-    ],
-    "description": "This 10-day tour is designed for thrill-seekers and energetic travelers who want to experience the best of Sri Lanka with non-stop adventure, fun, and vibrant moments. From partying on the beaches of Weligama and surfing in Mirissa to ziplining in Ella, white-water rafting in Kitulgala, and going on safari in Yala, this itinerary blends nature, nightlife, and excitement. It's the ultimate island getaway for those who love to explore, socialize, and stay active every day.",
-    "rating": 5,
-    "reviews": 12,
-    "featured": true,
-    "status": "active",
-    "style": "Adventure",
-    "createdAt": "2024-01-15T00:00:00.000Z",
-    "updatedAt": "2024-01-15T00:00:00.000Z"
-  },
-  {
-    "id": "cultural-heritage-8-days",
-    "name": "Cultural Heritage Tour – 8 Days",
-    "duration": "8 Days / 7 Nights",
-    "price": "0",
-    "destinations": [
-      "Colombo",
-      "Kandy",
-      "Sigiriya",
-      "Polonnaruwa",
-      "Anuradhapura",
-      "Negombo"
-    ],
-    "highlights": [
-      "Visit Temple of the Tooth Relic",
-      "Climb Sigiriya Rock Fortress",
-      "Explore ancient cities"
-    ],
-    "keyExperiences": [
-      "Visit Gangaramaya Temple",
-      "Explore Pettah Market",
-      "Watch Cultural Dance Show",
-      "Visit Royal Botanical Gardens",
-      "Climb Sigiriya Rock Fortress",
-      "Visit Dambulla Cave Temple",
-      "Explore Polonnaruwa Ancient City",
-      "Visit Anuradhapura Sacred City"
-    ],
-    "description": "Discover the rich cultural heritage of Sri Lanka through this comprehensive 8-day tour. Visit ancient cities, UNESCO World Heritage sites, and experience traditional Sri Lankan culture and history.",
-    "rating": 4,
-    "reviews": 8,
-    "featured": true,
-    "status": "active",
-    "style": "Cultural",
-    "createdAt": "2024-01-15T00:00:00.000Z",
-    "updatedAt": "2024-01-15T00:00:00.000Z"
-  },
-  {
-    "id": "wildlife-safari-6-days",
-    "name": "Wildlife Safari Adventure – 6 Days",
-    "duration": "6 Days / 5 Nights",
-    "price": "0",
-    "destinations": [
-      "Colombo",
-      "Yala National Park",
-      "Udawalawe National Park",
-      "Mirissa",
-      "Negombo"
-    ],
-    "highlights": [
-      "Multiple safari experiences",
-      "Whale watching",
-      "Elephant encounters"
-    ],
-    "keyExperiences": [
-      "Jeep Safari in Yala National Park",
-      "Spot Leopards & Elephants",
-      "Bird Watching",
-      "Visit Sithulpawwa Rock Temple",
-      "Campfire BBQ Experience",
-      "Whale Watching Tour",
-      "Visit Coconut Tree Hill"
-    ],
-    "description": "Experience the incredible wildlife of Sri Lanka with this 6-day safari adventure. From spotting leopards in Yala to watching elephants in Udawalawe and whale watching in Mirissa.",
-    "rating": 5,
-    "reviews": 15,
-    "featured": true,
-    "status": "active",
-    "style": "Wildlife",
-    "createdAt": "2024-01-15T00:00:00.000Z",
-    "updatedAt": "2024-01-15T00:00:00.000Z"
-  }
-]
-
-// Load tours from file with caching (development) or embedded data (production)
+// Load tours from file only (no dummy data; backend is source of truth)
 const loadFallbackTours = (): Tour[] => {
   try {
-    console.log('loadFallbackTours: Starting to load tours...')
-    
-    // Check if we have valid cached data
     const now = Date.now()
     if (toursCache && (now - cacheTimestamp) < CACHE_DURATION) {
-      console.log('Using cached tours data:', toursCache.length)
       return toursCache
     }
-    
-    // Try to load from file first (development)
-    try {
-      console.log('Attempting to load from file:', FALLBACK_FILE)
-      ensureDataDir()
-      if (fs.existsSync(FALLBACK_FILE)) {
-        console.log('File exists, reading...')
-        const data = fs.readFileSync(FALLBACK_FILE, 'utf8')
-        const tours = JSON.parse(data)
-        
-        console.log('Loaded tours from file:', tours.length, 'tours')
-        
-        // Update cache
-        toursCache = tours
-        cacheTimestamp = now
-        
-        return tours
-      } else {
-        console.log('File does not exist, using embedded data')
-      }
-    } catch (fileError) {
-      console.log('File system error, using embedded data:', fileError)
+    ensureDataDir()
+    if (fs.existsSync(FALLBACK_FILE)) {
+      const data = fs.readFileSync(FALLBACK_FILE, 'utf8')
+      const tours = JSON.parse(data)
+      toursCache = tours
+      cacheTimestamp = now
+      return tours
     }
-    
-    // Fallback to embedded data (production/Vercel)
-    console.log('Using embedded fallback tours data for production')
-    console.log('Embedded tours count:', EMBEDDED_FALLBACK_TOURS.length)
-    toursCache = EMBEDDED_FALLBACK_TOURS
+    toursCache = []
     cacheTimestamp = now
-    
-    return EMBEDDED_FALLBACK_TOURS
+    return []
   } catch (error) {
     console.error('Error loading fallback tours:', error)
-    console.log('Using embedded fallback tours as last resort')
-    return EMBEDDED_FALLBACK_TOURS
+    return []
   }
 }
 
@@ -330,7 +187,6 @@ export async function GET() {
       supabaseResult = await Promise.race([supabasePromise, timeoutPromise]) as SupabaseResponse<Tour[]>
     } catch (timeoutError) {
       console.error('Supabase query timed out:', timeoutError)
-      console.log('Falling back to embedded tours data due to timeout')
       const fallbackTours = loadFallbackTours()
       const responseTime = Date.now() - startTime
       
@@ -342,7 +198,7 @@ export async function GET() {
           createdAt: tour.createdAt || new Date().toISOString(),
           updatedAt: tour.updatedAt || new Date().toISOString()
         })), 
-        message: 'Tours retrieved from fallback storage due to timeout',
+        message: fallbackTours.length ? 'Tours from fallback (timeout)' : 'No tours available',
         responseTime: `${responseTime}ms`
       }, {
         headers: {
@@ -365,46 +221,7 @@ export async function GET() {
     
     let toursData = data
     
-    // If Supabase is empty but we have fallback data, migrate it
-    if ((!toursData || toursData.length === 0) && loadFallbackTours().length > 0) {
-      console.log('Supabase is empty, migrating fallback tours...')
-      const fallbackTours = loadFallbackTours()
-      
-      for (const tour of fallbackTours.slice(0, 3)) { // Migrate first 3 tours
-        try {
-          const simpleTour = {
-            id: tour.id,
-            name: tour.name,
-            duration: tour.duration,
-            price: tour.price,
-            description: tour.description || 'Tour description',
-            transportation: tour.transportation || 'Air conditioned car or van',
-            groupsize: tour.groupSize || 'Private / Group Tour',
-            difficulty: tour.difficulty || 'Moderate',
-            status: tour.status || 'active',
-            featured: tour.featured || false
-          }
-          
-          await supabaseAdmin.from('tours').insert(simpleTour)
-          console.log(`Migrated tour: ${tour.name}`)
-        } catch (migrateError) {
-          console.error(`Failed to migrate tour ${tour.name}:`, migrateError)
-        }
-      }
-      
-      // Retry the query after migration
-      const { data: newData, error: newError } = await supabaseAdmin
-        .from('tours')
-        .select('*')
-        .order('createdat', { ascending: false })
-      
-      if (!newError && newData) {
-        toursData = newData
-        console.log(`After migration: ${toursData.length} tours in Supabase`)
-      }
-    }
-    
-          // Transform database field names to frontend format
+    // Transform database field names to frontend format
           const transformedData = (toursData || []).map((tour: Tour) => {
       // Ensure itinerary preserves all fields including overnightStay and image
       // Normalize itinerary to ensure ALL fields are preserved when loading - preserve ALL days including empty ones
@@ -485,13 +302,9 @@ export async function GET() {
   } catch (error) {
     const responseTime = Date.now() - startTime
     console.error('API error:', error)
-    console.log('Falling back to cached storage')
-    
     const fallbackTours = loadFallbackTours()
-    console.log(`Loaded ${fallbackTours.length} fallback tours from cache in ${responseTime}ms`)
-    
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: fallbackTours.map((tour: Tour) => ({
         ...tour,
         keyExperiences: tour.keyExperiences || [],
@@ -499,13 +312,11 @@ export async function GET() {
         updatedAt: tour.updatedAt || new Date().toISOString(),
         groupSize: String(tour.groupSize ?? tour.group_size ?? tour.groupsize ?? (tour.importantInfo as Record<string, unknown>)?.groupSize ?? ''),
         bestTime: String(tour.bestTime ?? tour.best_time ?? tour.besttime ?? (tour.importantInfo as Record<string, unknown>)?.bestTime ?? '')
-      })), 
-      message: 'Tours retrieved from fallback storage due to error',
+      })),
+      message: fallbackTours.length ? 'Tours from fallback due to error' : 'No tours available',
       responseTime: `${responseTime}ms`
     }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-      }
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
     })
   }
 }

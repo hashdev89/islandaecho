@@ -92,10 +92,26 @@ export async function POST(request: NextRequest) {
         role: user.role || 'customer'
       }
 
-      return NextResponse.json({
+      const role = (user.role || 'customer') as string
+      const canAccessAdmin = ['admin', 'staff', 'customer'].includes(role)
+
+      const response = NextResponse.json({
         success: true,
         user: userData
       })
+
+      // Set HTTP-only cookie so middleware can protect /admin (server-side)
+      if (canAccessAdmin) {
+        response.cookies.set('admin_session', '1', {
+          httpOnly: true,
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          secure: process.env.NODE_ENV === 'production'
+        })
+      }
+
+      return response
     }
 
     // Fallback: Return error if Supabase not configured

@@ -75,58 +75,8 @@ export default function AnalyticsDashboard() {
   const loadAnalyticsData = async () => {
     setLoading(true)
     try {
-      // TODO: Replace with actual analytics API call
-      // Removed artificial delay for better performance
-      
-      // Mock data - replace with real analytics data
-      const mockData: AnalyticsData = {
-        visitors: {
-          total: 15420,
-          unique: 12350,
-          returning: 3070,
-          change: 12.5
-        },
-        pageViews: {
-          total: 45680,
-          change: 8.3
-        },
-        bounceRate: {
-          percentage: 42.5,
-          change: -2.1
-        },
-        avgSessionDuration: {
-          minutes: 3.2,
-          change: 15.7
-        },
-        topPages: [
-          { page: '/tours', views: 12540, change: 8.5 },
-          { page: '/', views: 11200, change: 12.3 },
-          { page: '/destinations', views: 8900, change: 5.7 },
-          { page: '/tours/cultural-triangle', views: 5600, change: 18.2 },
-          { page: '/about', views: 3200, change: -1.2 }
-        ],
-        topKeywords: [
-          { keyword: 'sri lanka tours', impressions: 12500, clicks: 850, ctr: 6.8, position: 3.2 },
-          { keyword: 'cultural heritage sri lanka', impressions: 8900, clicks: 620, ctr: 7.0, position: 2.8 },
-          { keyword: 'ella train journey', impressions: 7600, clicks: 540, ctr: 7.1, position: 4.1 },
-          { keyword: 'sigiriya rock fortress', impressions: 6800, clicks: 480, ctr: 7.1, position: 3.5 },
-          { keyword: 'yala national park safari', impressions: 5400, clicks: 380, ctr: 7.0, position: 4.8 }
-        ],
-        trafficSources: [
-          { source: 'Organic Search', visitors: 8500, percentage: 55.1 },
-          { source: 'Direct', visitors: 3200, percentage: 20.7 },
-          { source: 'Social Media', visitors: 2100, percentage: 13.6 },
-          { source: 'Referral', visitors: 1200, percentage: 7.8 },
-          { source: 'Paid Search', visitors: 420, percentage: 2.7 }
-        ],
-        deviceBreakdown: [
-          { device: 'Desktop', visitors: 7200, percentage: 46.7 },
-          { device: 'Mobile', visitors: 6500, percentage: 42.1 },
-          { device: 'Tablet', visitors: 1720, percentage: 11.2 }
-        ]
-      }
-      
-      setAnalyticsData(mockData)
+      // No analytics API yet – show empty state. Connect Google Analytics / Search Console via Settings → SEO to see real data.
+      setAnalyticsData(null)
     } catch (error) {
       console.error('Error loading analytics data:', error)
     } finally {
@@ -172,7 +122,7 @@ export default function AnalyticsDashboard() {
       <div className="text-center py-12">
         <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">No Analytics Data</h3>
-        <p className="text-gray-600">Analytics data will appear here once configured.</p>
+        <p className="text-gray-600 max-w-md mx-auto">Connect Google Analytics or Search Console in Settings → SEO to display real analytics here.</p>
       </div>
     )
   }

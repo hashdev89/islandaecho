@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   MessageCircle,
@@ -31,8 +31,14 @@ export default function AdminLayout({
 }) {
   const { user, logout } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [totalChatCount, setTotalChatCount] = useState(0)
+
+  const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
 
   // Fetch total chat count
   useEffect(() => {
@@ -175,7 +181,7 @@ export default function AdminLayout({
                 </div>
               </div>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <LogOut className="w-4 h-4" />

@@ -66,6 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null)
     localStorage.removeItem('user')
+    // Clear admin_session cookie so middleware blocks /admin
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
   }
 
   return (

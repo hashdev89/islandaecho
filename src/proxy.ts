@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function proxy(request: NextRequest) {
-  // Check if the request is for an admin route
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    // For now, we'll allow access to admin routes
-    // In a real application, you would check for authentication here
-    // For example, check for a valid JWT token or session
+  const { pathname } = request.nextUrl
 
-    // This is a simplified version - in production you'd want proper authentication
-    return NextResponse.next()
+  // Check if the request is for an admin route
+  if (pathname.startsWith('/admin')) {
+    const hasAdminSession = request.cookies.get('admin_session')?.value === '1'
+    if (!hasAdminSession) {
+      const home = new URL('/', request.url)
+      return NextResponse.redirect(home)
+    }
   }
 
   return NextResponse.next()

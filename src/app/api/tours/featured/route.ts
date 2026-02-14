@@ -93,35 +93,52 @@ export async function GET() {
       })
     }
     
-    // Fetch only featured tours from Supabase
-    const { data, error } = await supabaseAdmin
+    // Fetch featured tours from Supabase; if none, fall back to recent active tours
+    const { data: featuredData, error: featuredError } = await supabaseAdmin
       .from('tours')
       .select('*')
       .eq('featured', true)
       .eq('status', 'active')
       .order('createdat', { ascending: false })
-      .limit(20) // Limit to 20 featured tours for performance
+      .limit(20)
     
-    if (error) {
-      console.error('Supabase error:', error)
-      // Fallback to file storage
+    let data = featuredData
+    
+    if (featuredError) {
+      console.error('Supabase error (featured):', featuredError)
+      data = []
+    }
+    
+    // If no featured tours, show recent active tours so the section isn't empty
+    if (!data || data.length === 0) {
+      const { data: recentData, error: recentError } = await supabaseAdmin
+        .from('tours')
+        .select('*')
+        .eq('status', 'active')
+        .order('createdat', { ascending: false })
+        .limit(8)
+      if (!recentError && recentData && recentData.length > 0) {
+        data = recentData
+      }
+    }
+    
+    if (!data || data.length === 0) {
+      // Still empty: try file fallback
       const fallbackTours = loadFallbackTours()
-      const featured = fallbackTours.filter(t => t.featured === true)
-      
-      featuredToursCache = featured
-      cacheTimestamp = now
-      
-      const responseTime = Date.now() - startTime
-      return NextResponse.json({ 
-        success: true, 
-        data: featured,
-        message: 'Featured tours retrieved from fallback storage due to error',
-        responseTime: `${responseTime}ms`
-      }, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-        }
-      })
+      const fromFile = fallbackTours.filter(t => t.featured === true)
+      if (fromFile.length > 0) {
+        featuredToursCache = fromFile
+        cacheTimestamp = now
+        const responseTime = Date.now() - startTime
+        return NextResponse.json({
+          success: true,
+          data: fromFile,
+          message: 'Featured tours from fallback storage',
+          responseTime: `${responseTime}ms`
+        }, {
+          headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
+        })
+      }
     }
     
     // Transform database field names to frontend format

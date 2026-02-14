@@ -52,41 +52,12 @@ export default function AdminDashboard() {
     )
   }
   const [stats, setStats] = useState([
-    {
-      name: 'Total Tours',
-      value: '12',
-      change: '+12%',
-      changeType: 'positive',
-      icon: Package,
-      href: '/admin/tours'
-    },
-    {
-      name: 'Destinations',
-      value: '8',
-      change: '+2',
-      changeType: 'positive',
-      icon: MapPin,
-      href: '/admin/destinations'
-    },
-    {
-      name: 'Total Bookings',
-      value: '156',
-      change: '+23%',
-      changeType: 'positive',
-      icon: Calendar,
-      href: '/admin/bookings'
-    },
-    {
-      name: 'Revenue',
-      value: '$45,231',
-      change: '+20.1%',
-      changeType: 'positive',
-      icon: DollarSign,
-      href: '/admin/bookings'
-    }
+    { name: 'Total Tours', value: '—', change: '', changeType: 'positive' as const, icon: Package, href: '/admin/tours' },
+    { name: 'Destinations', value: '—', change: '', changeType: 'positive' as const, icon: MapPin, href: '/admin/destinations' },
+    { name: 'Total Bookings', value: '—', change: '', changeType: 'positive' as const, icon: Calendar, href: '/admin/bookings' },
+    { name: 'Revenue', value: '—', change: '', changeType: 'positive' as const, icon: DollarSign, href: '/admin/bookings' }
   ])
 
-  // Function to fetch chat count
   const fetchChatCount = async () => {
     try {
       const res = await fetch('/api/chat/conversations?status=all')
@@ -96,6 +67,26 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error fetching chat count:', error)
+    }
+  }
+
+  const fetchToursAndDestinationsCount = async () => {
+    try {
+      const [toursRes, destRes] = await Promise.all([
+        fetch('/api/tours'),
+        fetch('/api/destinations')
+      ])
+      const toursJson = await toursRes.json()
+      const destJson = await destRes.json()
+      const toursCount = (toursJson.success && Array.isArray(toursJson.data)) ? toursJson.data.length : 0
+      const destCount = (destJson.success && Array.isArray(destJson.data)) ? destJson.data.length : 0
+      setStats(prev => prev.map(stat => {
+        if (stat.name === 'Total Tours') return { ...stat, value: String(toursCount) }
+        if (stat.name === 'Destinations') return { ...stat, value: String(destCount) }
+        return stat
+      }))
+    } catch (error) {
+      console.error('Error fetching tours/destinations count:', error)
     }
   }
 
@@ -178,6 +169,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchBookings()
     fetchChatCount()
+    fetchToursAndDestinationsCount()
   }, [])
 
   // Update stats when totalChats changes

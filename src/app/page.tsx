@@ -203,23 +203,15 @@ export default function HomePage() {
         setLoadingTours(true)
         setLoadingDestinations(true)
         
-        // Create a timeout promise
-        const timeoutPromise = (ms: number) => 
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Request timeout')), ms)
-          )
-        
-        // Fetch with timeout (10 seconds)
-        const fetchWithTimeout = async (url: string, timeout = 10000) => {
+        // Fetch with timeout (longer timeouts for slow/cold-start APIs)
+        const fetchWithTimeout = async (url: string, timeout = 20000) => {
           try {
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), timeout)
-            
             const response = await fetch(url, {
               signal: controller.signal,
-              next: { revalidate: 300 } // Cache for 5 minutes, revalidate in background
+              next: { revalidate: 300 }
             })
-            
             clearTimeout(timeoutId)
             return response
           } catch (error) {
@@ -233,8 +225,8 @@ export default function HomePage() {
         // Fetch featured tours and destinations in parallel (priority)
         try {
           const [toursRes, destinationsRes] = await Promise.allSettled([
-            fetchWithTimeout('/api/tours/featured', 10000),
-            fetchWithTimeout('/api/destinations?includeTourCount=false', 10000)
+            fetchWithTimeout('/api/tours/featured', 20000),
+            fetchWithTimeout('/api/destinations?includeTourCount=false', 20000)
           ])
           
           // Handle featured tours
@@ -246,7 +238,7 @@ export default function HomePage() {
                   const json = await toursRes.value.json()
                   if (json.success && json.data) {
                     const featured = (json.data || []).filter((t: Tour) => {
-                      const isValid = t && t.featured && t.id && t.name
+                      const isValid = t && t.id && t.name
                       return isValid
                     })
                     setFeaturedTours(featured)
@@ -305,7 +297,7 @@ export default function HomePage() {
         // Fetch all tours in the background (for search functionality) - lower priority
         // This doesn't block the initial render
         if (isMounted) {
-          fetchWithTimeout('/api/tours', 15000)
+          fetchWithTimeout('/api/tours', 25000)
             .then(async (res) => {
               if (isMounted && res.ok) {
                 const contentType = res.headers.get('content-type')
@@ -323,8 +315,11 @@ export default function HomePage() {
               }
             })
             .catch((error) => {
-              console.error('Error loading all tours (background):', error)
-              // Don't set loading state for background fetch
+              if (error instanceof Error && error.message === 'Request timeout') {
+                console.warn('All tours load timed out; using featured data only.')
+              } else {
+                console.error('Error loading all tours (background):', error)
+              }
             })
         }
       } catch (error) {
@@ -1378,19 +1373,19 @@ export default function HomePage() {
 
             {/* Dots Indicator - Active highlighting and click navigation */}
             {featuredTours && featuredTours.length > 0 && (
-            <div className="flex justify-center mt-4 sm:mt-6 space-x-2">
+            <div className="flex justify-center mt-3 sm:mt-4 space-x-1.5">
               {featuredTours.map((_: Tour, index: number) => (
                 <button
                   key={index}
                   onClick={() => goToSlide(index)}
-                  className={`w-3 h-3 sm:w-3 sm:h-3 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation ${
+                  className={`w-2 h-2 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 min-w-[28px] min-h-[28px] flex items-center justify-center touch-manipulation ${
                     index === currentSlide 
-                      ? 'bg-blue-600 dark:bg-blue-500 shadow-lg' 
+                      ? 'bg-blue-600 dark:bg-blue-500 shadow-md' 
                       : 'bg-gray-300 dark:bg-gray-600 hover:bg-blue-400 dark:hover:bg-blue-600'
                   }`}
                   aria-label={`Go to slide ${index + 1}`}
                 >
-                  <span className={`w-3 h-3 rounded-full ${
+                  <span className={`w-2 h-2 rounded-full block ${
                     index === currentSlide 
                       ? 'bg-white dark:bg-gray-200' 
                       : 'bg-gray-500 dark:bg-gray-400'
@@ -1656,14 +1651,14 @@ export default function HomePage() {
                     ))}
                   </div>
                 </div>
-                <div className="flex justify-center gap-2 mt-6">
+                <div className="flex justify-center gap-1.5 mt-4">
                   {Array.from({ length: Math.ceil(blogPosts.length / 3) }).map((_, i) => (
                     <button
                       key={i}
                       type="button"
                       aria-label={`Go to blog slide ${i + 1}`}
                       onClick={() => setBlogCarouselIndex(i)}
-                      className={`w-2 h-2 rounded-full transition-colors ${i === blogCarouselIndex ? 'bg-blue-600' : 'bg-gray-300'}`}
+                      className={`w-1.5 h-1.5 rounded-full transition-colors ${i === blogCarouselIndex ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
                     />
                   ))}
                 </div>
