@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { supabaseAdmin } from '@/lib/supabaseClient'
 
-// Persistent file-based storage for fallback
+// Persistent file-based storage for fallback (local only; Vercel filesystem is read-only)
 const FALLBACK_FILE = path.join(process.cwd(), 'data', 'blog.json')
 
-// Ensure data directory exists
 const ensureDataDir = () => {
   const dataDir = path.join(process.cwd(), 'data')
   if (!fs.existsSync(dataDir)) {
@@ -29,15 +29,66 @@ interface BlogPost {
   content: string
 }
 
-// Load blog posts from file
+type BlogRow = {
+  id: number
+  title: string
+  description: string | null
+  excerpt: string | null
+  author: string | null
+  date: string | null
+  read_time: string | null
+  image: string | null
+  video: string | null
+  category: string | null
+  status: string | null
+  tags: unknown
+  content: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+function rowToPost(row: BlogRow): BlogPost {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? '',
+    excerpt: row.excerpt ?? '',
+    author: row.author ?? '',
+    date: row.date ?? '',
+    readTime: row.read_time ?? '',
+    image: row.image ?? '',
+    video: row.video ?? null,
+    category: row.category ?? '',
+    status: row.status ?? 'Draft',
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    content: row.content ?? '',
+  }
+}
+
+function postToRow(post: Partial<BlogPost>): Record<string, unknown> {
+  return {
+    title: post.title,
+    description: post.description ?? null,
+    excerpt: post.excerpt ?? null,
+    author: post.author ?? null,
+    date: post.date ?? null,
+    read_time: post.readTime ?? null,
+    image: post.image ?? null,
+    video: post.video ?? null,
+    category: post.category ?? null,
+    status: post.status ?? 'Draft',
+    tags: post.tags ?? [],
+    content: post.content ?? null,
+  }
+}
+
 const loadFallbackBlogPosts = (): BlogPost[] => {
   try {
     ensureDataDir()
     if (fs.existsSync(FALLBACK_FILE)) {
       const data = fs.readFileSync(FALLBACK_FILE, 'utf8')
       const parsed = JSON.parse(data)
-      console.log('Loaded blog posts from file:', parsed.length)
-      return parsed
+      return Array.isArray(parsed) ? parsed : []
     }
   } catch (error) {
     console.error('Error loading fallback blog posts:', error)
@@ -45,48 +96,85 @@ const loadFallbackBlogPosts = (): BlogPost[] => {
   return []
 }
 
-// Save blog posts to file
 const saveFallbackBlogPosts = (posts: BlogPost[]) => {
   try {
     ensureDataDir()
     fs.writeFileSync(FALLBACK_FILE, JSON.stringify(posts, null, 2))
-    console.log('Blog posts saved to fallback file:', FALLBACK_FILE)
   } catch (error) {
     console.error('Error saving fallback blog posts:', error)
   }
 }
 
+const isSupabaseConfigured = () =>
+  !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY !== 'placeholder-service-key'
+  )
+
 export async function GET() {
   try {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await supabaseAdmin
+        .from('blog_posts')
+        .select('*')
+        .order('id', { ascending: false })
+
+      if (!error && data && data.length >= 0) {
+        const posts = (data as BlogRow[]).map(rowToPost)
+        return NextResponse.json(posts)
+      }
+      console.error('Supabase blog_posts fetch error:', error)
+    }
+
     const fallbackPosts = loadFallbackBlogPosts()
     return NextResponse.json(fallbackPosts)
   } catch (error: unknown) {
     console.error('Blog posts API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch blog posts' },
-      { status: 500 }
-    )
+    const fallbackPosts = loadFallbackBlogPosts()
+    return NextResponse.json(fallbackPosts)
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('POST /api/blog - Creating new blog post:', body)
-    
-    const fallbackPosts = loadFallbackBlogPosts()
-    const newPost = {
-      id: fallbackPosts.length > 0 ? Math.max(...fallbackPosts.map(post => post.id)) + 1 : 1,
-      ...body,
-      date: body.date || new Date().toISOString().split('T')[0],
-      status: body.status || 'Draft',
-      readTime: body.readTime || `${Math.ceil((body.content || '').split(' ').length / 200)} min read`
+    const readTime = body.readTime || `${Math.ceil((body.content || '').split(' ').length / 200)} min read`
+    const date = body.date || new Date().toISOString().split('T')[0]
+    const status = body.status || 'Draft'
+
+    if (isSupabaseConfigured()) {
+      const insertPayload = postToRow({
+        ...body,
+        readTime,
+        date,
+        status,
+      })
+      const { data, error } = await supabaseAdmin
+        .from('blog_posts')
+        .insert(insertPayload)
+        .select('*')
+        .single()
+
+      if (!error && data) {
+        const post = rowToPost(data as BlogRow)
+        return NextResponse.json(post, { status: 201 })
+      }
+      console.error('Supabase blog_posts insert error:', error)
     }
-    
-    const updatedPosts = [...fallbackPosts, newPost]
-    saveFallbackBlogPosts(updatedPosts)
-    
-    console.log('Blog post created successfully:', newPost.id)
+
+    const fallbackPosts = loadFallbackBlogPosts()
+    const newId = fallbackPosts.length > 0 ? Math.max(...fallbackPosts.map((p) => p.id)) + 1 : 1
+    const newPost: BlogPost = {
+      id: newId,
+      ...body,
+      date,
+      status,
+      readTime,
+    }
+    fallbackPosts.unshift(newPost)
+    saveFallbackBlogPosts(fallbackPosts)
     return NextResponse.json(newPost, { status: 201 })
   } catch (error: unknown) {
     console.error('Create blog post error:', error)
@@ -100,25 +188,38 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, ...updateData } = body
-    console.log('PUT /api/blog - Updating blog post:', id)
-    
-    const fallbackPosts = loadFallbackBlogPosts()
-    const postIndex = fallbackPosts.findIndex(post => String(post.id) === String(id))
-    
-    if (postIndex === -1) {
-      return NextResponse.json(
-        { error: 'Blog post not found' },
-        { status: 404 }
-      )
+    const { id, ...rest } = body
+    if (id == null) {
+      return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
-    
-    const updatedPost = { ...fallbackPosts[postIndex], ...updateData }
-    fallbackPosts[postIndex] = updatedPost
+
+    if (isSupabaseConfigured()) {
+      const updatePayload = postToRow(rest)
+      const { data, error } = await supabaseAdmin
+        .from('blog_posts')
+        .update({ ...updatePayload, updated_at: new Date().toISOString() })
+        .eq('id', Number(id))
+        .select('*')
+        .single()
+
+      if (!error && data) {
+        return NextResponse.json(rowToPost(data as BlogRow))
+      }
+      if (error?.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Blog post not found' }, { status: 404 })
+      }
+      console.error('Supabase blog_posts update error:', error)
+    }
+
+    const fallbackPosts = loadFallbackBlogPosts()
+    const idx = fallbackPosts.findIndex((p) => String(p.id) === String(id))
+    if (idx === -1) {
+      return NextResponse.json({ error: 'Blog post not found' }, { status: 404 })
+    }
+    const updated = { ...fallbackPosts[idx], ...rest }
+    fallbackPosts[idx] = updated
     saveFallbackBlogPosts(fallbackPosts)
-    
-    console.log('Blog post updated successfully:', id)
-    return NextResponse.json(updatedPost)
+    return NextResponse.json(updated)
   } catch (error: unknown) {
     console.error('Update blog post error:', error)
     return NextResponse.json(
@@ -131,24 +232,34 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const id = parseInt(searchParams.get('id') || '0')
-    console.log('DELETE /api/blog - Deleting blog post:', id)
-    
-    const fallbackPosts = loadFallbackBlogPosts()
-    const postIndex = fallbackPosts.findIndex(post => post.id === id)
-    
-    if (postIndex === -1) {
-      return NextResponse.json(
-        { error: 'Blog post not found' },
-        { status: 404 }
-      )
+    const id = searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
-    
-    const deletedPost = fallbackPosts.splice(postIndex, 1)[0]
+
+    if (isSupabaseConfigured()) {
+      const { error } = await supabaseAdmin
+        .from('blog_posts')
+        .delete()
+        .eq('id', Number(id))
+
+      if (!error) {
+        return NextResponse.json({ deleted: true })
+      }
+      if (error?.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Blog post not found' }, { status: 404 })
+      }
+      console.error('Supabase blog_posts delete error:', error)
+    }
+
+    const fallbackPosts = loadFallbackBlogPosts()
+    const idx = fallbackPosts.findIndex((p) => p.id === Number(id))
+    if (idx === -1) {
+      return NextResponse.json({ error: 'Blog post not found' }, { status: 404 })
+    }
+    const deleted = fallbackPosts.splice(idx, 1)[0]
     saveFallbackBlogPosts(fallbackPosts)
-    
-    console.log('Blog post deleted successfully:', id)
-    return NextResponse.json(deletedPost)
+    return NextResponse.json(deleted)
   } catch (error: unknown) {
     console.error('Delete blog post error:', error)
     return NextResponse.json(
