@@ -113,6 +113,9 @@ const isSupabaseConfigured = () =>
     process.env.SUPABASE_SERVICE_ROLE_KEY !== 'placeholder-service-key'
   )
 
+// On Vercel the filesystem is read-only; file fallback would not persist. Only use Supabase.
+const isVercel = process.env.VERCEL === '1'
+
 export async function GET() {
   try {
     if (isSupabaseConfigured()) {
@@ -144,6 +147,16 @@ export async function POST(request: NextRequest) {
     const date = body.date || new Date().toISOString().split('T')[0]
     const status = body.status || 'Draft'
 
+    // On Vercel we must use Supabase; file writes do not persist
+    if (isVercel && !isSupabaseConfigured()) {
+      return NextResponse.json(
+        {
+          error: 'Blog storage not configured on Vercel. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel env, and create the blog_posts table in Supabase (see supabase/migrations).',
+        },
+        { status: 503 }
+      )
+    }
+
     if (isSupabaseConfigured()) {
       const insertPayload = postToRow({
         ...body,
@@ -162,6 +175,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(post, { status: 201 })
       }
       console.error('Supabase blog_posts insert error:', error)
+      // On Vercel do not fall back to file; return the real error so user can fix (e.g. create table)
+      if (isVercel) {
+        const message = (error as { message?: string })?.message ?? String(error)
+        return NextResponse.json(
+          {
+            error: 'Failed to create blog post in database.',
+            details: message.includes('does not exist') ? 'Create the blog_posts table in Supabase (SQL in supabase/migrations/20250215000000_create_blog_posts.sql).' : message,
+          },
+          { status: 500 }
+        )
+      }
     }
 
     const fallbackPosts = loadFallbackBlogPosts()
@@ -193,6 +217,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
 
+    if (isVercel && !isSupabaseConfigured()) {
+      return NextResponse.json(
+        { error: 'Blog storage not configured on Vercel. Add Supabase env vars and create blog_posts table.' },
+        { status: 503 }
+      )
+    }
+
     if (isSupabaseConfigured()) {
       const updatePayload = postToRow(rest)
       const { data, error } = await supabaseAdmin
@@ -209,6 +240,13 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Blog post not found' }, { status: 404 })
       }
       console.error('Supabase blog_posts update error:', error)
+      if (isVercel) {
+        const message = (error as { message?: string })?.message ?? String(error)
+        return NextResponse.json(
+          { error: 'Failed to update blog post.', details: message.includes('does not exist') ? 'Create the blog_posts table in Supabase.' : message },
+          { status: 500 }
+        )
+      }
     }
 
     const fallbackPosts = loadFallbackBlogPosts()
@@ -237,6 +275,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
 
+    if (isVercel && !isSupabaseConfigured()) {
+      return NextResponse.json(
+        { error: 'Blog storage not configured on Vercel.' },
+        { status: 503 }
+      )
+    }
+
     if (isSupabaseConfigured()) {
       const { error } = await supabaseAdmin
         .from('blog_posts')
@@ -250,6 +295,12 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Blog post not found' }, { status: 404 })
       }
       console.error('Supabase blog_posts delete error:', error)
+      if (isVercel) {
+        return NextResponse.json(
+          { error: 'Failed to delete blog post.', details: (error as { message?: string })?.message },
+          { status: 500 }
+        )
+      }
     }
 
     const fallbackPosts = loadFallbackBlogPosts()

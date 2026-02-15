@@ -68,7 +68,8 @@ export default function NewBlogPost() {
         // Redirect to blog list
         router.push('/admin/blog')
       } else {
-        setError(result.error || 'Failed to create blog post')
+        const msg = result.error || 'Failed to create blog post'
+        setError(result.details ? `${msg} ${result.details}` : msg)
       }
     } catch (error) {
       console.error('Error creating blog post:', error)

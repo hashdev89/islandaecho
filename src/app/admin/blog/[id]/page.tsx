@@ -124,7 +124,8 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
 
         if (!response.ok) {
           const result = await response.json()
-          throw new Error(result.error || 'Failed to create blog post')
+          const msg = result.error || 'Failed to create blog post'
+          throw new Error(result.details ? `${msg} ${result.details}` : msg)
         }
       } else {
         // Update existing post
@@ -138,7 +139,8 @@ export default function BlogPostEditor({ params }: { params: Promise<{ id: strin
 
         if (!response.ok) {
           const result = await response.json()
-          throw new Error(result.error || 'Failed to update blog post')
+          const msg = result.error || 'Failed to update blog post'
+          throw new Error(result.details ? `${msg} ${result.details}` : msg)
         }
       }
 
